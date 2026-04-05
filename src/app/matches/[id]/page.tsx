@@ -59,10 +59,10 @@ export default async function MatchPage({ params }: Props) {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="justify-items-center text-center">
           <CardTitle className="text-lg">Final score</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="text-center">
           <p className="font-mono text-4xl font-bold tabular-nums">
             {row.homeScore} – {row.awayScore}
           </p>
