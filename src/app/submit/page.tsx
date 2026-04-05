@@ -30,8 +30,9 @@ export default async function SubmitPage() {
       <div>
         <h1 className="text-2xl font-bold">Submit a score</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Share a U13 primary school result with supporting detail. Entries stay pending until a moderator
-          verifies them. Please be accurate — wrong information slows everyone down.
+          Share a U13 primary school result with supporting detail. Your entry is saved to the database as
+          soon as you submit and stays <strong className="font-medium">pending</strong> until a moderator
+          verifies it. Please be accurate — wrong information slows everyone down.
         </p>
       </div>
 

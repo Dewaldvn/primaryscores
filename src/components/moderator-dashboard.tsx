@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
 import {
   flexRender,
@@ -35,11 +35,16 @@ import {
   rejectSubmissionAction,
   flagNeedsReviewAction,
 } from "@/actions/moderation";
+import { defaultTeamIdFromSubmission } from "@/lib/moderation-defaults";
 
 export type ModRow = {
   id: string;
   proposedHomeTeamName: string;
   proposedAwayTeamName: string;
+  proposedHomeTeamId: string | null;
+  proposedAwayTeamId: string | null;
+  proposedSeasonId: string | null;
+  proposedCompetitionId: string | null;
   proposedMatchDate: string;
   proposedHomeScore: number;
   proposedAwayScore: number;
@@ -183,26 +188,75 @@ function ReviewDialog({
   const [open, setOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
+  const homeTeamDefault = useMemo(
+    () =>
+      defaultTeamIdFromSubmission(
+        row.proposedHomeTeamName,
+        row.proposedHomeTeamId,
+        teamOptions
+      ),
+    [row.proposedHomeTeamName, row.proposedHomeTeamId, teamOptions]
+  );
+
+  const awayTeamDefault = useMemo(
+    () =>
+      defaultTeamIdFromSubmission(
+        row.proposedAwayTeamName,
+        row.proposedAwayTeamId,
+        teamOptions
+      ),
+    [row.proposedAwayTeamName, row.proposedAwayTeamId, teamOptions]
+  );
+
+  const seasonDefault = useMemo(() => {
+    const id = row.proposedSeasonId;
+    if (id && seasonOptions.some((s) => s.id === id)) return id;
+    return "";
+  }, [row.proposedSeasonId, seasonOptions]);
+
+  const competitionDefault = useMemo(() => {
+    const id = row.proposedCompetitionId;
+    if (id && competitionOptions.some((c) => c.id === id)) return id;
+    return "";
+  }, [row.proposedCompetitionId, competitionOptions]);
+
+  const [homeTeamSel, setHomeTeamSel] = useState("");
+  const [awayTeamSel, setAwayTeamSel] = useState("");
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    setHomeTeamSel(homeTeamDefault);
+    setAwayTeamSel(awayTeamDefault);
+  }, [open, homeTeamDefault, awayTeamDefault]);
+
   function approveForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     setBusy(row.id);
     void (async () => {
+      const vl = fd.get("verificationLevel");
       const res = await approveSubmissionAction({
         submissionId: row.id,
-        homeTeamId: String(fd.get("homeTeamId")),
-        awayTeamId: String(fd.get("awayTeamId")),
-        seasonId: String(fd.get("seasonId")),
-        competitionId: String(fd.get("competitionId")),
+        homeTeamId: homeTeamSel,
+        awayTeamId: awayTeamSel,
+        seasonId: String(fd.get("seasonId") ?? ""),
+        competitionId: String(fd.get("competitionId") ?? ""),
         matchDate: String(fd.get("matchDate")),
         homeScore: fd.get("homeScore"),
         awayScore: fd.get("awayScore"),
         venue: fd.get("venue") || null,
-        verificationLevel: fd.get("verificationLevel"),
+        verificationLevel:
+          vl === "SOURCE_VERIFIED" ? "SOURCE_VERIFIED" : "MODERATOR_VERIFIED",
       });
       setBusy(null);
       if (!res.ok) {
-        toast.error("Could not approve");
+        const err =
+          "error" in res && res.error
+            ? String(res.error)
+            : "fieldErrors" in res && res.fieldErrors
+              ? Object.values(res.fieldErrors).flat().join("; ") || "Validation failed"
+              : "Could not approve";
+        toast.error(err);
         return;
       }
       toast.success("Approved and published");
@@ -231,10 +285,8 @@ function ReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
-        <Button size="sm" variant="secondary">
-          Review
-        </Button>
+      <DialogTrigger render={<Button size="sm" variant="secondary" />}>
+        Review
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
@@ -257,8 +309,12 @@ function ReviewDialog({
           {row.notes && <p className="rounded bg-muted p-2 text-xs">{row.notes}</p>}
         </div>
 
-        <form onSubmit={approveForm} className="space-y-3 border-t pt-4">
+        <form key={`approve-${row.id}`} onSubmit={approveForm} className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">Approve & publish</p>
+          <p className="text-xs text-muted-foreground">
+            Teams default from the submission (IDs or closest school name match). Change the dropdown if the
+            spelling differs.
+          </p>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1">
               <Label>Home team</Label>
@@ -266,7 +322,8 @@ function ReviewDialog({
                 name="homeTeamId"
                 required
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                defaultValue=""
+                value={homeTeamSel}
+                onChange={(e) => setHomeTeamSel(e.target.value)}
               >
                 <option value="">Select…</option>
                 {teamOptions.map((t) => (
@@ -275,6 +332,7 @@ function ReviewDialog({
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-muted-foreground">Submitted: {row.proposedHomeTeamName}</p>
             </div>
             <div className="space-y-1">
               <Label>Away team</Label>
@@ -282,7 +340,8 @@ function ReviewDialog({
                 name="awayTeamId"
                 required
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                defaultValue=""
+                value={awayTeamSel}
+                onChange={(e) => setAwayTeamSel(e.target.value)}
               >
                 <option value="">Select…</option>
                 {teamOptions.map((t) => (
@@ -291,16 +350,16 @@ function ReviewDialog({
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-muted-foreground">Submitted: {row.proposedAwayTeamName}</p>
             </div>
             <div className="space-y-1">
-              <Label>Season</Label>
+              <Label>Season (optional)</Label>
               <select
                 name="seasonId"
-                required
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                defaultValue=""
+                defaultValue={seasonDefault}
               >
-                <option value="">Select…</option>
+                <option value="">Not set</option>
                 {seasonOptions.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.label}
@@ -309,14 +368,13 @@ function ReviewDialog({
               </select>
             </div>
             <div className="space-y-1">
-              <Label>Competition</Label>
+              <Label>Competition (optional)</Label>
               <select
                 name="competitionId"
-                required
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-                defaultValue=""
+                defaultValue={competitionDefault}
               >
-                <option value="">Select…</option>
+                <option value="">Not set</option>
                 {competitionOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.label}

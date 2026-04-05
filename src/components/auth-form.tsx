@@ -8,6 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 
+/** Only allow same-origin relative paths (avoids open redirects). */
+function safeRedirectPath(path: string, fallback = "/"): string {
+  const p = path.trim() || fallback;
+  if (!p.startsWith("/") || p.startsWith("//")) return fallback;
+  return p;
+}
+
 export function AuthForm({
   mode,
   redirectTo,
@@ -24,11 +31,11 @@ export function AuthForm({
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email") ?? "");
     const password = String(fd.get("password") ?? "");
-    const supabase = createClient();
 
     try {
       if (mode === "signup") {
-        const site = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+        const supabase = createClient();
+        const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || window.location.origin;
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -38,10 +45,19 @@ export function AuthForm({
         toast.success("Check your email to confirm, then sign in.");
         router.push("/login");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        router.push(redirectTo);
-        router.refresh();
+        const next = safeRedirectPath(redirectTo);
+        const res = await fetch("/api/auth/sign-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password, redirect: next }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string; redirectTo?: string };
+        if (!res.ok || !data.ok) {
+          toast.error(data.error ?? "Sign in failed");
+          return;
+        }
+        window.location.assign(data.redirectTo ?? next);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Authentication failed";

@@ -54,6 +54,14 @@ export async function upsertSchoolAction(input: unknown) {
     })
     .returning({ id: schools.id });
 
+  await db.insert(teams).values({
+    schoolId: inserted.id,
+    ageGroup: "U13",
+    teamLabel: "A",
+    isFirstTeam: true,
+    active: true,
+  });
+
   return { ok: true as const, id: inserted.id };
 }
 

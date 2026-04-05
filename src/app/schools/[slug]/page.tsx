@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
+import { SchoolLogo } from "@/components/school-logo";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
@@ -27,9 +29,19 @@ export default async function SchoolPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
+      <AdminPublicShortcuts
+        links={[
+          { href: "/admin/schools", label: "Schools directory" },
+          { href: "/admin/teams", label: "Teams" },
+          { href: "/admin/scores", label: "Scores" },
+        ]}
+      />
       <div>
         <p className="text-sm text-muted-foreground">{school.provinceName}</p>
-        <h1 className="text-3xl font-bold">{school.displayName}</h1>
+        <h1 className="flex flex-wrap items-center gap-3 text-3xl font-bold">
+          <SchoolLogo logoPath={school.logoPath} alt="" size="xl" />
+          {school.displayName}
+        </h1>
         <p className="text-sm text-muted-foreground">{school.officialName}</p>
         {(school.town || school.district) && (
           <p className="mt-1 text-sm">
@@ -71,12 +83,14 @@ export default async function SchoolPage({ params }: Props) {
           <p className="text-sm text-muted-foreground">No verified fixtures recorded yet.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {summary.map((s) => (
-              <Card key={s.seasonId}>
+            {summary.map((s, idx) => (
+              <Card key={s.seasonId ?? `no-season-${idx}`}>
                 <CardHeader className="py-3">
                   <CardTitle className="text-base">
-                    {s.seasonName}{" "}
-                    <span className="font-normal text-muted-foreground">({s.seasonYear})</span>
+                    {s.seasonName ?? "Season not set"}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      ({s.seasonYear ?? "—"})
+                    </span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pb-3 text-sm text-muted-foreground">
@@ -99,14 +113,20 @@ export default async function SchoolPage({ params }: Props) {
                 <Card>
                   <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <div className="font-medium">
-                        <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
-                          {r.homeSchoolName}
-                        </Link>
-                        <span className="text-muted-foreground"> vs </span>
-                        <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
-                          {r.awaySchoolName}
-                        </Link>
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="sm" />
+                          <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+                            {r.homeSchoolName}
+                          </Link>
+                        </span>
+                        <span className="text-muted-foreground">vs</span>
+                        <span className="inline-flex items-center gap-2">
+                          <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="sm" />
+                          <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                            {r.awaySchoolName}
+                          </Link>
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {r.matchDate

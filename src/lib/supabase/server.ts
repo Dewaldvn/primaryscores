@@ -18,8 +18,10 @@ export function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
-            /* ignore when called from Server Component */
+          } catch (e) {
+            if (process.env.NODE_ENV === "development") {
+              console.error("[supabase server] cookie setAll failed (expected in some Server Component reads):", e);
+            }
           }
         },
       },

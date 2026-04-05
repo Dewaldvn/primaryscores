@@ -17,6 +17,10 @@ export const metadata: Metadata = {
   },
   description:
     "Historical U13 primary school rugby results for South Africa — browse verified scores, seasons, and schools.",
+  icons: {
+    icon: [{ url: "/brand/site-logo.png", type: "image/png" }],
+    apple: "/brand/site-logo.png",
+  },
 };
 
 export default function RootLayout({

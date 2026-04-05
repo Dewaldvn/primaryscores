@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
+import { SchoolLogo } from "@/components/school-logo";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
@@ -18,6 +20,12 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
+      <AdminPublicShortcuts
+        links={[
+          { href: "/admin/seasons#admin-competitions-section", label: "Manage competitions" },
+          { href: "/admin/scores", label: "Manage scores" },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-bold">{comp.name}</h1>
         <p className="text-sm text-muted-foreground">
@@ -38,14 +46,22 @@ export default async function CompetitionDetailPage({ params }: Props) {
               <Card>
                 <CardContent className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm">
-                    <Link href={`/schools/${r.homeSchoolSlug}`} className="font-medium hover:underline">
-                      {r.homeSchoolName}
-                    </Link>
-                    <span className="text-muted-foreground"> vs </span>
-                    <Link href={`/schools/${r.awaySchoolSlug}`} className="font-medium hover:underline">
-                      {r.awaySchoolName}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="inline-flex items-center gap-2">
+                        <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="sm" />
+                        <Link href={`/schools/${r.homeSchoolSlug}`} className="font-medium hover:underline">
+                          {r.homeSchoolName}
+                        </Link>
+                      </span>
+                      <span className="text-muted-foreground">vs</span>
+                      <span className="inline-flex items-center gap-2">
+                        <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="sm" />
+                        <Link href={`/schools/${r.awaySchoolSlug}`} className="font-medium hover:underline">
+                          {r.awaySchoolName}
+                        </Link>
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
                       {r.seasonName} ·{" "}
                       {r.matchDate
                         ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")

@@ -43,3 +43,16 @@ export const competitionUpsertSchema = z.object({
   level: z.string().optional().nullable(),
   active: z.coerce.boolean().optional().default(true),
 });
+
+export const adminResultUpdateSchema = z.object({
+  resultId: z.string().uuid(),
+  homeScore: z.coerce.number().int().min(0).max(500),
+  awayScore: z.coerce.number().int().min(0).max(500),
+  matchDate: z.string().min(1, "Match date required"),
+  venue: z.preprocess(
+    (v) => (v === "" || v == null ? null : String(v).trim() || null),
+    z.string().nullable().optional()
+  ),
+  isVerified: z.coerce.boolean(),
+  verificationLevel: z.enum(["SUBMITTED", "MODERATOR_VERIFIED", "SOURCE_VERIFIED"]),
+});

@@ -57,14 +57,16 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
       awaySchoolName: awaySchool.displayName,
       homeSchoolSlug: homeSchool.slug,
       awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
       competitionName: competitions.name,
       seasonName: seasons.name,
       provinceName: provinces.name,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
-    .innerJoin(competitions, eq(fixtures.competitionId, competitions.id))
-    .innerJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
     .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
     .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))
@@ -84,7 +86,8 @@ export async function countVerifiedResults(filters: ResultListFilters) {
     .select({ n: count() })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
-    .innerJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
     .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
     .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))
@@ -115,14 +118,16 @@ export async function listVerifiedResults(filters: ResultListFilters) {
       awaySchoolName: awaySchool.displayName,
       homeSchoolSlug: homeSchool.slug,
       awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
       competitionName: competitions.name,
       seasonName: seasons.name,
       provinceName: provinces.name,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
-    .innerJoin(competitions, eq(fixtures.competitionId, competitions.id))
-    .innerJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
     .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
     .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))
@@ -200,6 +205,8 @@ export async function getMatchDetails(fixtureId: string) {
       awaySchoolName: awaySchool.displayName,
       homeSchoolSlug: homeSchool.slug,
       awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
       homeTeamLabel: homeTeam.teamLabel,
       awayTeamLabel: awayTeam.teamLabel,
       competitionName: competitions.name,
@@ -208,8 +215,8 @@ export async function getMatchDetails(fixtureId: string) {
       provinceName: provinces.name,
     })
     .from(fixtures)
-    .innerJoin(seasons, eq(fixtures.seasonId, seasons.id))
-    .innerJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
     .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
     .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))

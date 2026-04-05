@@ -6,6 +6,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="space-y-6">
       <nav className="flex flex-wrap gap-2 border-b pb-3 text-sm">
+        <Link href="/admin/scores" className="font-medium text-primary hover:underline">
+          Scores
+        </Link>
         <Link href="/admin/schools" className="text-primary hover:underline">
           Schools
         </Link>

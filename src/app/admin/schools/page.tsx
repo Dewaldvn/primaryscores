@@ -9,7 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSchoolForm } from "@/components/admin-school-form";
+import { SchoolLogo } from "@/components/school-logo";
 import { adminListSchools } from "@/lib/data/admin";
+import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listProvinces } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
@@ -17,6 +19,7 @@ export default async function AdminSchoolsPage() {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Configure DATABASE_URL first.</p>;
   }
+  await ensureU13TeamsForSchoolsMissingThem();
   const [rows, provinces] = await Promise.all([adminListSchools(), listProvinces()]);
 
   return (
@@ -34,6 +37,7 @@ export default async function AdminSchoolsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-14">Logo</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Province</TableHead>
                 <TableHead>Town</TableHead>
@@ -44,16 +48,25 @@ export default async function AdminSchoolsPage() {
             <TableBody>
               {rows.map((r) => (
                 <TableRow key={r.school.id}>
+                  <TableCell>
+                    <SchoolLogo logoPath={r.school.logoPath} alt="" size="xs" />
+                  </TableCell>
                   <TableCell className="font-medium">{r.school.displayName}</TableCell>
                   <TableCell>{r.provinceName}</TableCell>
                   <TableCell>{r.school.town}</TableCell>
                   <TableCell className="font-mono text-xs">{r.school.slug}</TableCell>
-                  <TableCell>
+                  <TableCell className="space-x-3 whitespace-nowrap">
+                    <Link
+                      href={`/admin/schools/${r.school.id}`}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Edit
+                    </Link>
                     <Link
                       href={`/schools/${r.school.slug}`}
                       className="text-sm text-primary hover:underline"
                     >
-                      Public page
+                      Public
                     </Link>
                   </TableCell>
                 </TableRow>

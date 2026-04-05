@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -75,6 +76,8 @@ export const schools = pgTable(
     district: text("district"),
     town: text("town"),
     website: text("website"),
+    /** Storage object path within bucket `school-logos` (public), e.g. `{schoolId}/logo.png`. */
+    logoPath: text("logo_path"),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -135,12 +138,8 @@ export const fixtures = pgTable(
   "fixtures",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    seasonId: uuid("season_id")
-      .notNull()
-      .references(() => seasons.id),
-    competitionId: uuid("competition_id")
-      .notNull()
-      .references(() => competitions.id),
+    seasonId: uuid("season_id").references(() => seasons.id),
+    competitionId: uuid("competition_id").references(() => competitions.id),
     matchDate: date("match_date").notNull(),
     homeTeamId: uuid("home_team_id")
       .notNull()
@@ -187,7 +186,13 @@ export const results = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [uniqueIndex("results_fixture_id_unique").on(t.fixtureId)]
+  (t) => [
+    uniqueIndex("results_fixture_id_unique").on(t.fixtureId),
+    /** Speeds up home / results listing; avoids statement_timeout on full scans. */
+    index("results_verified_published_at_idx")
+      .on(t.publishedAt.desc())
+      .where(sql`${t.isVerified} = true and ${t.publishedAt} is not null`),
+  ]
 );
 
 export const submissions = pgTable(

@@ -30,6 +30,7 @@ export async function searchSchools(q: string, limit = 30) {
       slug: schools.slug,
       town: schools.town,
       provinceName: provinces.name,
+      logoPath: schools.logoPath,
       u13TeamId: teams.id,
     })
     .from(schools)
@@ -62,6 +63,7 @@ export async function getSchoolBySlug(slug: string) {
       district: schools.district,
       town: schools.town,
       website: schools.website,
+      logoPath: schools.logoPath,
       provinceId: schools.provinceId,
       provinceName: provinces.name,
     })
@@ -98,6 +100,8 @@ export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) 
       awaySchoolName: awaySchool.displayName,
       homeSchoolSlug: homeSchool.slug,
       awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
       isHome: sql<boolean>`${homeSchool.id} = ${schoolId}`,
     })
     .from(results)
@@ -127,7 +131,7 @@ export async function getSchoolSeasonSummary(schoolId: string) {
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
-    .innerJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
     .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
     .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
     .where(

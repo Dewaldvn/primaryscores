@@ -1,0 +1,1 @@
+CREATE INDEX "results_verified_published_at_idx" ON "results" USING btree ("published_at" DESC NULLS LAST) WHERE "results"."is_verified" = true and "results"."published_at" is not null;

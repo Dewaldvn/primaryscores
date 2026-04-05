@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
+import { SchoolLogo } from "@/components/school-logo";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/link-button";
@@ -12,10 +14,19 @@ import { isDatabaseConfigured } from "@/lib/db-safe";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
 
+function isStatementTimeoutMessage(msg: string): boolean {
+  return /statement timeout|57014|canceling statement/i.test(msg);
+}
+
 export default async function HomePage() {
   let provinces: Awaited<ReturnType<typeof listProvinces>> = [];
   let recent: Awaited<ReturnType<typeof getRecentVerifiedResults>> = [];
+  /** Whole-page failure (e.g. request timeout before any query settled). */
   let databaseLoadError: string | null = null;
+  /** One query failed; the other may still have data. */
+  let provincesLoadError: string | null = null;
+  let recentLoadError: string | null = null;
+
   if (isDatabaseConfigured()) {
     try {
       const settled = await withTimeout(
@@ -25,14 +36,13 @@ export default async function HomePage() {
       const [rp, rr] = settled;
       provinces = rp.status === "fulfilled" ? rp.value : [];
       recent = rr.status === "fulfilled" ? rr.value : [];
-      const firstErr =
-        rp.status === "rejected"
-          ? rp.reason
-          : rr.status === "rejected"
-            ? rr.reason
-            : null;
-      if (firstErr) {
-        throw firstErr instanceof Error ? firstErr : new Error(String(firstErr));
+      if (rp.status === "rejected") {
+        provincesLoadError =
+          rp.reason instanceof Error ? rp.reason.message : String(rp.reason);
+      }
+      if (rr.status === "rejected") {
+        recentLoadError =
+          rr.reason instanceof Error ? rr.reason.message : String(rr.reason);
       }
     } catch (e) {
       databaseLoadError = e instanceof Error ? e.message : "Database connection failed";
@@ -44,6 +54,13 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-12">
+      <AdminPublicShortcuts
+        links={[
+          { href: "/admin/scores", label: "Scores" },
+          { href: "/admin/seasons", label: "Seasons & competitions" },
+          { href: "/admin/schools", label: "Schools" },
+        ]}
+      />
       {databaseLoadError ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader className="pb-2">
@@ -61,6 +78,19 @@ export default async function HomePage() {
               password from Supabase (Connect → Transaction pooler URI; reset DB password under Project Settings → Database if needed). Then run{" "}
               <code className="rounded bg-background px-1 py-0.5 text-xs">npm run db:seed</code>.
             </p>
+          </CardContent>
+        </Card>
+      ) : null}
+      {!databaseLoadError && provincesLoadError ? (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-destructive">Could not load provinces</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {process.env.NODE_ENV === "development" ? (
+              <p className="mb-2 break-words font-mono text-xs text-destructive/90">{provincesLoadError}</p>
+            ) : null}
+            <p>Check <code className="text-xs">DATABASE_URL</code> and that migrations are applied.</p>
           </CardContent>
         </Card>
       ) : null}
@@ -93,7 +123,7 @@ export default async function HomePage() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Provinces</h2>
-        {provinces.length === 0 && !databaseLoadError ? (
+        {provinces.length === 0 && !databaseLoadError && !provincesLoadError ? (
           <p className="text-sm text-muted-foreground">
             Configure <code className="text-xs">DATABASE_URL</code> and run the seed script to load provinces.
           </p>
@@ -118,7 +148,29 @@ export default async function HomePage() {
             View all
           </LinkButton>
         </div>
-        {recent.length === 0 && !databaseLoadError ? (
+        {recentLoadError ? (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="space-y-2 py-6 text-sm">
+              <p className="font-medium text-destructive">Recent results timed out or failed to load.</p>
+              {process.env.NODE_ENV === "development" ? (
+                <p className="break-words font-mono text-xs text-destructive/90">{recentLoadError}</p>
+              ) : null}
+              {isStatementTimeoutMessage(recentLoadError) ? (
+                <p className="text-muted-foreground">
+                  Run the latest SQL migration in Supabase (SQL Editor): it adds index{" "}
+                  <code className="rounded bg-background px-1 text-xs">results_verified_published_at_idx</code> — see{" "}
+                  <code className="text-xs">supabase/migrations/00002_results_verified_published_idx.sql</code>. Or run{" "}
+                  <code className="text-xs">npx drizzle-kit push</code> against this database.
+                </p>
+              ) : (
+                <p className="text-muted-foreground">
+                  If this persists, confirm migrations are applied and <code className="text-xs">DATABASE_URL</code>{" "}
+                  points at your Supabase pooler.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : recent.length === 0 && !databaseLoadError ? (
           <Card>
             <CardContent className="py-10 text-center text-sm text-muted-foreground">
               No verified results yet. Seed the database or approve submissions in moderation.
@@ -131,19 +183,21 @@ export default async function HomePage() {
                 <CardHeader className="border-b bg-muted/30 py-3">
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="text-base font-medium leading-snug">
-                      <Link
-                        href={`/schools/${r.homeSchoolSlug}`}
-                        className="hover:underline"
-                      >
-                        {r.homeSchoolName}
-                      </Link>
-                      <span className="text-muted-foreground"> vs </span>
-                      <Link
-                        href={`/schools/${r.awaySchoolSlug}`}
-                        className="hover:underline"
-                      >
-                        {r.awaySchoolName}
-                      </Link>
+                      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="inline-flex items-center gap-2">
+                          <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
+                          <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+                            {r.homeSchoolName}
+                          </Link>
+                        </span>
+                        <span className="text-muted-foreground">vs</span>
+                        <span className="inline-flex items-center gap-2">
+                          <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
+                          <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                            {r.awaySchoolName}
+                          </Link>
+                        </span>
+                      </span>
                     </CardTitle>
                     <VerificationBadge level={r.verificationLevel} compact />
                   </div>
@@ -153,8 +207,8 @@ export default async function HomePage() {
                     {r.homeScore} – {r.awayScore}
                   </span>
                   <div className="text-right text-muted-foreground">
-                    <div>{r.competitionName}</div>
-                    <div>{r.seasonName}</div>
+                    <div>{r.competitionName ?? "—"}</div>
+                    <div>{r.seasonName ?? "—"}</div>
                     <div>
                       {r.matchDate
                         ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")

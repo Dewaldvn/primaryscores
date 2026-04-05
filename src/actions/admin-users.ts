@@ -1,9 +1,7 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { profiles } from "@/db/schema";
+import { updateUserRoleInDb } from "@/lib/backend/admin-users-service";
 import { requireRole } from "@/lib/auth";
 import type { ProfileRole } from "@/lib/auth";
 
@@ -20,10 +18,7 @@ export async function updateUserRoleAction(input: unknown) {
   }
   const { userId, role } = parsed.data;
 
-  await db
-    .update(profiles)
-    .set({ role: role as ProfileRole, updatedAt: new Date() })
-    .where(eq(profiles.id, userId));
+  await updateUserRoleInDb(userId, role as ProfileRole);
 
   return { ok: true as const };
 }

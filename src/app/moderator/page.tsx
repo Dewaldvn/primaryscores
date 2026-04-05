@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeratorDashboard } from "@/components/moderator-dashboard";
 import { listOpenSubmissions, moderatorSummary } from "@/lib/data/moderation";
 import { listAllTeamsForModeration } from "@/lib/data/admin";
+import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
@@ -9,6 +10,8 @@ export default async function ModeratorPage() {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Database not configured.</p>;
   }
+
+  await ensureU13TeamsForSchoolsMissingThem();
 
   const [subs, teams, seasons, comps, summary] = await Promise.all([
     listOpenSubmissions(),
@@ -22,6 +25,10 @@ export default async function ModeratorPage() {
     id: s.submission.id,
     proposedHomeTeamName: s.submission.proposedHomeTeamName,
     proposedAwayTeamName: s.submission.proposedAwayTeamName,
+    proposedHomeTeamId: s.submission.proposedHomeTeamId,
+    proposedAwayTeamId: s.submission.proposedAwayTeamId,
+    proposedSeasonId: s.submission.proposedSeasonId,
+    proposedCompetitionId: s.submission.proposedCompetitionId,
     proposedMatchDate: s.submission.proposedMatchDate,
     proposedHomeScore: s.submission.proposedHomeScore,
     proposedAwayScore: s.submission.proposedAwayScore,
@@ -35,7 +42,7 @@ export default async function ModeratorPage() {
 
   const teamOptions = teams.map((t) => ({
     teamId: t.teamId,
-    label: `${t.schoolName} — ${t.ageGroup} ${t.teamLabel}`,
+    label: `${t.schoolName} — ${t.ageGroup} ${t.teamLabel}${t.active ? "" : " (inactive)"}`,
   }));
 
   const seasonOptions = seasons.map((x) => ({

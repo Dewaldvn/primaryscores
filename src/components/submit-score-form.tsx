@@ -11,6 +11,7 @@ import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { submitScoreAction } from "@/actions/submissions";
 import { registerAttachmentAction } from "@/actions/attachments";
 import { createClient } from "@/lib/supabase/client";
+import { SchoolLogo } from "@/components/school-logo";
 
 type SchoolHit = {
   id: string;
@@ -18,6 +19,7 @@ type SchoolHit = {
   slug: string;
   town: string | null;
   provinceName: string;
+  logoPath: string | null;
   u13TeamId: string | null;
 };
 
@@ -173,7 +175,10 @@ export function SubmitScoreForm({
                       setHomeHits([]);
                     }}
                   >
-                    {h.displayName}
+                    <span className="flex items-center gap-2">
+                      <SchoolLogo logoPath={h.logoPath} alt="" size="xs" />
+                      {h.displayName}
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {h.town} · {h.provinceName}
                       {!h.u13TeamId ? " · no U13 team id" : ""}
@@ -216,7 +221,10 @@ export function SubmitScoreForm({
                       setAwayHits([]);
                     }}
                   >
-                    {h.displayName}
+                    <span className="flex items-center gap-2">
+                      <SchoolLogo logoPath={h.logoPath} alt="" size="xs" />
+                      {h.displayName}
+                    </span>
                     <span className="block text-xs text-muted-foreground">
                       {h.town} · {h.provinceName}
                     </span>

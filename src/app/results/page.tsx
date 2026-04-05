@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
+import { SchoolLogo } from "@/components/school-logo";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
@@ -96,6 +98,13 @@ export default async function ResultsPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
+      <AdminPublicShortcuts
+        links={[
+          { href: "/admin/scores", label: "Manage scores" },
+          { href: "/admin/seasons#admin-seasons-section", label: "Seasons" },
+          { href: "/admin/seasons#admin-competitions-section", label: "Competitions" },
+        ]}
+      />
       <div>
         <h1 className="text-2xl font-bold">Results archive</h1>
         <p className="text-sm text-muted-foreground">
@@ -133,17 +142,23 @@ export default async function ResultsPage({ searchParams }: Props) {
               <Card>
                 <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    <div className="font-medium">
-                      <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
-                        {r.homeSchoolName}
-                      </Link>
-                      <span className="text-muted-foreground"> vs </span>
-                      <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
-                        {r.awaySchoolName}
-                      </Link>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
+                      <span className="inline-flex items-center gap-2">
+                        <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
+                        <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+                          {r.homeSchoolName}
+                        </Link>
+                      </span>
+                      <span className="text-muted-foreground">vs</span>
+                      <span className="inline-flex items-center gap-2">
+                        <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
+                        <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                          {r.awaySchoolName}
+                        </Link>
+                      </span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {r.competitionName} · {r.seasonName}
+                      {[r.competitionName, r.seasonName].filter(Boolean).join(" · ") || "—"}
                       {r.provinceName ? ` · ${r.provinceName}` : ""}
                     </div>
                   </div>

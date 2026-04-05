@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -33,31 +34,39 @@ export function UserMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="outline" size="sm" className="max-w-[200px] truncate">
-          {displayName}
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button variant="outline" size="sm" className="max-w-[200px] truncate" />
+        }
+      >
+        {displayName}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <span className="truncate text-sm">{displayName}</span>
-            <span className="truncate text-xs text-muted-foreground">{email}</span>
-            <span className="text-xs text-muted-foreground">Role: {role}</span>
-          </div>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <span className="truncate text-sm">{displayName}</span>
+              <span className="truncate text-xs text-muted-foreground">{email}</span>
+              <span className="text-xs text-muted-foreground">Role: {role}</span>
+            </div>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push("/my-submissions")}>
-          My submissions
-        </DropdownMenuItem>
-        {(role === "MODERATOR" || role === "ADMIN") && (
-          <DropdownMenuItem onClick={() => router.push("/moderator")}>Moderation</DropdownMenuItem>
-        )}
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => router.push("/my-submissions")}>
+            My submissions
+          </DropdownMenuItem>
+          {(role === "MODERATOR" || role === "ADMIN") && (
+            <DropdownMenuItem onClick={() => router.push("/moderator")}>Moderation</DropdownMenuItem>
+          )}
         {role === "ADMIN" && (
-          <DropdownMenuItem onClick={() => router.push("/admin/schools")}>Admin</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/admin/scores")}>Admin</DropdownMenuItem>
         )}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void signOut()}>Sign out</DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onClick={() => void signOut()}>Sign out</DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
