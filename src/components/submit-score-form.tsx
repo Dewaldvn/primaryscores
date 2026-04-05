@@ -1,12 +1,22 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LinkButton } from "@/components/link-button";
 import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { submitScoreAction } from "@/actions/submissions";
 import { registerAttachmentAction } from "@/actions/attachments";
@@ -34,7 +44,10 @@ export function SubmitScoreForm({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<{
+    submissionId: string;
+    duplicateWarning: boolean;
+  } | null>(null);
   const [turnToken, setTurnToken] = useState<string | null>(null);
   const [homeQ, setHomeQ] = useState("");
   const [awayQ, setAwayQ] = useState("");
@@ -89,14 +102,6 @@ export function SubmitScoreForm({
         return;
       }
 
-      if (res.duplicateWarning) {
-        toast.message(
-          "Submitted — we flagged a possible duplicate pending review. Thanks for helping."
-        );
-      } else {
-        toast.success("Score submitted for moderation.");
-      }
-
       const file = (fd.get("evidence") as File | null) && (fd.get("evidence") as File).size > 0
         ? (fd.get("evidence") as File)
         : null;
@@ -119,22 +124,74 @@ export function SubmitScoreForm({
         }
       }
 
-      setDone(res.submissionId);
-      router.refresh();
+      setDone({
+        submissionId: res.submissionId,
+        duplicateWarning: res.duplicateWarning,
+      });
     });
+  }
+
+  function handleSubmitAnother(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    setDone(null);
+    router.refresh();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   if (done) {
     return (
-      <div className="rounded-lg border bg-muted/40 p-6 text-center">
-        <h2 className="text-lg font-semibold">Thank you</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Reference <span className="font-mono text-xs">{done}</span>. Moderators will review your submission.
-        </p>
-        <Button className="mt-4" variant="outline" onClick={() => setDone(null)}>
-          Submit another
-        </Button>
-      </div>
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader className="text-center sm:text-left">
+          <CardTitle className="text-xl sm:text-2xl">Thank you — we received your score</CardTitle>
+          <CardDescription className="text-base">
+            Your submission is saved and will stay pending until a moderator has reviewed it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
+          <p>
+            One of our moderators will assess your entry when they are on duty. They compare what you
+            sent with our schools and fixtures, then either publish it as a verified result, ask for a
+            bit more detail, or reject it if something does not check out. That usually takes a little
+            time, so you do not need to resend the same match unless we ask.
+          </p>
+          <p>
+            You can leave this page whenever you like — this message stays here until you start another
+            submission. If we need anything else, we will use the details tied to your account.
+          </p>
+          {done.duplicateWarning ? (
+            <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-amber-950 dark:text-amber-100">
+              We flagged that this might overlap with another pending submission about the same match.
+              Thanks for helping — a moderator will look at both and sort it out.
+            </p>
+          ) : null}
+          <p className="text-foreground">
+            <span className="font-medium text-foreground">Your reference ID</span>{" "}
+            <span className="break-all font-mono text-xs tracking-tight">{done.submissionId}</span>
+          </p>
+          <p>
+            See everything you have sent (and its status) on{" "}
+            <Link
+              href="/my-submissions"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              My submissions
+            </Link>
+            .
+          </p>
+        </CardContent>
+        <CardFooter className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center sm:gap-4">
+          <LinkButton href="/submit" onClick={handleSubmitAnother} className="w-full sm:w-auto">
+            Submit another score
+          </LinkButton>
+          <LinkButton
+            href="/my-submissions"
+            variant="outline"
+            className="w-full sm:w-auto"
+          >
+            View my submissions
+          </LinkButton>
+        </CardFooter>
+      </Card>
     );
   }
 
