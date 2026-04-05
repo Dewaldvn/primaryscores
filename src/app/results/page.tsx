@@ -1,0 +1,190 @@
+import Link from "next/link";
+import { format } from "date-fns";
+import { LinkButton } from "@/components/link-button";
+import { Card, CardContent } from "@/components/ui/card";
+import { VerificationBadge } from "@/components/verification-badge";
+import { listVerifiedResults } from "@/lib/data/results";
+import { listProvinces } from "@/lib/data/schools";
+import { adminListSchools } from "@/lib/data/admin";
+import { listSeasons, listCompetitions } from "@/lib/data/reference";
+import { isDatabaseConfigured } from "@/lib/db-safe";
+import { ResultsFilterForm } from "@/components/results-filter-form";
+import { withTimeout } from "@/lib/with-timeout";
+import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
+
+type Props = { searchParams: Record<string, string | string[] | undefined> };
+
+function resultsHref(
+  f: {
+    provinceId?: string;
+    schoolId?: string;
+    seasonId?: string;
+    competitionId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+  },
+  pageNum: number
+) {
+  const q = new URLSearchParams();
+  if (f.provinceId) q.set("province", f.provinceId);
+  if (f.schoolId) q.set("school", f.schoolId);
+  if (f.seasonId) q.set("season", f.seasonId);
+  if (f.competitionId) q.set("competition", f.competitionId);
+  if (f.dateFrom) q.set("from", f.dateFrom);
+  if (f.dateTo) q.set("to", f.dateTo);
+  if (f.search) q.set("search", f.search);
+  q.set("page", String(pageNum));
+  return `/results?${q.toString()}`;
+}
+
+export default async function ResultsPage({ searchParams }: Props) {
+  const sp = (k: string) => {
+    const v = searchParams[k];
+    return Array.isArray(v) ? v[0] : v;
+  };
+
+  const filters = {
+    provinceId: sp("province"),
+    schoolId: sp("school"),
+    seasonId: sp("season"),
+    competitionId: sp("competition"),
+    dateFrom: sp("from"),
+    dateTo: sp("to"),
+    search: sp("search"),
+    page: sp("page") ? Number(sp("page")) : 1,
+  };
+
+  let rows: Awaited<ReturnType<typeof listVerifiedResults>>["rows"] = [];
+  let total = 0;
+  let page = 1;
+  let pageSize = 15;
+
+  let provinces: Awaited<ReturnType<typeof listProvinces>> = [];
+  let schoolOptions: { id: string; label: string }[] = [];
+  let seasons: Awaited<ReturnType<typeof listSeasons>> = [];
+  let comps: Awaited<ReturnType<typeof listCompetitions>> = [];
+
+  if (isDatabaseConfigured()) {
+    try {
+      await withTimeout(
+        (async () => {
+          const list = await adminListSchools();
+          schoolOptions = list.map((s) => ({
+            id: s.school.id,
+            label: s.school.displayName,
+          }));
+          ;[provinces, seasons, comps] = await Promise.all([
+            listProvinces(),
+            listSeasons(),
+            listCompetitions(),
+          ]);
+          const res = await listVerifiedResults(filters);
+          rows = res.rows;
+          total = res.total;
+          page = res.page;
+          pageSize = res.pageSize;
+        })(),
+        PUBLIC_DB_QUERY_MS
+      );
+    } catch {
+      /* empty */
+    }
+  }
+
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Results archive</h1>
+        <p className="text-sm text-muted-foreground">
+          Verified U13 scores. Filters use case-insensitive partial matching for search.
+        </p>
+      </div>
+
+      <ResultsFilterForm
+        provinces={provinces}
+        schools={schoolOptions}
+        seasons={seasons}
+        competitions={comps.map((c) => ({ id: c.id, name: c.name }))}
+        initial={{
+          provinceId: filters.provinceId,
+          schoolId: filters.schoolId,
+          seasonId: filters.seasonId,
+          competitionId: filters.competitionId,
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          search: filters.search,
+        }}
+      />
+
+      {rows.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            No results match these filters, or the database is empty. Try clearing filters or seeding demo
+            data.
+          </CardContent>
+        </Card>
+      ) : (
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li key={r.resultId}>
+              <Card>
+                <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+                        {r.homeSchoolName}
+                      </Link>
+                      <span className="text-muted-foreground"> vs </span>
+                      <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                        {r.awaySchoolName}
+                      </Link>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.competitionName} · {r.seasonName}
+                      {r.provinceName ? ` · ${r.provinceName}` : ""}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-mono text-xl font-semibold tabular-nums">
+                      {r.homeScore} – {r.awayScore}
+                    </span>
+                    <VerificationBadge level={r.verificationLevel} />
+                    <div className="text-xs text-muted-foreground">
+                      {r.matchDate
+                        ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
+                        : ""}
+                    </div>
+                    <LinkButton href={`/matches/${r.fixtureId}`} size="sm" variant="outline">
+                      Details
+                    </LinkButton>
+                  </div>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {pages > 1 && (
+        <div className="flex justify-center gap-2">
+          {page > 1 && (
+            <LinkButton href={resultsHref(filters, page - 1)} variant="outline" size="sm">
+              Previous
+            </LinkButton>
+          )}
+          <span className="self-center text-sm text-muted-foreground">
+            Page {page} of {pages}
+          </span>
+          {page < pages && (
+            <LinkButton href={resultsHref(filters, page + 1)} variant="outline" size="sm">
+              Next
+            </LinkButton>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
