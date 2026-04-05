@@ -139,20 +139,35 @@ export default async function ResultsPage({ searchParams }: Props) {
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.resultId}>
-              <Card>
-                <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <Card className="relative transition-colors hover:bg-muted/30">
+                <Link
+                  href={`/matches/${r.fixtureId}`}
+                  className="absolute inset-0 z-[1] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  aria-label={`Match details: ${r.homeSchoolName} versus ${r.awaySchoolName}`}
+                >
+                  <span className="sr-only">
+                    View match details: {r.homeSchoolName} versus {r.awaySchoolName}
+                  </span>
+                </Link>
+                <CardContent className="relative z-[2] pointer-events-none flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
                       <span className="inline-flex items-center gap-2">
                         <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
-                        <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+                        <Link
+                          href={`/schools/${r.homeSchoolSlug}`}
+                          className="pointer-events-auto hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
                           {r.homeSchoolName}
                         </Link>
                       </span>
                       <span className="text-muted-foreground">vs</span>
                       <span className="inline-flex items-center gap-2">
                         <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
-                        <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                        <Link
+                          href={`/schools/${r.awaySchoolSlug}`}
+                          className="pointer-events-auto hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
                           {r.awaySchoolName}
                         </Link>
                       </span>
@@ -172,9 +187,6 @@ export default async function ResultsPage({ searchParams }: Props) {
                         ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
                         : ""}
                     </div>
-                    <LinkButton href={`/matches/${r.fixtureId}`} size="sm" variant="outline">
-                      Details
-                    </LinkButton>
                   </div>
                 </CardContent>
               </Card>
