@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/link-button";
 import { SchoolLogo } from "@/components/school-logo";
 
@@ -177,12 +178,24 @@ export function AdminScoresTable({
                 </TableCell>
                 <TableCell className="text-xs">
                   {r.isVerified ? (
-                    <span className="text-green-700 dark:text-green-400">Live</span>
+                    <Badge
+                      variant="secondary"
+                      className="bg-emerald-700/15 text-emerald-800 dark:text-emerald-400"
+                    >
+                      Live
+                    </Badge>
                   ) : (
-                    <span className="text-amber-700 dark:text-amber-400">Not verified</span>
+                    <Badge
+                      variant="secondary"
+                      className="bg-red-600/15 text-red-800 dark:text-red-300"
+                    >
+                      Non-verified
+                    </Badge>
                   )}
                   <br />
-                  <span className="text-muted-foreground">{r.verificationLevel}</span>
+                  <span className="text-muted-foreground">
+                    {r.isVerified ? r.verificationLevel : "Non-verified"}
+                  </span>
                 </TableCell>
                 <TableCell className="flex flex-col gap-1">
                   <Button type="button" variant="outline" size="sm" onClick={() => openEdit(r)}>
@@ -302,13 +315,24 @@ export function AdminScoresTable({
                 <Label>Verification level</Label>
                 <Select
                   value={editing.verificationLevel}
-                  onValueChange={(v) =>
+                  onValueChange={(v) => {
+                    const next = v as AdminScoreRowSerialized["verificationLevel"];
+                    // If admin selects "Non-verified" (stored as SUBMITTED), ensure we also flip isVerified off.
+                    // Otherwise, SUBMITTED would still be saved as "verified" which is confusing.
+                    if (next === "SUBMITTED") {
+                      setEditing({
+                        ...editing,
+                        isVerified: false,
+                        verificationLevel: "SUBMITTED",
+                      });
+                      return;
+                    }
                     setEditing({
                       ...editing,
-                      verificationLevel: v as AdminScoreRowSerialized["verificationLevel"],
-                    })
-                  }
-                  disabled={!editing.isVerified}
+                      isVerified: true,
+                      verificationLevel: next,
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -316,7 +340,7 @@ export function AdminScoresTable({
                   <SelectContent>
                     <SelectItem value="MODERATOR_VERIFIED">Moderator verified</SelectItem>
                     <SelectItem value="SOURCE_VERIFIED">Source verified</SelectItem>
-                    <SelectItem value="SUBMITTED">Submitted</SelectItem>
+                    <SelectItem value="SUBMITTED">Non-verified</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

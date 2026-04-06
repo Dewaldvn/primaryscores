@@ -42,6 +42,16 @@ export async function moderatorSummary() {
     .from(submissions)
     .where(eq(submissions.moderationStatus, "NEEDS_REVIEW"));
 
+  const [disputeRow] = await db
+    .select({ n: count() })
+    .from(submissions)
+    .where(
+      and(
+        eq(submissions.moderationStatus, "PENDING"),
+        sql`${submissions.notes} ilike 'DISPUTE:%'`
+      )
+    );
+
   const [todayRow] = await db
     .select({ n: count() })
     .from(submissions)
@@ -53,8 +63,9 @@ export async function moderatorSummary() {
     );
 
   return {
-    pending: pendingRow?.n ?? 0,
-    needsReview: needsRow?.n ?? 0,
+    // Disputes are displayed/treated as "Needs review" in the UI.
+    pending: (pendingRow?.n ?? 0) - (disputeRow?.n ?? 0),
+    needsReview: (needsRow?.n ?? 0) + (disputeRow?.n ?? 0),
     submittedToday: todayRow?.n ?? 0,
   };
 }

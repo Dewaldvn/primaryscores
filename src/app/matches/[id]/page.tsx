@@ -7,11 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
 import { getMatchDetails } from "@/lib/data/results";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { getSessionUser } from "@/lib/auth";
+import { DisputeScoreDialog } from "@/components/dispute-score-dialog";
 
 type Props = { params: { id: string } };
 
 export default async function MatchPage({ params }: Props) {
   if (!isDatabaseConfigured()) notFound();
+
+  const user = await getSessionUser();
+  const signedIn = Boolean(user);
 
   const row = await getMatchDetails(params.id);
   if (!row?.resultId || !row.isVerified || !row.publishedAt) {
@@ -69,6 +74,18 @@ export default async function MatchPage({ params }: Props) {
           <p className="mt-2 text-sm text-muted-foreground">
             {row.homeTeamLabel} vs {row.awayTeamLabel}
           </p>
+          <div className="mt-3">
+            <DisputeScoreDialog
+              fixtureId={row.fixtureId}
+              resultId={row.resultId}
+              homeSchoolName={row.homeSchoolName}
+              awaySchoolName={row.awaySchoolName}
+              homeScore={row.homeScore ?? 0}
+              awayScore={row.awayScore ?? 0}
+              signedIn={signedIn}
+              loginRedirectTo={`/matches/${row.fixtureId}`}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

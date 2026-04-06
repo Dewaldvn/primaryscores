@@ -36,7 +36,12 @@ export function UserMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="outline" size="sm" className="max-w-[200px] truncate" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="max-w-[200px] truncate"
+            type="button"
+          />
         }
       >
         {displayName}

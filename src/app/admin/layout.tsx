@@ -9,6 +9,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Link href="/admin/scores" className="font-medium text-primary hover:underline">
           Scores
         </Link>
+        <Link href="/admin/import" className="text-primary hover:underline">
+          Import
+        </Link>
         <Link href="/admin/schools" className="text-primary hover:underline">
           Schools
         </Link>

@@ -36,6 +36,7 @@ import {
   flagNeedsReviewAction,
 } from "@/actions/moderation";
 import { defaultTeamIdFromSubmission } from "@/lib/moderation-defaults";
+import { cn } from "@/lib/utils";
 
 export type ModRow = {
   id: string;
@@ -154,7 +155,13 @@ export function ModeratorDashboard({
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    (row.original.notes ?? "").startsWith("DISPUTE:") &&
+                      "bg-orange-500/10 hover:bg-orange-500/15"
+                  )}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -306,7 +313,48 @@ function ReviewDialog({
               Source link
             </a>
           )}
-          {row.notes && <p className="rounded bg-muted p-2 text-xs">{row.notes}</p>}
+          {row.notes ? (
+            (row.notes ?? "").startsWith("DISPUTE:") ? (
+              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-foreground">
+                {(() => {
+                  const lines = row.notes.split(/\r?\n/);
+                  const body = lines.slice(1).join("\n").trim();
+                  const current = lines.find((l) => l.toLowerCase().startsWith("current score:"));
+                  const claimed = lines.find((l) => l.toLowerCase().startsWith("claimed score:"));
+                  const message = lines
+                    .slice(1)
+                    .filter((l) => !l.toLowerCase().startsWith("current score:") && !l.toLowerCase().startsWith("claimed score:"))
+                    .join("\n")
+                    .trim();
+
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-orange-900 dark:text-orange-100">
+                        Dispute
+                      </p>
+                      {current || claimed ? (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[0.72rem] text-orange-950/90 dark:text-orange-50/90">
+                          {current ? <span>{current}</span> : null}
+                          {claimed ? <span>{claimed}</span> : null}
+                        </div>
+                      ) : null}
+                      {message ? (
+                        <p className="whitespace-pre-wrap rounded-md bg-background/60 p-2 text-[0.8rem] font-medium leading-relaxed text-foreground">
+                          {message}
+                        </p>
+                      ) : body ? (
+                        <p className="whitespace-pre-wrap rounded-md bg-background/60 p-2 text-[0.8rem] leading-relaxed text-foreground">
+                          {body}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <p className="rounded bg-muted p-2 text-xs whitespace-pre-wrap">{row.notes}</p>
+            )
+          ) : null}
         </div>
 
         <form key={`approve-${row.id}`} onSubmit={approveForm} className="space-y-3 border-t pt-4">

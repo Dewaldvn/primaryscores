@@ -33,7 +33,10 @@ export default async function ModeratorPage() {
     proposedHomeScore: s.submission.proposedHomeScore,
     proposedAwayScore: s.submission.proposedAwayScore,
     proposedVenue: s.submission.proposedVenue,
-    moderationStatus: s.submission.moderationStatus,
+    moderationStatus:
+      (s.submission.notes ?? "").startsWith("DISPUTE:")
+        ? "NEEDS_REVIEW"
+        : s.submission.moderationStatus,
     submittedAt: s.submission.submittedAt.toISOString(),
     sourceUrl: s.submission.sourceUrl,
     notes: s.submission.notes,
