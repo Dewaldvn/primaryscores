@@ -15,12 +15,24 @@ import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listProvinces } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
-export default async function AdminSchoolsPage() {
+type PageProps = { searchParams: Record<string, string | string[] | undefined> };
+
+function qp(sp: PageProps["searchParams"], key: string): string {
+  const v = sp[key];
+  return (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+}
+
+export default async function AdminSchoolsPage({ searchParams }: PageProps) {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Configure DATABASE_URL first.</p>;
   }
   await ensureU13TeamsForSchoolsMissingThem();
   const [rows, provinces] = await Promise.all([adminListSchools(), listProvinces()]);
+  const newSchoolDisplay = qp(searchParams, "newSchoolDisplay");
+  const prefillNew =
+    newSchoolDisplay.length > 0
+      ? { displayName: newSchoolDisplay, officialName: newSchoolDisplay }
+      : undefined;
 
   return (
     <div className="space-y-8">
@@ -81,7 +93,7 @@ export default async function AdminSchoolsPage() {
           <CardTitle>Add school</CardTitle>
         </CardHeader>
         <CardContent>
-          <AdminSchoolForm provinces={provinces} />
+          <AdminSchoolForm key={newSchoolDisplay || "new"} provinces={provinces} prefillNew={prefillNew} />
         </CardContent>
       </Card>
     </div>

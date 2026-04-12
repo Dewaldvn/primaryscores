@@ -4,7 +4,7 @@ import { UserMenu } from "@/components/user-menu";
 import { LinkButton } from "@/components/link-button";
 import { GlobalSearchOpenButton } from "@/components/global-search";
 import { SiteHeaderMobileNav } from "@/components/site-header-mobile-nav";
-import { SiteHeaderSportsMenu } from "@/components/site-header-sports-menu";
+import { SiteHeaderNavSportDropdown } from "@/components/site-header-nav-sport-dropdown";
 import type { ProfileRole } from "@/lib/auth";
 
 export type HeaderProfile = {
@@ -42,34 +42,30 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
             className="hidden items-center gap-x-0.5 text-sm lg:flex"
             aria-label="Main"
           >
-            <Link
-              href="/live"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Live Scores
-            </Link>
+            <SiteHeaderNavSportDropdown
+              label="Live Scores"
+              basePath="/live"
+              variant="muted"
+              ariaLabel="Live scores by sport"
+            />
             <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
               |
             </span>
-            <SiteHeaderSportsMenu />
+            <SiteHeaderNavSportDropdown
+              label="Results"
+              basePath="/results"
+              variant="muted"
+              ariaLabel="Results by sport"
+            />
             <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
               |
             </span>
-            <Link
-              href="/results"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Results
-            </Link>
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <Link
-              href="/submit"
-              className="rounded-md px-2 py-1 font-medium text-primary hover:underline"
-            >
-              Submit
-            </Link>
+            <SiteHeaderNavSportDropdown
+              label="Submit"
+              basePath="/submit"
+              variant="primary"
+              ariaLabel="Submit a score by sport"
+            />
             <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
               |
             </span>

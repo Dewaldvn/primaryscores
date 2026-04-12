@@ -20,6 +20,12 @@ export type LiveSessionClientRow = {
   minutesSinceFirstVote: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
+  /** Present when status is SCHEDULED — when voting opens (ISO). */
+  goesLiveAt?: string | null;
+  /** Session creator (for cancel own scheduled board). */
+  createdByUserId?: string | null;
+  /** True when signed-in user may cancel this scheduled board. */
+  canCancelScheduled?: boolean;
 };
 
 export type LiveScoreFeedItem = {

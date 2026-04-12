@@ -1,6 +1,7 @@
 import { alias } from "drizzle-orm/pg-core";
-import { asc, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { schoolColumnsWithoutNickname, schoolsHasNicknameColumn } from "@/lib/school-db-support";
 import {
   schools,
   teams,
@@ -18,9 +19,16 @@ const adminHomeSchool = alias(schools, "admin_home_school");
 const adminAwaySchool = alias(schools, "admin_away_school");
 
 export async function adminListSchools() {
+  const includeNickname = await schoolsHasNicknameColumn();
+  const schoolShape = {
+    ...schoolColumnsWithoutNickname,
+    nickname: includeNickname
+      ? schools.nickname
+      : sql<string | null>`cast(null as text)`.as("nickname"),
+  };
   return db
     .select({
-      school: schools,
+      school: schoolShape,
       provinceName: provinces.name,
     })
     .from(schools)
@@ -29,9 +37,16 @@ export async function adminListSchools() {
 }
 
 export async function adminGetSchoolById(id: string) {
+  const includeNickname = await schoolsHasNicknameColumn();
+  const schoolShape = {
+    ...schoolColumnsWithoutNickname,
+    nickname: includeNickname
+      ? schools.nickname
+      : sql<string | null>`cast(null as text)`.as("nickname"),
+  };
   const [row] = await db
     .select({
-      school: schools,
+      school: schoolShape,
       provinceName: provinces.name,
     })
     .from(schools)
@@ -50,6 +65,20 @@ export async function adminListTeams() {
     })
     .from(teams)
     .innerJoin(schools, eq(teams.schoolId, schools.id))
+    .orderBy(asc(schools.displayName), asc(teams.ageGroup));
+}
+
+export async function adminListTeamsForSchoolIds(schoolIds: string[]) {
+  if (schoolIds.length === 0) return [];
+  return db
+    .select({
+      team: teams,
+      schoolName: schools.displayName,
+      schoolId: schools.id,
+    })
+    .from(teams)
+    .innerJoin(schools, eq(teams.schoolId, schools.id))
+    .where(inArray(teams.schoolId, schoolIds))
     .orderBy(asc(schools.displayName), asc(teams.ageGroup));
 }
 
@@ -134,8 +163,26 @@ function adminResultsSearchCondition(search: string | undefined) {
   )!;
 }
 
-export async function adminCountAllResults(search?: string): Promise<number> {
+function adminResultsSchoolScopeCondition(schoolIds: string[] | undefined) {
+  if (!schoolIds?.length) return undefined;
+  return or(
+    inArray(adminHomeSchool.id, schoolIds),
+    inArray(adminAwaySchool.id, schoolIds),
+  )!;
+}
+
+function adminResultsWhere(search: string | undefined, scopeSchoolIds: string[] | undefined) {
   const cond = adminResultsSearchCondition(search);
+  const schoolCond = adminResultsSchoolScopeCondition(scopeSchoolIds);
+  if (cond && schoolCond) return and(cond, schoolCond);
+  return cond ?? schoolCond;
+}
+
+export async function adminCountAllResults(
+  search?: string,
+  scopeSchoolIds?: string[],
+): Promise<number> {
+  const whereClause = adminResultsWhere(search, scopeSchoolIds);
   const base = db
     .select({ n: count() })
     .from(results)
@@ -146,7 +193,7 @@ export async function adminCountAllResults(search?: string): Promise<number> {
     .innerJoin(adminAwayTeam, eq(fixtures.awayTeamId, adminAwayTeam.id))
     .innerJoin(adminHomeSchool, eq(adminHomeTeam.schoolId, adminHomeSchool.id))
     .innerJoin(adminAwaySchool, eq(adminAwayTeam.schoolId, adminAwaySchool.id));
-  const [row] = cond ? await base.where(cond) : await base;
+  const [row] = whereClause ? await base.where(whereClause) : await base;
   return row?.n ?? 0;
 }
 
@@ -154,11 +201,13 @@ export async function adminListAllResults(options: {
   page: number;
   pageSize: number;
   search?: string;
+  /** Limit to fixtures where the home or away school is one of these ids. */
+  scopeSchoolIds?: string[];
 }): Promise<{ rows: AdminResultRow[]; total: number; page: number; pageSize: number }> {
   const page = Math.max(1, options.page);
   const pageSize = Math.min(100, Math.max(10, options.pageSize));
   const offset = (page - 1) * pageSize;
-  const cond = adminResultsSearchCondition(options.search);
+  const whereClause = adminResultsWhere(options.search, options.scopeSchoolIds);
 
   const listBase = db
     .select({
@@ -190,14 +239,11 @@ export async function adminListAllResults(options: {
     .innerJoin(adminAwaySchool, eq(adminAwayTeam.schoolId, adminAwaySchool.id))
     .leftJoin(provinces, eq(competitions.provinceId, provinces.id));
 
-  const rows = await (cond
-    ? listBase.where(cond)
-    : listBase
-  )
+  const rows = await (whereClause ? listBase.where(whereClause) : listBase)
     .orderBy(desc(fixtures.matchDate), desc(results.publishedAt), desc(results.createdAt))
     .limit(pageSize)
     .offset(offset);
 
-  const total = await adminCountAllResults(options.search);
+  const total = await adminCountAllResults(options.search, options.scopeSchoolIds);
   return { rows, total, page, pageSize };
 }

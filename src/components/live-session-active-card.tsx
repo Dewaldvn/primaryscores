@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { formatDistanceToNowStrict } from "date-fns";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import {
   castLiveVoteAction,
   submitLiveWrapupForReviewAction,
 } from "@/actions/live-scores";
+import { schoolAdminCancelScheduledLiveSessionAction } from "@/actions/school-admin-live";
 import { cn } from "@/lib/utils";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { ProfileAvatar } from "@/components/profile-avatar";
@@ -79,7 +80,11 @@ export function LiveSessionActiveCard({
             {schoolSportLabel(s.sport)}
           </span>
           {s.venue ? `${s.venue} · ` : null}
-          {s.inWrapup ? (
+          {s.status === "SCHEDULED" && s.goesLiveAt ? (
+            <span className="font-medium text-sky-800 dark:text-sky-200">
+              Opens {format(new Date(s.goesLiveAt), "dd MMM yyyy HH:mm")}
+            </span>
+          ) : s.inWrapup ? (
             <span className="font-medium text-amber-700 dark:text-amber-400">
               Wrap-up: confirm finished and submit for review
               {wrapupCountdownMin(s) != null ? ` · auto-submit in ~${wrapupCountdownMin(s)} min` : null}
@@ -92,6 +97,30 @@ export function LiveSessionActiveCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center space-y-3 pb-10 text-center text-sm">
+        {s.canCancelScheduled ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() => {
+              if (!window.confirm("Cancel this scheduled scoreboard?")) return;
+              start(() => {
+                void (async () => {
+                  const res = await schoolAdminCancelScheduledLiveSessionAction({ sessionId: s.id });
+                  if (!res.ok) {
+                    if ("error" in res) toast.error(res.error);
+                    return;
+                  }
+                  toast.success("Scheduled game removed.");
+                  window.location.href = "/school-admin/schedule-live";
+                })();
+              });
+            }}
+          >
+            Cancel scheduled game
+          </Button>
+        ) : null}
         <p className="font-mono text-3xl font-semibold tabular-nums sm:text-4xl">
           {s.majority ? (
             <>
@@ -117,7 +146,7 @@ export function LiveSessionActiveCard({
             viewer={viewer}
             signedIn={signedIn}
             isAdmin={isAdmin}
-            disabled={s.status === "CLOSED"}
+            disabled={s.status === "CLOSED" || s.status === "SCHEDULED"}
             turnToken={turnVoteToken}
             onToken={onVoteToken}
             onSuccess={() => void onRefresh()}

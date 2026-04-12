@@ -7,6 +7,10 @@ export const schoolUpsertSchema = z.object({
   id: z.string().uuid().optional(),
   officialName: z.string().min(2, "Required"),
   displayName: z.string().min(2, "Required"),
+  nickname: z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.string().max(120).nullable().optional()
+  ),
   slug: z.string().min(2).optional(),
   provinceId: z.string().uuid(),
   district: z.string().optional().nullable(),

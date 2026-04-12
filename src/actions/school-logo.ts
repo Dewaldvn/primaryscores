@@ -4,8 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { schools } from "@/db/schema";
-import { requireRole, requireUser } from "@/lib/auth";
+import { requireRole, requireUser, type ProfileRole } from "@/lib/auth";
 import { SCHOOL_LOGOS_BUCKET } from "@/lib/school-logo";
+import { profileManagesSchool } from "@/lib/school-admin-access";
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -59,13 +60,36 @@ async function validateAndUploadSchoolLogoBytes(params: {
   return { ok: true, logoPath: objectPath };
 }
 
+async function assertSchoolLogoWriteAccess(params: {
+  profileId: string;
+  role: ProfileRole;
+  schoolId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (params.role === "ADMIN") return { ok: true };
+  if (params.role === "SCHOOL_ADMIN") {
+    const ok = await profileManagesSchool(params.profileId, params.schoolId);
+    if (!ok) return { ok: false, error: "You can only update logos for your linked school." };
+    return { ok: true };
+  }
+  return { ok: false, error: "Insufficient permissions." };
+}
+
 export async function uploadSchoolLogoAction(formData: FormData) {
-  await requireRole(["ADMIN"]);
+  const { profile } = await requireRole(["ADMIN", "SCHOOL_ADMIN"]);
   const schoolId = String(formData.get("schoolId") ?? "").trim();
   const file = formData.get("file");
 
   if (!(file instanceof File)) {
     return { ok: false as const, error: "Invalid school or file." };
+  }
+
+  const gate = await assertSchoolLogoWriteAccess({
+    profileId: profile.id,
+    role: profile.role,
+    schoolId,
+  });
+  if (!gate.ok) {
+    return { ok: false as const, error: gate.error };
   }
 
   const uploaded = await validateAndUploadSchoolLogoBytes({ schoolId, file });
@@ -129,9 +153,18 @@ export async function uploadSchoolLogoContributorAction(formData: FormData) {
 }
 
 export async function removeSchoolLogoAction(schoolId: string) {
-  await requireRole(["ADMIN"]);
+  const { profile } = await requireRole(["ADMIN", "SCHOOL_ADMIN"]);
   if (!/^[0-9a-f-]{36}$/i.test(schoolId)) {
     return { ok: false as const, error: "Invalid school." };
+  }
+
+  const gate = await assertSchoolLogoWriteAccess({
+    profileId: profile.id,
+    role: profile.role,
+    schoolId,
+  });
+  if (!gate.ok) {
+    return { ok: false as const, error: gate.error };
   }
 
   const [row] = await db

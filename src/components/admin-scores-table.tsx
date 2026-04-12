@@ -54,26 +54,31 @@ export type AdminScoreRowSerialized = {
   provinceName: string | null;
 };
 
-function scoresListHref(pageNum: number, search: string): string {
-  const q = new URLSearchParams();
-  if (search.trim().length >= 2) q.set("q", search.trim());
-  q.set("page", String(pageNum));
-  return `/admin/scores?${q.toString()}`;
-}
-
 export function AdminScoresTable({
   rows,
   total,
   page,
   pageSize,
   initialSearch,
+  scoresBasePath = "/admin/scores",
+  verificationCap = "all",
 }: {
   rows: AdminScoreRowSerialized[];
   total: number;
   page: number;
   pageSize: number;
   initialSearch: string;
+  /** List + pagination URLs (defaults to full admin scores). */
+  scoresBasePath?: string;
+  /** School admins cannot assign source-verified. */
+  verificationCap?: "all" | "moderator_only";
 }) {
+  function scoresListHref(pageNum: number, search: string): string {
+    const q = new URLSearchParams();
+    if (search.trim().length >= 2) q.set("q", search.trim());
+    q.set("page", String(pageNum));
+    return `${scoresBasePath}?${q.toString()}`;
+  }
   const [searchInput, setSearchInput] = useState(initialSearch);
   const [editing, setEditing] = useState<AdminScoreRowSerialized | null>(null);
   const [pending, start] = useTransition();
@@ -81,7 +86,11 @@ export function AdminScoresTable({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   function openEdit(row: AdminScoreRowSerialized) {
-    setEditing({ ...row });
+    let next = { ...row };
+    if (verificationCap === "moderator_only" && next.verificationLevel === "SOURCE_VERIFIED") {
+      next = { ...next, verificationLevel: "MODERATOR_VERIFIED" };
+    }
+    setEditing(next);
   }
 
   function saveEdit() {
@@ -113,7 +122,7 @@ export function AdminScoresTable({
     <div className="space-y-4">
       <form
         className="flex flex-col gap-2 sm:flex-row sm:items-end"
-        action="/admin/scores"
+        action={scoresBasePath}
         method="get"
       >
         <input type="hidden" name="page" value="1" />
@@ -356,7 +365,9 @@ export function AdminScoresTable({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MODERATOR_VERIFIED">Moderator verified</SelectItem>
-                    <SelectItem value="SOURCE_VERIFIED">Source verified</SelectItem>
+                    {verificationCap === "all" ? (
+                      <SelectItem value="SOURCE_VERIFIED">Source verified</SelectItem>
+                    ) : null}
                     <SelectItem value="SUBMITTED">Non-verified</SelectItem>
                   </SelectContent>
                 </Select>

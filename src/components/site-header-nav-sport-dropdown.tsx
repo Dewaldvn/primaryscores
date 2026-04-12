@@ -4,7 +4,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
 import { ChevronDownIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SCHOOL_SPORTS, schoolSportLabel, sportToRouteSlug } from "@/lib/sports";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 const contentClass = cn(
   "z-[250] min-w-[10rem] overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-md",
@@ -17,17 +17,32 @@ const itemClass = cn(
   "focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
 );
 
-export function SiteHeaderSportsMenu() {
+function sportQueryHref(basePath: string, sport: SchoolSport) {
+  return `${basePath}?sport=${encodeURIComponent(sport)}`;
+}
+
+/** Top nav: label opens a menu of the four sports (query links into live, results, or submit). */
+export function SiteHeaderNavSportDropdown({
+  label,
+  basePath,
+  variant = "muted",
+  ariaLabel,
+}: {
+  label: string;
+  basePath: "/live" | "/results" | "/submit";
+  variant?: "muted" | "primary";
+  ariaLabel: string;
+}) {
+  const triggerClass =
+    variant === "primary"
+      ? "inline-flex items-center gap-0.5 rounded-md px-2 py-1 font-medium text-primary hover:underline"
+      : "inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground";
+
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className="inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-haspopup="menu"
-          aria-label="Sports menu"
-        >
-          Sports
+        <button type="button" className={triggerClass} aria-haspopup="menu" aria-label={ariaLabel}>
+          {label}
           <ChevronDownIcon className="size-4 shrink-0 opacity-60" aria-hidden />
         </button>
       </DropdownMenu.Trigger>
@@ -38,9 +53,14 @@ export function SiteHeaderSportsMenu() {
           align="start"
           collisionPadding={12}
         >
+          <DropdownMenu.Item asChild>
+            <Link href={basePath} className={itemClass}>
+              All sports
+            </Link>
+          </DropdownMenu.Item>
           {SCHOOL_SPORTS.map((sport) => (
             <DropdownMenu.Item key={sport} asChild>
-              <Link href={`/sport/${sportToRouteSlug(sport)}`} className={itemClass}>
+              <Link href={sportQueryHref(basePath, sport)} className={itemClass}>
                 {schoolSportLabel(sport)}
               </Link>
             </DropdownMenu.Item>

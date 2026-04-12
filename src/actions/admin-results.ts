@@ -5,9 +5,13 @@ import { db } from "@/lib/db";
 import { fixtures, results } from "@/db/schema";
 import { requireRole } from "@/lib/auth";
 import { adminResultUpdateSchema } from "@/lib/validators/admin";
+import {
+  getActiveManagedSchoolIds,
+  schoolAdminCanEditResult,
+} from "@/lib/school-admin-access";
 
 export async function adminUpdateResultAction(input: unknown) {
-  await requireRole(["ADMIN"]);
+  const { profile } = await requireRole(["ADMIN", "SCHOOL_ADMIN"]);
   const parsed = adminResultUpdateSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
@@ -26,6 +30,17 @@ export async function adminUpdateResultAction(input: unknown) {
 
   if (!existing) {
     return { ok: false as const, error: "Result not found." };
+  }
+
+  if (profile.role === "SCHOOL_ADMIN") {
+    const managed = await getActiveManagedSchoolIds(profile.id);
+    const ok = await schoolAdminCanEditResult(profile.id, d.resultId, managed);
+    if (!ok) {
+      return { ok: false as const, error: "You can only edit results for your linked school(s)." };
+    }
+    if (d.verificationLevel === "SOURCE_VERIFIED") {
+      return { ok: false as const, error: "School admins cannot set source-verified." };
+    }
   }
 
   const now = new Date();

@@ -35,6 +35,7 @@ export async function createLiveSubmissionFromSession(opts: {
       if (!s) return { ok: false, reason: "not_found" };
       if (s.submissionId) return { ok: false, reason: "already_submitted" };
       if (s.status === "CLOSED") return { ok: false, reason: "closed" };
+      if (s.status === "SCHEDULED") return { ok: false, reason: "scheduled" };
 
       if (auto) {
         if (s.status !== "WRAPUP") return { ok: false, reason: "not_wrapup" };

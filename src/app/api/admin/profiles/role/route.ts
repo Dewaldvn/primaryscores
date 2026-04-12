@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const patchSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN"]),
+  role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"]),
 });
 
 /** Update a user's profile role (session: ADMIN only). */

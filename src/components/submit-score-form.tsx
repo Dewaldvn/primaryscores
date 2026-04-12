@@ -51,6 +51,8 @@ export function SubmitScoreForm({
   const [turnToken, setTurnToken] = useState<string | null>(null);
   const [homeQ, setHomeQ] = useState("");
   const [awayQ, setAwayQ] = useState("");
+  const [homeTeamName, setHomeTeamName] = useState("");
+  const [awayTeamName, setAwayTeamName] = useState("");
   const [homeHits, setHomeHits] = useState<SchoolHit[]>([]);
   const [awayHits, setAwayHits] = useState<SchoolHit[]>([]);
   const [homeTeamId, setHomeTeamId] = useState("");
@@ -80,8 +82,8 @@ export function SubmitScoreForm({
         proposedMatchDate: String(fd.get("proposedMatchDate") ?? ""),
         proposedHomeTeamId: homeTeamId || undefined,
         proposedAwayTeamId: awayTeamId || undefined,
-        proposedHomeTeamName: String(fd.get("proposedHomeTeamName") ?? ""),
-        proposedAwayTeamName: String(fd.get("proposedAwayTeamName") ?? ""),
+        proposedHomeTeamName: homeTeamName.trim(),
+        proposedAwayTeamName: awayTeamName.trim(),
         proposedHomeScore: fd.get("proposedHomeScore"),
         proposedAwayScore: fd.get("proposedAwayScore"),
         proposedProvinceId: fd.get("proposedProvinceId") || undefined,
@@ -209,10 +211,12 @@ export function SubmitScoreForm({
             id="homeSearch"
             value={homeQ}
             onChange={(e) => {
-              setHomeQ(e.target.value);
-              void searchSchools(e.target.value, "home");
+              const v = e.target.value;
+              setHomeQ(v);
+              setHomeTeamName(v);
+              void searchSchools(v, "home");
             }}
-            placeholder="Type to search…"
+            placeholder="Type to search or enter the name as it should appear…"
             autoComplete="off"
           />
           {homeHits.length > 0 && (
@@ -224,12 +228,8 @@ export function SubmitScoreForm({
                     className="block w-full px-3 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       setHomeQ(h.displayName);
+                      setHomeTeamName(h.displayName);
                       setHomeTeamId(h.u13TeamId ?? "");
-                      (
-                        document.getElementById(
-                          "proposedHomeTeamName"
-                        ) as HTMLInputElement
-                      ).value = h.displayName;
                       setHomeHits([]);
                     }}
                   >
@@ -247,7 +247,14 @@ export function SubmitScoreForm({
             </ul>
           )}
           <Label htmlFor="proposedHomeTeamName">Home team / school name *</Label>
-          <Input id="proposedHomeTeamName" name="proposedHomeTeamName" required />
+          <Input
+            id="proposedHomeTeamName"
+            name="proposedHomeTeamName"
+            required
+            value={homeTeamName}
+            onChange={(e) => setHomeTeamName(e.target.value)}
+            placeholder="Same as search above, or edit after picking from the list"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="awaySearch">Away school search</Label>
@@ -255,10 +262,12 @@ export function SubmitScoreForm({
             id="awaySearch"
             value={awayQ}
             onChange={(e) => {
-              setAwayQ(e.target.value);
-              void searchSchools(e.target.value, "away");
+              const v = e.target.value;
+              setAwayQ(v);
+              setAwayTeamName(v);
+              void searchSchools(v, "away");
             }}
-            placeholder="Type to search…"
+            placeholder="Type to search or enter the name as it should appear…"
             autoComplete="off"
           />
           {awayHits.length > 0 && (
@@ -270,12 +279,8 @@ export function SubmitScoreForm({
                     className="block w-full px-3 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       setAwayQ(h.displayName);
+                      setAwayTeamName(h.displayName);
                       setAwayTeamId(h.u13TeamId ?? "");
-                      (
-                        document.getElementById(
-                          "proposedAwayTeamName"
-                        ) as HTMLInputElement
-                      ).value = h.displayName;
                       setAwayHits([]);
                     }}
                   >
@@ -292,7 +297,14 @@ export function SubmitScoreForm({
             </ul>
           )}
           <Label htmlFor="proposedAwayTeamName">Away team / school name *</Label>
-          <Input id="proposedAwayTeamName" name="proposedAwayTeamName" required />
+          <Input
+            id="proposedAwayTeamName"
+            name="proposedAwayTeamName"
+            required
+            value={awayTeamName}
+            onChange={(e) => setAwayTeamName(e.target.value)}
+            placeholder="Same as search above, or edit after picking from the list"
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="proposedHomeScore">Home score *</Label>

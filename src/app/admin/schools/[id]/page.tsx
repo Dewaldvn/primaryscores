@@ -51,6 +51,7 @@ export default async function AdminEditSchoolPage({ params }: Props) {
               id: s.id,
               officialName: s.officialName,
               displayName: s.displayName,
+              nickname: s.nickname ?? null,
               slug: s.slug,
               provinceId: s.provinceId,
               district: s.district,

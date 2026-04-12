@@ -7,7 +7,7 @@ import type { ProfileRole } from "@/lib/auth";
 
 const updateRoleSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN"]),
+  role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"]),
 });
 
 export async function updateUserRoleAction(input: unknown) {

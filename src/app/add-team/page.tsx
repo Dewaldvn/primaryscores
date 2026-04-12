@@ -10,10 +10,19 @@ export const metadata: Metadata = {
   description: "Search for a school, add it if missing, then add a team to the directory.",
 };
 
-export default async function AddTeamPage() {
+type SearchProps = { searchParams: Record<string, string | string[] | undefined> };
+
+function qp(sp: SearchProps["searchParams"], key: string): string {
+  const v = sp[key];
+  return (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+}
+
+export default async function AddTeamPage({ searchParams }: SearchProps) {
   if (!isDatabaseConfigured()) notFound();
   await requireUser("/login?redirect=%2Fadd-team");
   const provinces = await listProvinces();
+  const initialSearchQuery = qp(searchParams, "q");
+  const newSchoolPrefill = qp(searchParams, "prefillName");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -24,7 +33,11 @@ export default async function AddTeamPage() {
           listed. Duplicates may be merged by moderators.
         </p>
       </div>
-      <AddTeamWizard provinces={provinces} />
+      <AddTeamWizard
+        provinces={provinces}
+        initialSearchQuery={initialSearchQuery}
+        newSchoolPrefill={newSchoolPrefill}
+      />
     </div>
   );
 }

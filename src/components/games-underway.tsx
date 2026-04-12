@@ -360,9 +360,13 @@ function LiveTeamSchoolField({
   label: string;
   field: ReturnType<typeof useLiveTeamField>;
 }) {
+  const [matchPickSeq, setMatchPickSeq] = useState(0);
   return (
     <div className="space-y-1.5 text-left">
       <Label htmlFor={id}>{label}</Label>
+      <p className="text-xs text-muted-foreground">
+        Type to search the directory, tap a result below, or use the dropdown when matches appear.
+      </p>
       <Input
         id={id}
         value={field.name}
@@ -377,25 +381,53 @@ function LiveTeamSchoolField({
         minLength={2}
       />
       {field.hits.length > 0 ? (
-        <ul className="max-h-40 overflow-auto rounded border bg-popover text-sm shadow-md">
-          {field.hits.map((h) => (
-            <li key={h.id}>
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left hover:bg-muted"
-                onClick={() => field.pickHit(h)}
-              >
-                <span className="flex items-center gap-2">
-                  <SchoolLogo logoPath={h.logoPath} alt="" size="xs" />
+        <>
+          <div className="space-y-1">
+            <Label htmlFor={`${id}-pick`} className="text-xs font-normal text-muted-foreground">
+              Pick from matches (optional)
+            </Label>
+            <select
+              key={matchPickSeq}
+              id={`${id}-pick`}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
+              defaultValue=""
+              onChange={(e) => {
+                const schoolId = e.target.value;
+                if (!schoolId) return;
+                const h = field.hits.find((x) => x.id === schoolId);
+                if (h) field.pickHit(h);
+                setMatchPickSeq((n) => n + 1);
+              }}
+            >
+              <option value="">— Choose a school —</option>
+              {field.hits.map((h) => (
+                <option key={h.id} value={h.id}>
                   {h.displayName}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {h.town} · {h.provinceName}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                  {h.town ? ` · ${h.town}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ul className="max-h-40 overflow-auto rounded border bg-popover text-sm shadow-md">
+            {field.hits.map((h) => (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left hover:bg-muted"
+                  onClick={() => field.pickHit(h)}
+                >
+                  <span className="flex items-center gap-2">
+                    <SchoolLogo logoPath={h.logoPath} alt="" size="xs" />
+                    {h.displayName}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {h.town} · {h.provinceName}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </div>
   );

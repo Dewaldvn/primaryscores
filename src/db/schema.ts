@@ -20,6 +20,13 @@ export const profileRoleEnum = pgEnum("profile_role", [
   "CONTRIBUTOR",
   "MODERATOR",
   "ADMIN",
+  "SCHOOL_ADMIN",
+]);
+
+export const schoolAdminMembershipStatusEnum = pgEnum("school_admin_membership_status", [
+  "PENDING",
+  "ACTIVE",
+  "REVOKED",
 ]);
 
 export const moderationStatusEnum = pgEnum("moderation_status", [
@@ -45,6 +52,7 @@ export const liveSessionStatusEnum = pgEnum("live_session_status", [
   "ACTIVE",
   "WRAPUP",
   "CLOSED",
+  "SCHEDULED",
 ]);
 
 export const schoolSportEnum = pgEnum("school_sport", [
@@ -94,6 +102,8 @@ export const schools = pgTable(
     district: text("district"),
     town: text("town"),
     website: text("website"),
+    /** Optional very short label (crest, app badges); listings still use display_name. */
+    nickname: text("nickname"),
     /** Storage object path within bucket `school-logos` (public), e.g. `{schoolId}/logo.png`. */
     logoPath: text("logo_path"),
     active: boolean("active").notNull().default(true),
@@ -107,6 +117,31 @@ export const schools = pgTable(
   (t) => [
     index("schools_province_idx").on(t.provinceId),
     index("schools_display_name_idx").on(t.displayName),
+  ]
+);
+
+export const schoolAdminMemberships = pgTable(
+  "school_admin_memberships",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    status: schoolAdminMembershipStatusEnum("status").notNull().default("PENDING"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decidedByProfileId: uuid("decided_by_profile_id").references(() => profiles.id),
+  },
+  (t) => [
+    index("school_admin_memberships_profile_idx").on(t.profileId),
+    index("school_admin_memberships_school_idx").on(t.schoolId),
+    index("school_admin_memberships_status_idx").on(t.status),
+    uniqueIndex("school_admin_memberships_profile_school_pending_active_uq")
+      .on(t.profileId, t.schoolId)
+      .where(sql`${t.status} in ('PENDING','ACTIVE')`),
   ]
 );
 
@@ -312,6 +347,8 @@ export const liveSessions = pgTable(
     homeLogoPath: text("home_logo_path"),
     awayLogoPath: text("away_logo_path"),
     venue: text("venue"),
+    /** When status is SCHEDULED, voting opens at this instant (UTC). Null for immediate boards. */
+    goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     status: liveSessionStatusEnum("status").notNull().default("ACTIVE"),
     firstVoteAt: timestamp("first_vote_at", { withTimezone: true }),
     wrapupStartedAt: timestamp("wrapup_started_at", { withTimezone: true }),
@@ -324,6 +361,7 @@ export const liveSessions = pgTable(
     index("live_sessions_status_idx").on(t.status),
     index("live_sessions_first_vote_idx").on(t.firstVoteAt),
     index("live_sessions_sport_status_idx").on(t.sport, t.status),
+    index("live_sessions_scheduled_goes_live_idx").on(t.goesLiveAt),
   ]
 );
 
@@ -393,6 +431,18 @@ export const schoolsRelations = relations(schools, ({ one, many }) => ({
     references: [provinces.id],
   }),
   teams: many(teams),
+  schoolAdminMemberships: many(schoolAdminMemberships),
+}));
+
+export const schoolAdminMembershipsRelations = relations(schoolAdminMemberships, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [schoolAdminMemberships.profileId],
+    references: [profiles.id],
+  }),
+  school: one(schools, {
+    fields: [schoolAdminMemberships.schoolId],
+    references: [schools.id],
+  }),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -451,4 +501,5 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
   reviewedSubmissions: many(submissions, {
     relationName: "submissionReviewer",
   }),
+  schoolAdminMemberships: many(schoolAdminMemberships),
 }));

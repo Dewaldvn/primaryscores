@@ -4,6 +4,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { schools, teams } from "@/db/schema";
+import { schoolsHasNicknameColumn } from "@/lib/school-db-support";
 import { requireUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import { contributorTeamBodySchema, schoolUpsertSchema } from "@/lib/validators/admin";
@@ -44,11 +45,13 @@ export async function contributorCreateSchoolAction(input: unknown) {
   await requireUser(loginRedirectForContributor(_returnTo));
   const slug = await uniqueSlugForDisplayName(v.displayName);
 
+  const includeNickContributor = await schoolsHasNicknameColumn();
   const [inserted] = await db
     .insert(schools)
     .values({
       officialName: v.officialName,
       displayName: v.displayName,
+      ...(includeNickContributor ? { nickname: null } : {}),
       slug,
       provinceId: v.provinceId,
       district: v.district ?? null,

@@ -24,10 +24,20 @@ type Phase =
       allowSchoolLogoUpload: boolean;
     };
 
-export function AddTeamWizard({ provinces }: { provinces: ProvinceRow[] }) {
+export function AddTeamWizard({
+  provinces,
+  initialSearchQuery = "",
+  newSchoolPrefill = "",
+}: {
+  provinces: ProvinceRow[];
+  /** Deep-link from moderation etc.: pre-fills directory search. */
+  initialSearchQuery?: string;
+  /** Pre-fills display/official name when user opens “add new school”. */
+  newSchoolPrefill?: string;
+}) {
   const [phase, setPhase] = useState<Phase>({ step: "search" });
 
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(initialSearchQuery);
   const [debounced, setDebounced] = useState("");
   const [hits, setHits] = useState<SchoolListRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,8 +109,8 @@ export function AddTeamWizard({ provinces }: { provinces: ProvinceRow[] }) {
     return (
       <ContributorNewSchoolForm
         provinces={provinces}
-        defaultDisplayName=""
-        defaultOfficialName=""
+        defaultDisplayName={newSchoolPrefill || q.trim()}
+        defaultOfficialName={newSchoolPrefill || q.trim()}
         returnTo="add-team"
         showBack
         onBack={() => setPhase({ step: "search" })}

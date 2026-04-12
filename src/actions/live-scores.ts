@@ -85,6 +85,12 @@ export async function castLiveVoteAction(input: unknown) {
 
   const session = await getLiveSessionForVote(parsed.data.sessionId);
   if (!session) return { ok: false as const, error: "Live game not found." };
+  if (session.status === "SCHEDULED") {
+    return {
+      ok: false as const,
+      error: "This scoreboard is not open yet — voting starts at the scheduled time.",
+    };
+  }
   if (session.status === "CLOSED") {
     return { ok: false as const, error: "This live game is already closed." };
   }

@@ -14,7 +14,8 @@ export type ProfileRole =
   | "PUBLIC"
   | "CONTRIBUTOR"
   | "MODERATOR"
-  | "ADMIN";
+  | "ADMIN"
+  | "SCHOOL_ADMIN";
 
 export async function getSessionUser() {
   try {

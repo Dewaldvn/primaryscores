@@ -13,16 +13,24 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { HeaderProfile } from "@/components/site-header";
-import { SCHOOL_SPORTS, schoolSportLabel, sportToRouteSlug } from "@/lib/sports";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 const navLinkClass =
   "rounded-md px-3 py-2.5 text-base text-foreground hover:bg-muted active:bg-muted";
+
+const sportSubLinkClass =
+  "rounded-md py-1.5 pl-8 pr-3 text-sm text-muted-foreground hover:bg-muted active:bg-muted";
+
+function sportQueryPath(base: string, sport: SchoolSport) {
+  return `${base}?sport=${encodeURIComponent(sport)}`;
+}
 
 export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
   const [open, setOpen] = useState(false);
   const showModeration =
     profile?.role === "MODERATOR" || profile?.role === "ADMIN";
   const showAdmin = profile?.role === "ADMIN";
+  const showSchoolAdmin = profile?.role === "SCHOOL_ADMIN";
 
   return (
     <div className="lg:hidden">
@@ -43,31 +51,44 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
           </SheetHeader>
           <nav className="flex flex-col gap-0.5 px-2 pb-4" aria-label="Main">
             <Link href="/live" className={navLinkClass} onClick={() => setOpen(false)}>
-              Live Scores
+              Live Scores (all sports)
             </Link>
-            <p className="px-3 pb-0.5 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Sports
-            </p>
             {SCHOOL_SPORTS.map((sport) => (
               <Link
-                key={sport}
-                href={`/sport/${sportToRouteSlug(sport)}`}
-                className={navLinkClass}
+                key={`live-${sport}`}
+                href={sportQueryPath("/live", sport)}
+                className={sportSubLinkClass}
                 onClick={() => setOpen(false)}
               >
-                {schoolSportLabel(sport)}
+                Live · {schoolSportLabel(sport)}
               </Link>
             ))}
             <Link href="/results" className={navLinkClass} onClick={() => setOpen(false)}>
-              Results
+              Results (all sports)
             </Link>
-            <Link
-              href="/submit"
-              className={cn(navLinkClass, "font-medium text-primary")}
-              onClick={() => setOpen(false)}
-            >
-              Submit
+            {SCHOOL_SPORTS.map((sport) => (
+              <Link
+                key={`results-${sport}`}
+                href={sportQueryPath("/results", sport)}
+                className={sportSubLinkClass}
+                onClick={() => setOpen(false)}
+              >
+                Results · {schoolSportLabel(sport)}
+              </Link>
+            ))}
+            <Link href="/submit" className={navLinkClass} onClick={() => setOpen(false)}>
+              Submit (all sports)
             </Link>
+            {SCHOOL_SPORTS.map((sport) => (
+              <Link
+                key={`submit-${sport}`}
+                href={sportQueryPath("/submit", sport)}
+                className={cn(sportSubLinkClass, "text-primary")}
+                onClick={() => setOpen(false)}
+              >
+                Submit · {schoolSportLabel(sport)}
+              </Link>
+            ))}
             <Link href="/find-school" className={navLinkClass} onClick={() => setOpen(false)}>
               Schools
             </Link>
@@ -88,6 +109,11 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
                 onClick={() => setOpen(false)}
               >
                 Moderation
+              </Link>
+            ) : null}
+            {showSchoolAdmin ? (
+              <Link href="/school-admin" className={navLinkClass} onClick={() => setOpen(false)}>
+                School admin
               </Link>
             ) : null}
             {showAdmin ? (

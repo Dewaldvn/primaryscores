@@ -8,6 +8,7 @@ import { Providers } from "@/components/providers";
 import { SiteHeaderAsync } from "@/components/site-header-async";
 import { SiteHeaderSkeleton } from "@/components/site-header-skeleton";
 import { AdminBar } from "@/components/admin-bar";
+import { SchoolAdminBar } from "@/components/school-admin-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,9 @@ export default function RootLayout({
           <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
             <Suspense fallback={null}>
               <AdminBar />
+            </Suspense>
+            <Suspense fallback={null}>
+              <SchoolAdminBar />
             </Suspense>
             {children}
           </div>

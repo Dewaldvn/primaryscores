@@ -1,10 +1,10 @@
-import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 import { db } from "@/lib/db";
 import { liveSessions, liveScoreVotes, profiles, schools, submissions } from "@/db/schema";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
-import type { LiveScoreFeedItem } from "@/lib/live-session-types";
+import type { LiveScoreFeedItem, LiveSessionClientRow } from "@/lib/live-session-types";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import { majorityFromVotes, type MajorityResult } from "@/lib/live-majority";
@@ -34,7 +34,19 @@ async function loadVotes(sessionId: string) {
     .orderBy(desc(liveScoreVotes.createdAt));
 }
 
+/** Flip scheduled boards to ACTIVE once `goes_live_at` has passed. */
+export async function activateDueScheduledLiveSessions(now = new Date()): Promise<void> {
+  // Use SECURITY DEFINER RPC (migration 00019): direct UPDATE hits RLS when DATABASE_URL
+  // is not the table owner; live_sessions only has a SELECT policy.
+  // Explicit timestamptz literal avoids ambiguous $1 typing; migration 00021 grants EXECUTE to PUBLIC.
+  const iso = now.toISOString();
+  await db.execute(
+    sql`select public.prssa_activate_scheduled_live_sessions(${sql.raw(`'${iso}'::timestamptz`)})`,
+  );
+}
+
 export async function processLiveSessionDeadlines(now = new Date()): Promise<void> {
+  await activateDueScheduledLiveSessions(now);
   const includeTg = await liveSessionsHasTeamGenderColumn();
   const lsCols = liveSessionsSelectColumns(includeTg);
   const open = await db
@@ -299,6 +311,90 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
   return await rowToLiveSessionPublic(s, new Date(), schoolLogoByNorm);
 }
 
+function liveSessionPublicToClientRow(
+  pub: LiveSessionPublic,
+  createdByUserId: string | null,
+  _viewerUserId: string | null | undefined,
+): LiveSessionClientRow {
+  void _viewerUserId;
+  const canCancel = false;
+  return {
+    id: pub.id,
+    sport: pub.sport,
+    teamGender: pub.teamGender,
+    homeTeamName: pub.homeTeamName,
+    awayTeamName: pub.awayTeamName,
+    homeLogoPath: pub.homeLogoPath,
+    awayLogoPath: pub.awayLogoPath,
+    venue: pub.venue,
+    status: pub.status,
+    firstVoteAt: pub.firstVoteAt,
+    majority: pub.majority,
+    minutesSinceFirstVote: pub.minutesSinceFirstVote,
+    inWrapup: pub.inWrapup,
+    autoSubmitAfterMinutes: pub.autoSubmitAfterMinutes,
+    goesLiveAt: null,
+    createdByUserId,
+    canCancelScheduled: canCancel,
+  };
+}
+
+function scheduledSessionToClientRow(
+  s: LiveSessionRowForPublic & { goesLiveAt?: Date | string | null; createdByUserId?: string | null },
+  schoolLogoByNorm: Map<string, string | null> | undefined,
+  viewerUserId: string | null | undefined,
+): LiveSessionClientRow {
+  const rawGl = "goesLiveAt" in s ? s.goesLiveAt : null;
+  const gl = rawGl ? (rawGl instanceof Date ? rawGl : new Date(rawGl)) : null;
+  const canCancel = Boolean(
+    viewerUserId && s.createdByUserId && viewerUserId === s.createdByUserId && s.status === "SCHEDULED",
+  );
+  return {
+    id: s.id,
+    sport: s.sport as SchoolSport,
+    teamGender:
+      "teamGender" in s && s.teamGender != null ? (s.teamGender as TeamGender) : null,
+    homeTeamName: s.homeTeamName,
+    awayTeamName: s.awayTeamName,
+    homeLogoPath: mergeStoredOrSchoolLogo(s.homeLogoPath, s.homeTeamName, schoolLogoByNorm),
+    awayLogoPath: mergeStoredOrSchoolLogo(s.awayLogoPath, s.awayTeamName, schoolLogoByNorm),
+    venue: s.venue,
+    status: "SCHEDULED",
+    firstVoteAt: null,
+    majority: null,
+    minutesSinceFirstVote: null,
+    inWrapup: false,
+    autoSubmitAfterMinutes: LIVE_AUTO_SUBMIT_AFTER_MIN,
+    goesLiveAt: gl ? gl.toISOString() : null,
+    createdByUserId: s.createdByUserId ?? null,
+    canCancelScheduled: canCancel,
+  };
+}
+
+/** Public viewer JSON: ACTIVE, WRAPUP, or SCHEDULED (upcoming). */
+export async function getLiveSessionPublicById(
+  sessionId: string,
+  viewerUserId?: string | null,
+): Promise<LiveSessionClientRow | null> {
+  await processLiveSessionDeadlines();
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const [s] = await db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(and(eq(liveSessions.id, sessionId), ne(liveSessions.status, "CLOSED")))
+    .limit(1);
+  if (!s) return null;
+  const namesForLogoLookup: string[] = [];
+  if (!s.homeLogoPath?.trim()) namesForLogoLookup.push(s.homeTeamName);
+  if (!s.awayLogoPath?.trim()) namesForLogoLookup.push(s.awayTeamName);
+  const schoolLogoByNorm = await batchResolveSchoolLogosByTeamNames(namesForLogoLookup);
+  if (s.status === "SCHEDULED") {
+    return scheduledSessionToClientRow(s as LiveSessionRowForPublic, schoolLogoByNorm, viewerUserId);
+  }
+  const pub = await rowToLiveSessionPublic(s, new Date(), schoolLogoByNorm);
+  return liveSessionPublicToClientRow(pub, s.createdByUserId ?? null, viewerUserId);
+}
+
 /** Same home/away pairing (trimmed, case-insensitive) already in ACTIVE or WRAPUP — do not start a duplicate board. */
 export async function findOpenLiveSessionDuplicate(
   homeTeamName: string,
@@ -319,14 +415,14 @@ export async function findOpenLiveSessionDuplicate(
     : null;
   const dupWhere = includeTg
     ? and(
-        inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
+        inArray(liveSessions.status, ["ACTIVE", "WRAPUP", "SCHEDULED"]),
         eq(liveSessions.sport, sport),
         genderClause!,
         sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
         sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
       )
     : and(
-        inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
+        inArray(liveSessions.status, ["ACTIVE", "WRAPUP", "SCHEDULED"]),
         eq(liveSessions.sport, sport),
         sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
         sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
@@ -344,8 +440,11 @@ export async function insertLiveSessionRow(input: {
   awayLogoPath: string | null;
   venue: string | null;
   createdByUserId: string | null;
+  status?: "ACTIVE" | "SCHEDULED";
+  goesLiveAt?: Date | null;
 }) {
   const includeTg = await liveSessionsHasTeamGenderColumn();
+  const status = input.status ?? "ACTIVE";
   const [row] = await db
     .insert(liveSessions)
     .values({
@@ -357,7 +456,8 @@ export async function insertLiveSessionRow(input: {
       awayLogoPath: input.awayLogoPath,
       venue: input.venue?.trim() || null,
       createdByUserId: input.createdByUserId,
-      status: "ACTIVE",
+      status,
+      goesLiveAt: status === "SCHEDULED" ? (input.goesLiveAt ?? null) : null,
     })
     .returning({ id: liveSessions.id });
   return row;
@@ -383,7 +483,7 @@ export async function insertLiveVoteRow(input: {
     .from(liveSessions)
     .where(eq(liveSessions.id, input.sessionId))
     .limit(1);
-  if (s && !s.firstVoteAt) {
+  if (s && !s.firstVoteAt && s.status !== "SCHEDULED") {
     await db
       .update(liveSessions)
       .set({ firstVoteAt: now, updatedAt: now })
@@ -420,6 +520,14 @@ export async function adminStopLiveSessionRow(
     return { ok: false, error: "Already linked to a submission — delete the board if you need it removed." };
   }
 
+  if (s.status === "SCHEDULED") {
+    await db
+      .update(liveSessions)
+      .set({ status: "CLOSED", updatedAt: now })
+      .where(eq(liveSessions.id, sessionId));
+    return { ok: true };
+  }
+
   await db
     .update(liveSessions)
     .set({
@@ -433,8 +541,8 @@ export async function adminStopLiveSessionRow(
 }
 
 /** Remove live session and votes; clears optional `submissions.live_session_id` link. */
-export async function adminDeleteLiveSessionRow(
-  sessionId: string
+export async function deleteLiveSessionById(
+  sessionId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const [s] = await db.select({ id: liveSessions.id }).from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
   if (!s) return { ok: false, error: "Live game not found." };
@@ -445,4 +553,22 @@ export async function adminDeleteLiveSessionRow(
   });
 
   return { ok: true };
+}
+
+export async function adminDeleteLiveSessionRow(
+  sessionId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  return deleteLiveSessionById(sessionId);
+}
+
+export async function listLiveSessionsByCreator(profileId: string, limit = 30) {
+  await processLiveSessionDeadlines();
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const cap = Math.min(Math.max(1, limit), 50);
+  return db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(eq(liveSessions.createdByUserId, profileId))
+    .orderBy(desc(liveSessions.createdAt))
+    .limit(cap);
 }

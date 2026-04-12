@@ -43,6 +43,7 @@ import type { ModerationTeamOption } from "@/lib/moderation-defaults";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { cn } from "@/lib/utils";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export type ModRow = {
   id: string;
@@ -67,16 +68,28 @@ export type ModRow = {
 export type ModSeasonOpt = { id: string; label: string };
 export type ModCompOpt = { id: string; label: string };
 
+function addTeamHref(teamName: string) {
+  const q = encodeURIComponent(teamName);
+  const pn = encodeURIComponent(teamName);
+  return `/add-team?q=${q}&prefillName=${pn}`;
+}
+
+function adminNewSchoolHref(teamName: string) {
+  return `/admin/schools?newSchoolDisplay=${encodeURIComponent(teamName)}`;
+}
+
 export function ModeratorDashboard({
   rows,
   teamOptions,
   seasonOptions,
   competitionOptions,
+  isAdmin = false,
 }: {
   rows: ModRow[];
   teamOptions: ModerationTeamOption[];
   seasonOptions: ModSeasonOpt[];
   competitionOptions: ModCompOpt[];
+  isAdmin?: boolean;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const columnHelper = createColumnHelper<ModRow>();
@@ -119,11 +132,12 @@ export function ModeratorDashboard({
             competitionOptions={competitionOptions}
             busyId={pendingId}
             setBusy={setPendingId}
+            isAdmin={isAdmin}
           />
         ),
       }),
     ],
-    [columnHelper, teamOptions, seasonOptions, competitionOptions, pendingId]
+    [columnHelper, teamOptions, seasonOptions, competitionOptions, pendingId, isAdmin]
   );
 
   const table = useReactTable({
@@ -190,6 +204,7 @@ function ReviewDialog({
   competitionOptions,
   busyId,
   setBusy,
+  isAdmin,
 }: {
   row: ModRow;
   teamOptions: ModerationTeamOption[];
@@ -197,6 +212,7 @@ function ReviewDialog({
   competitionOptions: ModCompOpt[];
   busyId: string | null;
   setBusy: (id: string | null) => void;
+  isAdmin: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -393,6 +409,76 @@ function ReviewDialog({
             Pick the sport first; home and away lists only show teams for that sport. Defaults use submitted team IDs,
             school names, and team labels (including nicknames). Change sport or team if the match is in another code.
           </p>
+          <div className="grid gap-2 rounded-lg border bg-muted/40 p-3 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Submitted for review (names as entered)
+              </Label>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor={`mod-sub-home-${row.id}`}>Home</Label>
+              <Input
+                id={`mod-sub-home-${row.id}`}
+                readOnly
+                value={row.proposedHomeTeamName}
+                className="bg-background font-medium"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor={`mod-sub-away-${row.id}`}>Away</Label>
+              <Input
+                id={`mod-sub-away-${row.id}`}
+                readOnly
+                value={row.proposedAwayTeamName}
+                className="bg-background font-medium"
+              />
+            </div>
+            <div className="flex flex-col gap-2 border-t border-border/60 pt-3 sm:col-span-2">
+              <p className="text-xs font-medium text-muted-foreground">Not in the directory yet?</p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href={addTeamHref(row.proposedHomeTeamName)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                >
+                  Add / find home (add team flow)
+                </a>
+                <a
+                  href={addTeamHref(row.proposedAwayTeamName)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                >
+                  Add / find away (add team flow)
+                </a>
+                {isAdmin ? (
+                  <>
+                    <a
+                      href={adminNewSchoolHref(row.proposedHomeTeamName)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(buttonVariants({ size: "sm", variant: "secondary" }))}
+                    >
+                      Admin: new school (home name)
+                    </a>
+                    <a
+                      href={adminNewSchoolHref(row.proposedAwayTeamName)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={cn(buttonVariants({ size: "sm", variant: "secondary" }))}
+                    >
+                      Admin: new school (away name)
+                    </a>
+                  </>
+                ) : null}
+              </div>
+              <p className="text-[0.7rem] leading-snug text-muted-foreground">
+                Open in a new tab, create the school and team, then return here and refresh the page so the team
+                appears in the dropdowns.
+              </p>
+            </div>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor={`mod-sport-${row.id}`}>Sport</Label>

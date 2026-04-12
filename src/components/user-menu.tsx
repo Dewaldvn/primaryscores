@@ -106,6 +106,11 @@ export function UserMenu({
               Moderation
             </DropdownMenu.Item>
           )}
+          {role === "SCHOOL_ADMIN" && (
+            <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/school-admin")}>
+              School admin
+            </DropdownMenu.Item>
+          )}
           {role === "ADMIN" && (
             <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/admin/scores")}>
               Admin

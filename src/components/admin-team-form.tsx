@@ -24,13 +24,20 @@ export type AdminTeamFormInitial = {
 export function AdminTeamForm({
   schools,
   initial,
+  lockSchoolSelect = false,
+  fixedSchoolId,
 }: {
   schools: { id: string; label: string }[];
   initial?: AdminTeamFormInitial;
+  /** Hide school dropdown (use initial.schoolId as fixed school). */
+  lockSchoolSelect?: boolean;
+  /** When creating a team for a single known school (with lockSchoolSelect). */
+  fixedSchoolId?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [sport, setSport] = useState<SchoolSport>(initial?.sport ?? "RUGBY");
+  const resolvedSchoolId = initial?.schoolId ?? fixedSchoolId;
 
   return (
     <form
@@ -72,18 +79,25 @@ export function AdminTeamForm({
       {initial ? <input type="hidden" name="id" value={initial.id} /> : null}
       <div className="space-y-1 sm:col-span-2">
         <Label>School</Label>
-        <select
-          name="schoolId"
-          required
-          defaultValue={initial?.schoolId}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-        >
-          {schools.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+        {lockSchoolSelect && resolvedSchoolId ? (
+          <>
+            <input type="hidden" name="schoolId" value={resolvedSchoolId} />
+            <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">{schools[0]?.label ?? "—"}</p>
+          </>
+        ) : (
+          <select
+            name="schoolId"
+            required
+            defaultValue={initial?.schoolId}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            {schools.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <div className="space-y-1">
         <Label htmlFor="sport">Sport</Label>

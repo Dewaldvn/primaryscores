@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { getUnderwayLiveSessionById, listLiveScoreFeed } from "@/lib/data/live-sessions";
+import { getLiveSessionPublicById, listLiveScoreFeed } from "@/lib/data/live-sessions";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -21,11 +21,12 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ session: null }, { status: 404 });
   }
   try {
-    const session = await getUnderwayLiveSessionById(id);
+    const user = await getSessionUser();
+    const session = await getLiveSessionPublicById(id, user?.id ?? null);
     if (!session) {
       return NextResponse.json({ session: null }, { status: 404 });
     }
-    const [scoreFeed, user] = await Promise.all([listLiveScoreFeed(id), getSessionUser()]);
+    const scoreFeed = await listLiveScoreFeed(id);
     let viewer: { displayName: string; avatarUrl: string | null } | null = null;
     if (user) {
       const [p] = await db

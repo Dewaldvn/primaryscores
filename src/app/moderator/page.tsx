@@ -6,6 +6,9 @@ import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import type { SchoolSport } from "@/lib/sports";
+import { getProfile } from "@/lib/auth";
+import { ModeratorSchoolAdminClaims } from "@/components/moderator-school-admin-claims";
+import { listPendingSchoolAdminClaims } from "@/lib/data/school-admin-dashboard";
 
 export default async function ModeratorPage() {
   if (!isDatabaseConfigured()) {
@@ -14,12 +17,14 @@ export default async function ModeratorPage() {
 
   await ensureU13TeamsForSchoolsMissingThem();
 
-  const [subs, teams, seasons, comps, summary] = await Promise.all([
+  const [subs, teams, seasons, comps, summary, profile, schoolAdminClaims] = await Promise.all([
     listOpenSubmissions(),
     listAllTeamsForModeration(),
     listSeasons(),
     listCompetitions(),
     moderatorSummary(),
+    getProfile(),
+    listPendingSchoolAdminClaims(),
   ]);
 
   const rows = subs.map((s) => ({
@@ -93,11 +98,14 @@ export default async function ModeratorPage() {
         </Card>
       </div>
 
+      <ModeratorSchoolAdminClaims rows={schoolAdminClaims} />
+
       <ModeratorDashboard
         rows={rows}
         teamOptions={teamOptions}
         seasonOptions={seasonOptions}
         competitionOptions={competitionOptions}
+        isAdmin={profile?.role === "ADMIN"}
       />
     </div>
   );
