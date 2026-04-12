@@ -22,7 +22,9 @@ export default async function AdminTeamsPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Teams</h1>
-        <p className="text-sm text-muted-foreground">Link age-group sides to schools.</p>
+        <p className="text-sm text-muted-foreground">
+          Link age-group sides to schools. Hockey teams must specify boys or girls.
+        </p>
       </div>
 
       <Card>
@@ -34,6 +36,8 @@ export default async function AdminTeamsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>School</TableHead>
+                <TableHead>Sport</TableHead>
+                <TableHead>Gender</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Label</TableHead>
                 <TableHead>First</TableHead>
@@ -44,6 +48,8 @@ export default async function AdminTeamsPage() {
               {rows.map((r) => (
                 <TableRow key={r.team.id}>
                   <TableCell>{r.schoolName}</TableCell>
+                  <TableCell>{r.team.sport}</TableCell>
+                  <TableCell>{r.team.gender ?? "—"}</TableCell>
                   <TableCell>{r.team.ageGroup}</TableCell>
                   <TableCell>{r.team.teamLabel}</TableCell>
                   <TableCell>{r.team.isFirstTeam ? "Yes" : "No"}</TableCell>

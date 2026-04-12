@@ -1,4 +1,4 @@
-# Implementation phases — Primary Rugby Scores SA
+# Implementation phases — Schools Scores SA
 
 This document maps delivery to **six phases**. Each section summarises what was built, lists the main files, records assumptions, and notes how the app stays runnable after that phase.
 

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+const schoolSportEnum = z.enum(["RUGBY", "NETBALL", "HOCKEY", "SOCCER"]);
+const teamGenderEnum = z.enum(["MALE", "FEMALE"]);
+
 export const schoolUpsertSchema = z.object({
   id: z.string().uuid().optional(),
   officialName: z.string().min(2, "Required"),
@@ -15,14 +18,36 @@ export const schoolUpsertSchema = z.object({
   active: z.coerce.boolean().optional().default(true),
 });
 
-export const teamUpsertSchema = z.object({
-  id: z.string().uuid().optional(),
-  schoolId: z.string().uuid(),
-  ageGroup: z.string().min(1),
-  teamLabel: z.string().min(1),
-  isFirstTeam: z.coerce.boolean().optional().default(true),
-  active: z.coerce.boolean().optional().default(true),
-});
+export const teamUpsertSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    schoolId: z.string().uuid(),
+    sport: schoolSportEnum.optional().default("RUGBY"),
+    gender: z.preprocess(
+      (v) => (v === "" || v == null || v === "__none__" ? null : v),
+      teamGenderEnum.nullable().optional()
+    ),
+    ageGroup: z.string().min(1),
+    teamLabel: z.string().min(1),
+    isFirstTeam: z.coerce.boolean().optional().default(true),
+    active: z.coerce.boolean().optional().default(true),
+  })
+  .superRefine((data, ctx) => {
+    if (data.sport === "HOCKEY" && data.gender == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Gender is required for hockey teams (boys or girls side).",
+        path: ["gender"],
+      });
+    }
+    if (data.sport !== "HOCKEY" && data.gender != null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Gender is only used for hockey; leave unset for other sports.",
+        path: ["gender"],
+      });
+    }
+  });
 
 export const seasonUpsertSchema = z.object({
   id: z.string().uuid().optional(),

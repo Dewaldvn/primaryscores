@@ -79,6 +79,8 @@ export async function upsertTeamAction(input: unknown) {
       .update(teams)
       .set({
         schoolId: v.schoolId,
+        sport: v.sport,
+        gender: v.sport === "HOCKEY" ? (v.gender ?? null) : null,
         ageGroup: v.ageGroup,
         teamLabel: v.teamLabel,
         isFirstTeam: v.isFirstTeam,
@@ -93,6 +95,8 @@ export async function upsertTeamAction(input: unknown) {
     .insert(teams)
     .values({
       schoolId: v.schoolId,
+      sport: v.sport,
+      gender: v.sport === "HOCKEY" ? (v.gender ?? null) : null,
       ageGroup: v.ageGroup,
       teamLabel: v.teamLabel,
       isFirstTeam: v.isFirstTeam,

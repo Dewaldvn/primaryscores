@@ -1,4 +1,4 @@
-# Primary Rugby Scores SA
+# Schools Scores SA
 
 MVP web app for **historical U13 primary school rugby results** in South Africa: public browsing, contributor submissions with optional evidence, moderator review, and admin metadata CRUD.
 

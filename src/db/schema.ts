@@ -47,6 +47,15 @@ export const liveSessionStatusEnum = pgEnum("live_session_status", [
   "CLOSED",
 ]);
 
+export const schoolSportEnum = pgEnum("school_sport", [
+  "RUGBY",
+  "NETBALL",
+  "HOCKEY",
+  "SOCCER",
+]);
+
+export const teamGenderEnum = pgEnum("team_gender", ["MALE", "FEMALE"]);
+
 export const provinces = pgTable("provinces", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: text("code").notNull().unique(),
@@ -125,7 +134,11 @@ export const teams = pgTable(
     schoolId: uuid("school_id")
       .notNull()
       .references(() => schools.id),
+    /** Free-text age band (e.g. U13, U16A) — conventions differ by sport. */
     ageGroup: text("age_group").notNull(),
+    sport: schoolSportEnum("sport").notNull().default("RUGBY"),
+    /** Boys / girls side where relevant (e.g. hockey); null for unspecified or other sports. */
+    gender: teamGenderEnum("gender"),
     teamLabel: text("team_label").notNull(),
     isFirstTeam: boolean("is_first_team").notNull().default(true),
     active: boolean("active").notNull().default(true),
@@ -136,7 +149,11 @@ export const teams = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("teams_school_idx").on(t.schoolId)]
+  (t) => [
+    index("teams_school_idx").on(t.schoolId),
+    index("teams_school_sport_idx").on(t.schoolId, t.sport),
+    index("teams_school_sport_gender_idx").on(t.schoolId, t.sport, t.gender),
+  ]
 );
 
 export const seasons = pgTable("seasons", {
@@ -271,6 +288,7 @@ export const liveSessions = pgTable(
   "live_sessions",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    sport: schoolSportEnum("sport").notNull().default("RUGBY"),
     homeTeamName: text("home_team_name").notNull(),
     awayTeamName: text("away_team_name").notNull(),
     homeLogoPath: text("home_logo_path"),
@@ -287,6 +305,7 @@ export const liveSessions = pgTable(
   (t) => [
     index("live_sessions_status_idx").on(t.status),
     index("live_sessions_first_vote_idx").on(t.firstVoteAt),
+    index("live_sessions_sport_status_idx").on(t.sport, t.status),
   ]
 );
 

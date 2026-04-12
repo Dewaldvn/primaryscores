@@ -22,6 +22,8 @@ import {
   competitions,
   provinces,
 } from "@/db/schema";
+import type { SchoolSport } from "@/lib/sports";
+import type { TeamGender } from "@/lib/team-gender";
 
 const homeTeam = alias(teams, "home_team");
 const awayTeam = alias(teams, "away_team");
@@ -33,6 +35,9 @@ export type ResultListFilters = {
   schoolId?: string;
   seasonId?: string;
   competitionId?: string;
+  sport?: SchoolSport;
+  /** When set (e.g. hockey), both teams must match this side. */
+  gender?: TeamGender;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
@@ -77,6 +82,48 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
     .where(verifiedCondition())
     .orderBy(desc(results.publishedAt))
     .limit(limit);
+});
+
+/** Verified published results where both fixture teams are this sport (same shape as {@link getRecentVerifiedResults}). */
+export const getRecentVerifiedResultsBySport = cache(async function getRecentVerifiedResultsBySport(
+  sport: SchoolSport,
+  limit = 10
+) {
+  const cap = Math.min(Math.max(1, limit), 50);
+  return db
+    .select({
+      resultId: results.id,
+      fixtureId: fixtures.id,
+      homeScore: results.homeScore,
+      awayScore: results.awayScore,
+      verificationLevel: results.verificationLevel,
+      publishedAt: results.publishedAt,
+      matchDate: fixtures.matchDate,
+      homeSchoolName: homeSchool.displayName,
+      awaySchoolName: awaySchool.displayName,
+      homeSchoolSlug: homeSchool.slug,
+      awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
+      competitionName: competitions.name,
+      seasonName: seasons.name,
+      provinceName: provinces.name,
+      recordingUrl: fixtures.recordingUrl,
+    })
+    .from(results)
+    .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
+    .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
+    .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))
+    .innerJoin(awaySchool, eq(awayTeam.schoolId, awaySchool.id))
+    .leftJoin(provinces, eq(competitions.provinceId, provinces.id))
+    .where(
+      and(verifiedCondition(), eq(homeTeam.sport, sport), eq(awayTeam.sport, sport))!
+    )
+    .orderBy(desc(results.publishedAt))
+    .limit(cap);
 });
 
 export const getRecentVerifiedResultsForSchoolIds = cache(async function getRecentVerifiedResultsForSchoolIds(
@@ -204,6 +251,16 @@ function buildFilterConditions(filters: ResultListFilters) {
 
   if (filters.competitionId) {
     parts.push(eq(fixtures.competitionId, filters.competitionId));
+  }
+
+  if (filters.sport) {
+    parts.push(eq(homeTeam.sport, filters.sport));
+    parts.push(eq(awayTeam.sport, filters.sport));
+  }
+
+  if (filters.gender) {
+    parts.push(eq(homeTeam.gender, filters.gender));
+    parts.push(eq(awayTeam.gender, filters.gender));
   }
 
   if (filters.schoolId) {

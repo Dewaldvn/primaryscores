@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import type { LiveSessionClientRow, LiveSessionViewer } from "@/lib/live-session-types";
+import { schoolSportLabel } from "@/lib/sports";
 
 function wrapupCountdownMin(s: LiveSessionClientRow): number | null {
   if (!s.firstVoteAt || !s.inWrapup) return null;
@@ -72,6 +73,9 @@ export function LiveSessionActiveCard({
           </span>
         </CardTitle>
         <CardDescription className="text-center">
+          <span className="mr-1 inline-block rounded border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {schoolSportLabel(s.sport)}
+          </span>
           {s.venue ? `${s.venue} · ` : null}
           {s.inWrapup ? (
             <span className="font-medium text-amber-700 dark:text-amber-400">

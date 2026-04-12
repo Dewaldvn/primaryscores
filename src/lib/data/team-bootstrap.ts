@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { schools, teams } from "@/db/schema";
 
@@ -19,7 +19,7 @@ export async function ensureU13TeamsForSchoolsMissingThem(): Promise<void> {
   const u13Rows = await db
     .select({ schoolId: teams.schoolId })
     .from(teams)
-    .where(eq(teams.ageGroup, "U13"));
+    .where(and(eq(teams.ageGroup, "U13"), eq(teams.sport, "RUGBY")));
 
   const hasU13 = new Set(u13Rows.map((r) => r.schoolId));
   const missing = activeSchools.filter((s) => !hasU13.has(s.id));

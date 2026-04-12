@@ -13,7 +13,7 @@ import { slugify } from "../src/lib/slug";
 import { eq, count } from "drizzle-orm";
 
 async function main() {
-  console.log("Seeding Primary Rugby Scores SA demo data…");
+  console.log("Seeding Schools Scores SA demo data…");
 
   const [{ n: existingResults }] = await db.select({ n: count() }).from(results);
   if (existingResults >= 15) {

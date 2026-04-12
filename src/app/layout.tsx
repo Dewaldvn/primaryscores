@@ -18,11 +18,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Primary Rugby Scores SA",
-    template: "%s · Primary Rugby Scores SA",
+    default: "Schools Scores SA",
+    template: "%s · Schools Scores SA",
   },
   description:
-    "Historical U13 primary school rugby results for South Africa — browse verified scores, seasons, and schools.",
+    "School sports scores for South Africa — verified results, seasons, schools, and live crowd-sourced scoreboards.",
   icons: {
     icon: [{ url: "/brand/site-logo.png", type: "image/png" }],
     apple: "/brand/site-logo.png",

@@ -46,7 +46,7 @@ export default async function ModeratorPage() {
 
   const teamOptions = teams.map((t) => ({
     teamId: t.teamId,
-    label: `${t.schoolName} — ${t.ageGroup} ${t.teamLabel}${t.active ? "" : " (inactive)"}`,
+    label: `${t.schoolName} — ${t.sport}${t.gender ? ` ${t.gender}` : ""} ${t.ageGroup} ${t.teamLabel}${t.active ? "" : " (inactive)"}`,
   }));
 
   const seasonOptions = seasons.map((x) => ({

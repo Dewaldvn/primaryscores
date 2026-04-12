@@ -22,6 +22,10 @@ import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { createLiveSessionAction } from "@/actions/live-scores";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import type { LiveSessionClientRow, LiveSessionMajority } from "@/lib/live-session-types";
+import type { SchoolSport } from "@/lib/sports";
+import { SCHOOL_SPORTS, schoolSportLabel } from "@/lib/sports";
+import type { TeamGender } from "@/lib/team-gender";
+import { TEAM_GENDERS, teamGenderLabel } from "@/lib/team-gender";
 
 const POLL_MS = 15_000;
 const LIST_LIMIT = 10;
@@ -40,11 +44,17 @@ type SchoolHit = {
 export function GamesUnderway({
   signedIn,
   startImageAbove = false,
+  sportFilter,
 }: {
   signedIn: boolean;
   /** When true (live hub), show start_live_game.png above the list; signed-out image links to login. */
   startImageAbove?: boolean;
+  /** When set, list and new sessions are scoped to this sport (`?sport=` on the live page). */
+  sportFilter?: SchoolSport;
 }) {
+  const livePath = sportFilter ? `/live?sport=${sportFilter}` : "/live";
+  const loginHref = `/login?redirect=${encodeURIComponent(livePath)}`;
+
   const [sessions, setSessions] = useState<LiveSessionClientRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -65,7 +75,8 @@ export function GamesUnderway({
   const refresh = useCallback(async () => {
     try {
       const q = debouncedSearch ? `&q=${encodeURIComponent(debouncedSearch)}` : "";
-      const res = await fetch(`/api/live-sessions?limit=${LIST_LIMIT}${q}`, { cache: "no-store" });
+      const sportQ = sportFilter ? `&sport=${encodeURIComponent(sportFilter)}` : "";
+      const res = await fetch(`/api/live-sessions?limit=${LIST_LIMIT}${q}${sportQ}`, { cache: "no-store" });
       const data = (await res.json()) as { sessions?: LiveSessionClientRow[]; error?: string };
       if (!res.ok) {
         setSessions([]);
@@ -81,7 +92,7 @@ export function GamesUnderway({
     } catch {
       setLoadErr("Could not load live games.");
     }
-  }, [debouncedSearch]);
+  }, [debouncedSearch, sportFilter]);
 
   useEffect(() => {
     void refresh();
@@ -106,6 +117,7 @@ export function GamesUnderway({
         <DialogTitle>Start a live game</DialogTitle>
       </DialogHeader>
       <NewLiveGameForm
+        hubSport={sportFilter}
         turnToken={turnCreate}
         onToken={setTurnCreate}
         onDone={() => {
@@ -162,7 +174,7 @@ export function GamesUnderway({
           {startImageAbove ? (
             <div className="mb-2 flex justify-center sm:mb-4">
               <Link
-                href="/login?redirect=%2Flive"
+                href={loginHref}
                 className="inline-block rounded-lg ring-offset-background transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {startLiveImage}
@@ -186,7 +198,7 @@ export function GamesUnderway({
               </p>
             </div>
             {!startImageAbove ? (
-              <LinkButton href="/login?redirect=%2Flive" variant="default" size="sm">
+              <LinkButton href={loginHref} variant="default" size="sm">
                 Sign in to start a live game
               </LinkButton>
             ) : null}
@@ -226,7 +238,7 @@ export function GamesUnderway({
         <ul className="grid gap-3 sm:grid-cols-2">
           {sessions.map((s) => (
             <li key={s.id}>
-              <CompactLiveSessionCard session={s} />
+              <CompactLiveSessionCard session={s} showSportBadge={!sportFilter} />
             </li>
           ))}
         </ul>
@@ -235,7 +247,13 @@ export function GamesUnderway({
   );
 }
 
-function CompactLiveSessionCard({ session: s }: { session: LiveSessionClientRow }) {
+function CompactLiveSessionCard({
+  session: s,
+  showSportBadge = false,
+}: {
+  session: LiveSessionClientRow;
+  showSportBadge?: boolean;
+}) {
   const majority: LiveSessionMajority = s.majority;
   return (
     <Link
@@ -244,6 +262,11 @@ function CompactLiveSessionCard({ session: s }: { session: LiveSessionClientRow 
     >
       <Card className="h-full transition-colors hover:bg-muted/50">
         <CardHeader className="pb-2 pt-4 text-center">
+          {showSportBadge ? (
+            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              {schoolSportLabel(s.sport)}
+            </p>
+          ) : null}
           <CardTitle className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm font-medium leading-snug">
             <span className="inline-flex max-w-full items-center justify-center gap-1.5">
               {s.homeLogoPath ? (
@@ -277,11 +300,16 @@ function CompactLiveSessionCard({ session: s }: { session: LiveSessionClientRow 
   );
 }
 
-function useLiveTeamField() {
+/** For hockey, pass the chosen side so school search can match the correct team row. */
+function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGender) {
   const [name, setName] = useState("");
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [lockedPickName, setLockedPickName] = useState<string | null>(null);
   const [hits, setHits] = useState<SchoolHit[]>([]);
+
+  useEffect(() => {
+    setHits([]);
+  }, [schoolSport, hockeySearchGender]);
 
   const onInputChange = (v: string) => {
     setName(v);
@@ -303,7 +331,17 @@ function useLiveTeamField() {
       setHits([]);
       return;
     }
-    const res = await fetch(`/api/schools/search?q=${encodeURIComponent(q)}`);
+    if (schoolSport === "HOCKEY" && hockeySearchGender === undefined) {
+      setHits([]);
+      return;
+    }
+    const genderQ =
+      schoolSport === "HOCKEY" && hockeySearchGender
+        ? `&gender=${encodeURIComponent(hockeySearchGender)}`
+        : "";
+    const res = await fetch(
+      `/api/schools/search?q=${encodeURIComponent(q)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`
+    );
     const data = (await res.json()) as unknown;
     setHits(Array.isArray(data) ? (data as SchoolHit[]) : []);
   };
@@ -362,18 +400,29 @@ function LiveTeamSchoolField({
 }
 
 function NewLiveGameForm({
+  hubSport,
   turnToken,
   onToken,
   onDone,
 }: {
+  /** When set, new sessions use this sport (matches URL filter). */
+  hubSport?: SchoolSport;
   turnToken: string | null;
   onToken: (t: string | null) => void;
   onDone: () => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const homeField = useLiveTeamField();
-  const awayField = useLiveTeamField();
+  const [pickSport, setPickSport] = useState<SchoolSport>("RUGBY");
+  const [hockeyGender, setHockeyGender] = useState<TeamGender | "">("");
+  const effectiveSport = hubSport ?? pickSport;
+  const hockeySearchGender = effectiveSport === "HOCKEY" ? hockeyGender || undefined : undefined;
+  const homeField = useLiveTeamField(effectiveSport, hockeySearchGender);
+  const awayField = useLiveTeamField(effectiveSport, hockeySearchGender);
+
+  useEffect(() => {
+    if (effectiveSport !== "HOCKEY") setHockeyGender("");
+  }, [effectiveSport]);
 
   return (
     <form
@@ -383,12 +432,17 @@ function NewLiveGameForm({
         const fd = new FormData(e.currentTarget);
         start(() => {
           void (async () => {
+            if (effectiveSport === "HOCKEY" && hockeyGender === "") {
+              toast.error("Choose boys or girls for hockey before starting a live game.");
+              return;
+            }
             const res = await createLiveSessionAction({
               homeTeamName: homeField.name.trim(),
               awayTeamName: awayField.name.trim(),
               homeLogoPath: homeField.logoPath,
               awayLogoPath: awayField.logoPath,
               venue: fd.get("venue") ? String(fd.get("venue")) : null,
+              sport: effectiveSport,
               turnstileToken: turnToken,
             });
             if (!res.ok) {
@@ -420,6 +474,48 @@ function NewLiveGameForm({
         });
       }}
     >
+      {!hubSport ? (
+        <div className="space-y-1 text-left">
+          <Label htmlFor="nl-sport">Sport *</Label>
+          <select
+            id="nl-sport"
+            name="sport"
+            value={pickSport}
+            onChange={(e) => setPickSport(e.target.value as SchoolSport)}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {SCHOOL_SPORTS.map((s) => (
+              <option key={s} value={s}>
+                {schoolSportLabel(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      {effectiveSport === "HOCKEY" ? (
+        <div className="space-y-1 text-left">
+          <Label htmlFor="nl-hockey-side">Hockey side *</Label>
+          <select
+            id="nl-hockey-side"
+            value={hockeyGender}
+            onChange={(e) => setHockeyGender((e.target.value || "") as TeamGender | "")}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            required
+          >
+            <option value="" disabled>
+              Select boys or girls…
+            </option>
+            {TEAM_GENDERS.map((g) => (
+              <option key={g} value={g}>
+                {teamGenderLabel(g)}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            School search matches the correct hockey team row (boys vs girls).
+          </p>
+        </div>
+      ) : null}
       <LiveTeamSchoolField id="nl-home-team" label="Home team / school *" field={homeField} />
       <LiveTeamSchoolField id="nl-away-team" label="Away team / school *" field={awayField} />
       <div className="space-y-1 text-left">

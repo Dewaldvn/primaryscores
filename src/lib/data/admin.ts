@@ -78,6 +78,8 @@ export async function listAllTeamsForModeration() {
     .select({
       teamId: teams.id,
       schoolName: schools.displayName,
+      sport: teams.sport,
+      gender: teams.gender,
       ageGroup: teams.ageGroup,
       teamLabel: teams.teamLabel,
       active: teams.active,

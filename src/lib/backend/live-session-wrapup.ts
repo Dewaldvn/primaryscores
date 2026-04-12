@@ -69,9 +69,10 @@ export async function createLiveSubmissionFromSession(opts: {
         ) ?? { homeScore: 0, awayScore: 0, voterCount: 0 };
 
       const matchDate = now.toISOString().slice(0, 10);
-      const notes = auto
-        ? `LIVE_SESSION_AUTO session=${sessionId} (${LIVE_AUTO_SUBMIT_AFTER_MIN}m elapsed, no manual wrap-up)`
-        : `LIVE_SESSION_MANUAL session=${sessionId}`;
+      const notes =
+        (auto
+          ? `LIVE_SESSION_AUTO session=${sessionId} (${LIVE_AUTO_SUBMIT_AFTER_MIN}m elapsed, no manual wrap-up)`
+          : `LIVE_SESSION_MANUAL session=${sessionId}`) + ` sport=${s.sport}`;
 
       const [ins] = await tx
         .insert(submissions)

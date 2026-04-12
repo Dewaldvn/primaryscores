@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { FindSchoolClient } from "@/components/find-school-client";
 import { listProvinces, listSchoolsByProvince } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { parseSportQueryParam, schoolSportLabel } from "@/lib/sports";
+import { parseTeamGenderQueryParam, teamGenderLabel } from "@/lib/team-gender";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -33,6 +35,8 @@ export default async function FindSchoolPage({ searchParams }: Props) {
 
   const rawProvince = qp(searchParams, "province");
   const provinceId = rawProvince && UUID_RE.test(rawProvince) ? rawProvince : null;
+  const searchSport = parseSportQueryParam(qp(searchParams, "sport"));
+  const searchGender = parseTeamGenderQueryParam(qp(searchParams, "gender"));
 
   const provinces = await listProvinces();
   const rawSchools = provinceId ? await listSchoolsByProvince(provinceId) : [];
@@ -45,17 +49,50 @@ export default async function FindSchoolPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold tracking-tight">Find your school</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Search by name (live) or open a province to scroll the full directory.
+          {searchSport
+            ? ` Name search is filtered to schools with an active ${schoolSportLabel(searchSport)} team in the database.`
+            : null}
+          {searchSport === "HOCKEY" && searchGender
+            ? ` Showing ${teamGenderLabel(searchGender).toLowerCase()} teams only.`
+            : null}
         </p>
+        {searchSport === "HOCKEY" && !searchGender ? (
+          <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
+            <span className="text-muted-foreground">Hockey name search:</span>
+            <Link
+              href="/find-school?sport=HOCKEY&gender=MALE"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Boys / men
+            </Link>
+            <span className="text-muted-foreground">·</span>
+            <Link
+              href="/find-school?sport=HOCKEY&gender=FEMALE"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Girls / women
+            </Link>
+          </p>
+        ) : null}
       </div>
       <FindSchoolClient
         provinces={provinces}
         schoolsInProvince={schoolsInProvince}
         selectedProvinceId={provinceId}
         selectedProvinceName={selectedProvinceName}
+        searchSport={searchSport}
+        searchGender={searchGender}
       />
       <p className="text-center text-sm text-muted-foreground sm:text-left">
         Wrong school?{" "}
-        <Link href="/submit" className="text-primary underline-offset-4 hover:underline">
+        <Link
+          href={
+            searchSport
+              ? `/submit?sport=${searchSport}${searchGender ? `&gender=${searchGender}` : ""}`
+              : "/submit"
+          }
+          className="text-primary underline-offset-4 hover:underline"
+        >
           Submit a score
         </Link>{" "}
         from the match form.

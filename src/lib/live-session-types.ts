@@ -1,9 +1,12 @@
 /** JSON shape returned by `/api/live-sessions` and `/api/live-sessions/[id]`. */
 
+import type { SchoolSport } from "@/lib/sports";
+
 export type LiveSessionMajority = { homeScore: number; awayScore: number; voterCount: number } | null;
 
 export type LiveSessionClientRow = {
   id: string;
+  sport: SchoolSport;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;

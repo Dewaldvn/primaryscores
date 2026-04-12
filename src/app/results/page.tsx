@@ -13,6 +13,8 @@ import { ResultsFilterForm } from "@/components/results-filter-form";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
+import { parseSportQueryParam } from "@/lib/sports";
+import { parseTeamGenderQueryParam } from "@/lib/team-gender";
 
 type Props = { searchParams: Record<string, string | string[] | undefined> };
 
@@ -22,6 +24,8 @@ function resultsHref(
     schoolId?: string;
     seasonId?: string;
     competitionId?: string;
+    sport?: string;
+    gender?: string;
     dateFrom?: string;
     dateTo?: string;
     search?: string;
@@ -33,6 +37,8 @@ function resultsHref(
   if (f.schoolId) q.set("school", f.schoolId);
   if (f.seasonId) q.set("season", f.seasonId);
   if (f.competitionId) q.set("competition", f.competitionId);
+  if (f.sport) q.set("sport", f.sport);
+  if (f.gender) q.set("gender", f.gender);
   if (f.dateFrom) q.set("from", f.dateFrom);
   if (f.dateTo) q.set("to", f.dateTo);
   if (f.search) q.set("search", f.search);
@@ -51,6 +57,8 @@ export default async function ResultsPage({ searchParams }: Props) {
     schoolId: sp("school"),
     seasonId: sp("season"),
     competitionId: sp("competition"),
+    sport: parseSportQueryParam(sp("sport")),
+    gender: parseTeamGenderQueryParam(sp("gender")),
     dateFrom: sp("from"),
     dateTo: sp("to"),
     search: sp("search"),
@@ -101,7 +109,7 @@ export default async function ResultsPage({ searchParams }: Props) {
       <div>
         <h1 className="text-2xl font-bold">Results archive</h1>
         <p className="text-sm text-muted-foreground">
-          Verified U13 scores. Filters use case-insensitive partial matching for search.
+          Verified scores by school team. Use sport and search filters to narrow the list.
         </p>
       </div>
 
@@ -115,6 +123,8 @@ export default async function ResultsPage({ searchParams }: Props) {
           schoolId: filters.schoolId,
           seasonId: filters.seasonId,
           competitionId: filters.competitionId,
+          sport: filters.sport,
+          gender: filters.gender,
           dateFrom: filters.dateFrom,
           dateTo: filters.dateTo,
           search: filters.search,

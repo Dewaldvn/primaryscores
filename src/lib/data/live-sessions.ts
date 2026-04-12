@@ -1,4 +1,5 @@
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import type { SchoolSport } from "@/lib/sports";
 import { db } from "@/lib/db";
 import { liveSessions, liveScoreVotes, profiles, schools, submissions } from "@/db/schema";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
@@ -66,6 +67,7 @@ export async function processLiveSessionDeadlines(now = new Date()): Promise<voi
 
 export type LiveSessionPublic = {
   id: string;
+  sport: SchoolSport;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;
@@ -132,6 +134,8 @@ export type ListUnderwayLiveSessionsOpts = {
   q?: string;
   /** Max rows (default 10, capped at 50). */
   limit?: number;
+  /** When set, only sessions for this sport. */
+  sport?: SchoolSport;
 };
 
 function normalizedTeamKey(name: string): string {
@@ -204,6 +208,7 @@ async function rowToLiveSessionPublic(
     : null;
   return {
     id: s.id,
+    sport: s.sport as SchoolSport,
     homeTeamName: s.homeTeamName,
     awayTeamName: s.awayTeamName,
     homeLogoPath: mergeStoredOrSchoolLogo(s.homeLogoPath, s.homeTeamName, schoolLogoByNorm),
@@ -224,16 +229,22 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
   const rawQ = (opts?.q ?? "").trim().slice(0, 120).replace(/[%_\\]/g, "");
 
   const statusOpen = inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]);
-  const whereClause =
+  const sportClause = opts?.sport ? eq(liveSessions.sport, opts.sport) : undefined;
+  const searchClause =
     rawQ.length > 0
-      ? and(
-          statusOpen,
-          or(
-            ilike(liveSessions.homeTeamName, `%${rawQ}%`),
-            ilike(liveSessions.awayTeamName, `%${rawQ}%`)
-          )
+      ? or(
+          ilike(liveSessions.homeTeamName, `%${rawQ}%`),
+          ilike(liveSessions.awayTeamName, `%${rawQ}%`)
         )
-      : statusOpen;
+      : undefined;
+  const whereClause =
+    sportClause && searchClause
+      ? and(statusOpen, sportClause, searchClause)
+      : sportClause
+        ? and(statusOpen, sportClause)
+        : searchClause
+          ? and(statusOpen, searchClause)
+          : statusOpen;
 
   const rows = await db
     .select()
@@ -275,7 +286,8 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
 /** Same home/away pairing (trimmed, case-insensitive) already in ACTIVE or WRAPUP — do not start a duplicate board. */
 export async function findOpenLiveSessionDuplicate(
   homeTeamName: string,
-  awayTeamName: string
+  awayTeamName: string,
+  sport: SchoolSport
 ): Promise<{ id: string } | null> {
   await processLiveSessionDeadlines();
   const h = homeTeamName.trim().toLowerCase();
@@ -287,6 +299,7 @@ export async function findOpenLiveSessionDuplicate(
     .where(
       and(
         inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
+        eq(liveSessions.sport, sport),
         sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
         sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
       )
@@ -296,6 +309,7 @@ export async function findOpenLiveSessionDuplicate(
 }
 
 export async function insertLiveSessionRow(input: {
+  sport: SchoolSport;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;
@@ -306,6 +320,7 @@ export async function insertLiveSessionRow(input: {
   const [row] = await db
     .insert(liveSessions)
     .values({
+      sport: input.sport,
       homeTeamName: input.homeTeamName.trim(),
       awayTeamName: input.awayTeamName.trim(),
       homeLogoPath: input.homeLogoPath,

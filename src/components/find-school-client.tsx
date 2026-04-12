@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { LinkButton } from "@/components/link-button";
 import { SchoolLogo } from "@/components/school-logo";
 import { Card, CardContent } from "@/components/ui/card";
+import type { SchoolSport } from "@/lib/sports";
+import type { TeamGender } from "@/lib/team-gender";
 
 export type ProvinceRow = { id: string; name: string };
 
@@ -27,11 +29,17 @@ export function FindSchoolClient({
   schoolsInProvince,
   selectedProvinceId,
   selectedProvinceName,
+  searchSport,
+  searchGender,
 }: {
   provinces: ProvinceRow[];
   schoolsInProvince: SchoolListRow[];
   selectedProvinceId: string | null;
   selectedProvinceName: string | null;
+  /** When set, name search uses `/api/schools/search` with this sport (any age group for that sport). */
+  searchSport?: SchoolSport;
+  /** With hockey, narrows school search to boys or girls teams. */
+  searchGender?: TeamGender;
 }) {
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -56,7 +64,11 @@ export function FindSchoolClient({
     setErr(null);
     void (async () => {
       try {
-        const res = await fetch(`/api/schools/search?q=${encodeURIComponent(debounced)}`, { cache: "no-store" });
+        const sportQ = searchSport ? `&sport=${encodeURIComponent(searchSport)}` : "";
+        const genderQ = searchGender ? `&gender=${encodeURIComponent(searchGender)}` : "";
+        const res = await fetch(`/api/schools/search?q=${encodeURIComponent(debounced)}${sportQ}${genderQ}`, {
+          cache: "no-store",
+        });
         const data = (await res.json()) as SchoolListRow[] | unknown;
         if (cancelled) return;
         if (!res.ok) {
@@ -77,7 +89,7 @@ export function FindSchoolClient({
     return () => {
       cancelled = true;
     };
-  }, [debounced]);
+  }, [debounced, searchSport, searchGender]);
 
   return (
     <div className="space-y-10">
@@ -129,16 +141,22 @@ export function FindSchoolClient({
         <h2 className="text-lg font-semibold">Browse by province</h2>
         <p className="text-sm text-muted-foreground">Pick a province to list schools alphabetically.</p>
         <div className="flex flex-wrap gap-2">
-          {provinces.map((p) => (
-            <LinkButton
-              key={p.id}
-              variant={selectedProvinceId === p.id ? "default" : "outline"}
-              size="sm"
-              href={`/find-school?province=${p.id}`}
-            >
-              {p.name}
-            </LinkButton>
-          ))}
+          {provinces.map((p) => {
+            const qs = new URLSearchParams();
+            qs.set("province", p.id);
+            if (searchSport) qs.set("sport", searchSport);
+            if (searchGender) qs.set("gender", searchGender);
+            return (
+              <LinkButton
+                key={p.id}
+                variant={selectedProvinceId === p.id ? "default" : "outline"}
+                size="sm"
+                href={`/find-school?${qs.toString()}`}
+              >
+                {p.name}
+              </LinkButton>
+            );
+          })}
         </div>
       </section>
 

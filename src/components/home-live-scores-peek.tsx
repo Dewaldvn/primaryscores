@@ -2,23 +2,34 @@ import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
 import { SchoolLogo } from "@/components/school-logo";
 import type { LiveSessionPublic } from "@/lib/data/live-sessions";
+import { schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 export function HomeLiveScoresPeek({
   sessions,
   loadError,
+  sportFilter,
 }: {
   sessions: LiveSessionPublic[];
   loadError: string | null;
+  /** When set, links and copy are scoped to this sport; per-row sport labels are hidden. */
+  sportFilter?: SchoolSport;
 }) {
+  const liveHref = sportFilter ? `/live?sport=${sportFilter}` : "/live";
   return (
     <div className="rounded-lg border bg-muted/15 px-3 py-3 sm:px-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">Live scores</h2>
-        <LinkButton href="/live" variant="outline" size="sm">
+        <h2 className="text-base font-semibold">
+          {sportFilter ? `${schoolSportLabel(sportFilter)} live scores` : "Live scores"}
+        </h2>
+        <LinkButton href={liveHref} variant="outline" size="sm">
           Open live scoring
         </LinkButton>
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">Up to five games underway right now (crowd-sourced votes).</p>
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        {sportFilter
+          ? `Up to five open ${schoolSportLabel(sportFilter)} games (crowd-sourced votes).`
+          : "Up to five games underway right now (crowd-sourced votes)."}
+      </p>
       {loadError ? (
         <p className="mt-2 text-sm text-destructive">
           Could not load live games.
@@ -29,7 +40,7 @@ export function HomeLiveScoresPeek({
       ) : sessions.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
           No live games open.{" "}
-          <Link href="/live" className="text-primary underline-offset-4 hover:underline">
+          <Link href={liveHref} className="text-primary underline-offset-4 hover:underline">
             Start or join one on the live page
           </Link>
           .
@@ -43,6 +54,11 @@ export function HomeLiveScoresPeek({
                 className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 px-3 py-2 hover:bg-muted/60"
               >
                 <span className="min-w-0 flex-1">
+                  {!sportFilter ? (
+                    <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {schoolSportLabel(s.sport)}
+                    </span>
+                  ) : null}
                   <span className="inline-flex items-center gap-1.5 font-medium">
                     {s.homeLogoPath ? (
                       <SchoolLogo logoPath={s.homeLogoPath} alt="" size="xs" className="shrink-0" />

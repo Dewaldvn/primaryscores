@@ -20,20 +20,20 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
         <Link
           href="/"
           className="group flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 pr-1 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:gap-3 sm:pr-2 lg:max-w-none lg:flex-none lg:gap-4"
-          aria-label="Primary Rugby Scores SA — home"
+          aria-label="Schools Scores SA — home"
         >
           <span className="relative flex h-[4.8rem] w-auto shrink-0 items-center justify-center sm:h-[6.45rem] lg:h-[7.2rem]">
             <Image
               src="/brand/site-logo.png"
               alt=""
-              width={421}
-              height={592}
+              width={753}
+              height={790}
               className="h-full w-auto max-h-[4.8rem] object-contain object-center sm:max-h-[6.45rem] lg:max-h-[7.2rem]"
               priority
             />
           </span>
           <span className="min-w-0 text-lg font-semibold leading-snug tracking-tight text-blue-700 transition-colors group-hover:text-blue-800 dark:text-blue-400 dark:group-hover:text-blue-300 sm:text-xl lg:text-[1.6875rem] xl:text-3xl">
-            <span className="line-clamp-3 lg:line-clamp-none">Primary Rugby Scores SA</span>
+            <span className="line-clamp-3 lg:line-clamp-none">Schools Scores SA</span>
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

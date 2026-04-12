@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/link-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
+import { TEAM_GENDERS, teamGenderLabel, type TeamGender } from "@/lib/team-gender";
 
 type Opt = { id: string; name: string; label?: string };
 
@@ -21,6 +23,8 @@ export function ResultsFilterForm({
     schoolId?: string;
     seasonId?: string;
     competitionId?: string;
+    sport?: SchoolSport;
+    gender?: TeamGender;
     dateFrom?: string;
     dateTo?: string;
     search?: string;
@@ -40,6 +44,39 @@ export function ResultsFilterForm({
           placeholder="School or competition…"
           defaultValue={initial.search ?? ""}
         />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="sport">Sport</Label>
+        <select
+          id="sport"
+          name="sport"
+          defaultValue={initial.sport ?? ""}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <option value="">All sports</option>
+          {SCHOOL_SPORTS.map((s) => (
+            <option key={s} value={s}>
+              {schoolSportLabel(s)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="gender">Hockey side</Label>
+        <select
+          id="gender"
+          name="gender"
+          defaultValue={initial.gender ?? ""}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        >
+          <option value="">All / not filtered</option>
+          {TEAM_GENDERS.map((g) => (
+            <option key={g} value={g}>
+              {teamGenderLabel(g)}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">Only affects results when both teams carry this gender.</p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="province">Province</Label>

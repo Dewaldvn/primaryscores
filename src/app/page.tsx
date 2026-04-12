@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentVerifiedResults } from "@/lib/data/results";
 import { listUnderwayLiveSessions, type LiveSessionPublic } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
-import { HomeHeroTiles } from "@/components/home-hero-tiles";
+import { HomeSportPickTiles } from "@/components/home-sport-pick-tiles";
 import { HomeLiveScoresPeek } from "@/components/home-live-scores-peek";
 import { RecentVerifiedScoreCards } from "@/components/recent-verified-score-cards";
 import { withTimeout } from "@/lib/with-timeout";
@@ -66,7 +66,7 @@ export default async function HomePage() {
       ) : null}
 
       <section className="space-y-3">
-        <HomeHeroTiles />
+        <HomeSportPickTiles />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
       </section>
 
