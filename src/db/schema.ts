@@ -40,6 +40,12 @@ export const verificationLevelEnum = pgEnum("verification_level", [
   "SOURCE_VERIFIED",
 ]);
 
+export const liveSessionStatusEnum = pgEnum("live_session_status", [
+  "ACTIVE",
+  "WRAPUP",
+  "CLOSED",
+]);
+
 export const provinces = pgTable("provinces", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: text("code").notNull().unique(),
@@ -148,6 +154,8 @@ export const fixtures = pgTable(
       .notNull()
       .references(() => teams.id),
     venue: text("venue"),
+    /** Optional public URL (e.g. Super Sports Schools match recording). */
+    recordingUrl: text("recording_url"),
     status: fixtureStatusEnum("status").notNull().default("SCHEDULED"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -218,7 +226,10 @@ export const submissions = pgTable(
     ),
     submittedByUserId: uuid("submitted_by_user_id").references(() => profiles.id),
     sourceUrl: text("source_url"),
+    /** Optional; copied to fixtures.recording_url when approved. */
+    recordingUrl: text("recording_url"),
     notes: text("notes"),
+    liveSessionId: uuid("live_session_id"),
     moderationStatus: moderationStatusEnum("moderation_status")
       .notNull()
       .default("PENDING"),
@@ -232,6 +243,46 @@ export const submissions = pgTable(
     index("submissions_status_idx").on(t.moderationStatus),
     index("submissions_submitted_idx").on(t.submittedAt),
     index("submissions_user_idx").on(t.submittedByUserId),
+    index("submissions_live_session_idx").on(t.liveSessionId),
+  ]
+);
+
+export const liveSessions = pgTable(
+  "live_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    homeTeamName: text("home_team_name").notNull(),
+    awayTeamName: text("away_team_name").notNull(),
+    venue: text("venue"),
+    status: liveSessionStatusEnum("status").notNull().default("ACTIVE"),
+    firstVoteAt: timestamp("first_vote_at", { withTimezone: true }),
+    wrapupStartedAt: timestamp("wrapup_started_at", { withTimezone: true }),
+    submissionId: uuid("submission_id").references(() => submissions.id),
+    createdByUserId: uuid("created_by_user_id").references(() => profiles.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("live_sessions_status_idx").on(t.status),
+    index("live_sessions_first_vote_idx").on(t.firstVoteAt),
+  ]
+);
+
+export const liveScoreVotes = pgTable(
+  "live_score_votes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => liveSessions.id, { onDelete: "cascade" }),
+    voterKey: text("voter_key").notNull(),
+    homeScore: integer("home_score").notNull(),
+    awayScore: integer("away_score").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("live_score_votes_session_idx").on(t.sessionId),
+    index("live_score_votes_session_created_idx").on(t.sessionId, t.createdAt),
   ]
 );
 

@@ -96,6 +96,7 @@ export async function submitDisputeAction(input: unknown) {
       proposedProvinceId: row.homeProvinceId ?? row.awayProvinceId ?? null,
       submittedByUserId: user.id,
       sourceUrl: null,
+      recordingUrl: null,
       notes,
       moderationStatus: "NEEDS_REVIEW",
       submittedAt: now,

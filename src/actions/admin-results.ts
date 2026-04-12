@@ -41,6 +41,7 @@ export async function adminUpdateResultAction(input: unknown) {
       .set({
         matchDate: d.matchDate,
         venue: d.venue?.trim() || null,
+        recordingUrl: d.recordingUrl,
         updatedAt: now,
       })
       .where(eq(fixtures.id, existing.fixtureId));

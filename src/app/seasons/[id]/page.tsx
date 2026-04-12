@@ -8,6 +8,7 @@ import { VerificationBadge } from "@/components/verification-badge";
 import { getSeason } from "@/lib/data/reference";
 import { listVerifiedResults } from "@/lib/data/results";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { id: string } };
 
@@ -66,6 +67,11 @@ export default async function SeasonDetailPage({ params }: Props) {
                         ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
                         : ""}
                     </div>
+                    {r.recordingUrl ? (
+                      <div className="mt-1">
+                        <SuperSportsRecordingLink href={r.recordingUrl} className="text-xs" />
+                      </div>
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-lg font-semibold">

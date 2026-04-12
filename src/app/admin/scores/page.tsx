@@ -40,6 +40,7 @@ export default async function AdminScoresPage({ searchParams }: Props) {
     publishedAt: r.publishedAt instanceof Date ? r.publishedAt.toISOString() : null,
     matchDate: r.matchDate,
     venue: r.venue,
+    recordingUrl: r.recordingUrl,
     homeSchoolName: r.homeSchoolName,
     awaySchoolName: r.awaySchoolName,
     homeSchoolLogoPath: r.homeSchoolLogoPath,

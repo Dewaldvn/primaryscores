@@ -9,6 +9,7 @@ import { getMatchDetails } from "@/lib/data/results";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { getSessionUser } from "@/lib/auth";
 import { DisputeScoreDialog } from "@/components/dispute-score-dialog";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { id: string } };
 
@@ -74,6 +75,11 @@ export default async function MatchPage({ params }: Props) {
           <p className="mt-2 text-sm text-muted-foreground">
             {row.homeTeamLabel} vs {row.awayTeamLabel}
           </p>
+          {row.recordingUrl ? (
+            <div className="mt-3 flex justify-center">
+              <SuperSportsRecordingLink href={row.recordingUrl} className="text-sm" />
+            </div>
+          ) : null}
           <div className="mt-3">
             <DisputeScoreDialog
               fixtureId={row.fixtureId}

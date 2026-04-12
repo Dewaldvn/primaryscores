@@ -5,6 +5,13 @@ const optionalUuid = z.preprocess(
   z.string().uuid().optional()
 );
 
+const optionalHttpUrl = z
+  .string()
+  .url()
+  .optional()
+  .or(z.literal(""))
+  .transform((v) => (v === "" ? undefined : v));
+
 export const submitScoreSchema = z.object({
   proposedMatchDate: z.string().min(1, "Match date required"),
   proposedHomeTeamId: optionalUuid,
@@ -17,12 +24,8 @@ export const submitScoreSchema = z.object({
   proposedSeasonId: optionalUuid,
   proposedCompetitionId: optionalUuid,
   proposedVenue: z.string().optional().nullable(),
-  sourceUrl: z
-    .string()
-    .url()
-    .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
+  sourceUrl: optionalHttpUrl,
+  recordingUrl: optionalHttpUrl,
   notes: z.string().max(5000).optional().nullable(),
   turnstileToken: z.string().optional().nullable(),
 });

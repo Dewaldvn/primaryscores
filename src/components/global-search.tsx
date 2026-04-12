@@ -27,6 +27,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { SchoolLogo } from "@/components/school-logo";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type SearchPayload = {
   schools: {
@@ -56,6 +57,7 @@ type SearchPayload = {
     competitionName: string | null;
     seasonName: string | null;
     provinceName: string | null;
+    recordingUrl: string | null;
   }[];
 };
 
@@ -329,12 +331,18 @@ function GlobalSearchFloating({
                 ) : (
                   <ul className="space-y-0.5">
                     {data.provinceGames.map((g) => (
-                      <li key={g.resultId}>
+                      <li key={g.resultId} className="relative">
                         <Link
                           href={`/matches/${g.fixtureId}`}
                           onClick={onClose}
-                          className="block rounded-md px-2 py-2 text-sm hover:bg-muted"
+                          className="absolute inset-0 z-[1] rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover"
+                          aria-label={`Match: ${g.homeSchoolName} versus ${g.awaySchoolName}`}
                         >
+                          <span className="sr-only">
+                            Open match {g.homeSchoolName} vs {g.awaySchoolName}
+                          </span>
+                        </Link>
+                        <div className="pointer-events-none relative z-[2] rounded-md px-2 py-2 text-sm hover:bg-muted/80">
                           <span className="font-medium tabular-nums">
                             {g.homeScore} – {g.awayScore}
                           </span>
@@ -354,7 +362,13 @@ function GlobalSearchFloating({
                               ? ` · ${format(new Date(`${g.matchDate}T12:00:00`), "d MMM yyyy")}`
                               : null}
                           </span>
-                        </Link>
+                          {g.recordingUrl ? (
+                            <SuperSportsRecordingLink
+                              href={g.recordingUrl}
+                              className="pointer-events-auto relative z-[3] mt-1 block text-xs"
+                            />
+                          ) : null}
+                        </div>
                       </li>
                     ))}
                   </ul>

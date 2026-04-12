@@ -102,6 +102,7 @@ export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) 
       awaySchoolSlug: awaySchool.slug,
       homeSchoolLogoPath: homeSchool.logoPath,
       awaySchoolLogoPath: awaySchool.logoPath,
+      recordingUrl: fixtures.recordingUrl,
       isHome: sql<boolean>`${homeSchool.id} = ${schoolId}`,
     })
     .from(results)

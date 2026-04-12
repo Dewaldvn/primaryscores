@@ -78,6 +78,9 @@ export async function approveSubmissionInDb(
 
   const seasonOrCompetitionOmitted = d.seasonId == null || d.competitionId == null;
 
+  const recordingForFixture =
+    existingSub.recordingUrl?.trim() || null;
+
   try {
     const fixtureId = await db.transaction(async (tx) => {
       let fid = existingSub.fixtureId;
@@ -92,6 +95,7 @@ export async function approveSubmissionInDb(
             homeTeamId: d.homeTeamId,
             awayTeamId: d.awayTeamId,
             venue: d.venue ?? null,
+            recordingUrl: recordingForFixture,
             status: "PLAYED",
           })
           .returning({ id: fixtures.id });
@@ -106,6 +110,7 @@ export async function approveSubmissionInDb(
             homeTeamId: d.homeTeamId,
             awayTeamId: d.awayTeamId,
             venue: d.venue ?? null,
+            recordingUrl: recordingForFixture,
             status: "PLAYED",
             updatedAt: now,
           })

@@ -47,6 +47,7 @@ export async function createContributorSubmission(
       proposedProvinceId: parsed.proposedProvinceId ?? null,
       submittedByUserId,
       sourceUrl: parsed.sourceUrl ?? null,
+      recordingUrl: parsed.recordingUrl ?? null,
       notes: parsed.notes ?? null,
       moderationStatus: "PENDING",
     })

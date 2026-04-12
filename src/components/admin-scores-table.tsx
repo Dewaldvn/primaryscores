@@ -44,6 +44,7 @@ export type AdminScoreRowSerialized = {
   publishedAt: string | null;
   matchDate: string;
   venue: string | null;
+  recordingUrl: string | null;
   homeSchoolName: string;
   awaySchoolName: string;
   homeSchoolLogoPath: string | null;
@@ -92,6 +93,7 @@ export function AdminScoresTable({
         awayScore: editing.awayScore,
         matchDate: editing.matchDate,
         venue: editing.venue,
+        recordingUrl: editing.recordingUrl,
         isVerified: editing.isVerified,
         verificationLevel: editing.verificationLevel,
       });
@@ -288,6 +290,21 @@ export function AdminScoresTable({
                   id="venue"
                   value={editing.venue ?? ""}
                   onChange={(e) => setEditing({ ...editing, venue: e.target.value || null })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="recordingUrl">Super Sports Schools recording (optional)</Label>
+                <Input
+                  id="recordingUrl"
+                  type="url"
+                  placeholder="https://…"
+                  value={editing.recordingUrl ?? ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      recordingUrl: e.target.value.trim() ? e.target.value.trim() : null,
+                    })
+                  }
                 />
               </div>
               <div className="flex items-center gap-2">

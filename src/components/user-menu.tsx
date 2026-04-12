@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -26,8 +25,14 @@ export function UserMenu({
   const router = useRouter();
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    try {
+      const res = await fetch("/api/auth/sign-out", { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        console.error("[sign-out] route failed", res.status);
+      }
+    } catch (e) {
+      console.error("[sign-out] fetch failed", e);
+    }
     router.refresh();
     router.push("/");
   }

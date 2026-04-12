@@ -32,6 +32,7 @@ export async function GET() {
       proposedProvinceId: submission.proposedProvinceId,
       moderationStatus: submission.moderationStatus,
       sourceUrl: submission.sourceUrl,
+      recordingUrl: submission.recordingUrl,
       notes: submission.notes,
       submittedAt:
         submission.submittedAt instanceof Date

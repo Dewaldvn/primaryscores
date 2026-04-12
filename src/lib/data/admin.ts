@@ -97,6 +97,7 @@ export type AdminResultRow = {
   publishedAt: Date | null;
   matchDate: string;
   venue: string | null;
+  recordingUrl: string | null;
   homeSchoolName: string;
   awaySchoolName: string;
   homeSchoolLogoPath: string | null;
@@ -155,6 +156,7 @@ export async function adminListAllResults(options: {
       publishedAt: results.publishedAt,
       matchDate: fixtures.matchDate,
       venue: fixtures.venue,
+      recordingUrl: fixtures.recordingUrl,
       homeSchoolName: adminHomeSchool.displayName,
       awaySchoolName: adminAwaySchool.displayName,
       homeSchoolLogoPath: adminHomeSchool.logoPath,

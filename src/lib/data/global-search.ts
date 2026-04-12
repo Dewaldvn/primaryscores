@@ -36,6 +36,7 @@ export type GlobalSearchProvinceGame = {
   competitionName: string | null;
   seasonName: string | null;
   provinceName: string | null;
+  recordingUrl: string | null;
 };
 
 export type GlobalSearchResult = {
@@ -113,6 +114,7 @@ export async function runGlobalSearch(q: string): Promise<GlobalSearchResult> {
             competitionName: competitions.name,
             seasonName: seasons.name,
             provinceName: provinces.name,
+            recordingUrl: fixtures.recordingUrl,
           })
           .from(results)
           .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))

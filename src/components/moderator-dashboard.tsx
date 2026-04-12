@@ -37,6 +37,7 @@ import {
 } from "@/actions/moderation";
 import { defaultTeamIdFromSubmission } from "@/lib/moderation-defaults";
 import { cn } from "@/lib/utils";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 export type ModRow = {
   id: string;
@@ -53,6 +54,7 @@ export type ModRow = {
   moderationStatus: string;
   submittedAt: string;
   sourceUrl: string | null;
+  recordingUrl: string | null;
   notes: string | null;
   submitterEmail: string | null;
 };
@@ -308,11 +310,23 @@ function ReviewDialog({
             Submitted {row.submittedAt}
             {row.submitterEmail ? ` · ${row.submitterEmail}` : ""}
           </p>
-          {row.sourceUrl && (
-            <a href={row.sourceUrl} className="break-all text-primary hover:underline" target="_blank" rel="noreferrer">
-              Source link
-            </a>
-          )}
+          <div className="flex flex-col gap-1">
+            {row.recordingUrl ? (
+              <SuperSportsRecordingLink href={row.recordingUrl} className="break-all text-xs">
+                Super Sports Schools recording (submitted)
+              </SuperSportsRecordingLink>
+            ) : null}
+            {row.sourceUrl ? (
+              <a
+                href={row.sourceUrl}
+                className="break-all text-primary hover:underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Source link
+              </a>
+            ) : null}
+          </div>
           {row.notes ? (
             (row.notes ?? "").startsWith("DISPUTE:") ? (
               <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-foreground">

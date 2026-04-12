@@ -53,6 +53,10 @@ export const adminResultUpdateSchema = z.object({
     (v) => (v === "" || v == null ? null : String(v).trim() || null),
     z.string().nullable().optional()
   ),
+  recordingUrl: z.preprocess(
+    (v) => (v === "" || v == null ? null : String(v).trim() || null),
+    z.union([z.string().url(), z.null()])
+  ),
   isVerified: z.coerce.boolean(),
   verificationLevel: z.enum(["SUBMITTED", "MODERATOR_VERIFIED", "SOURCE_VERIFIED"]),
 });

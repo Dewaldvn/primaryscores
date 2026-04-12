@@ -62,6 +62,7 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
       competitionName: competitions.name,
       seasonName: seasons.name,
       provinceName: provinces.name,
+      recordingUrl: fixtures.recordingUrl,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -123,6 +124,7 @@ export async function listVerifiedResults(filters: ResultListFilters) {
       competitionName: competitions.name,
       seasonName: seasons.name,
       provinceName: provinces.name,
+      recordingUrl: fixtures.recordingUrl,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -213,6 +215,7 @@ export async function getMatchDetails(fixtureId: string) {
       seasonName: seasons.name,
       seasonYear: seasons.year,
       provinceName: provinces.name,
+      recordingUrl: fixtures.recordingUrl,
     })
     .from(fixtures)
     .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))

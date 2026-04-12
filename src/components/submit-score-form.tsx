@@ -88,6 +88,7 @@ export function SubmitScoreForm({
         proposedSeasonId: fd.get("proposedSeasonId") || undefined,
         proposedCompetitionId: fd.get("proposedCompetitionId") || undefined,
         proposedVenue: fd.get("proposedVenue") || undefined,
+        recordingUrl: fd.get("recordingUrl") || undefined,
         sourceUrl: fd.get("sourceUrl") || undefined,
         notes: fd.get("notes") || undefined,
         turnstileToken: turnToken,
@@ -367,6 +368,15 @@ export function SubmitScoreForm({
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="proposedVenue">Venue (optional)</Label>
           <Input id="proposedVenue" name="proposedVenue" />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="recordingUrl">Super Sports Schools recording (optional)</Label>
+          <Input
+            id="recordingUrl"
+            name="recordingUrl"
+            type="url"
+            placeholder="https://supersportschools.co.za/…"
+          />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="sourceUrl">Source URL (optional)</Label>

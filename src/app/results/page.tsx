@@ -11,6 +11,7 @@ import { adminListSchools } from "@/lib/data/admin";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { ResultsFilterForm } from "@/components/results-filter-form";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
 
@@ -176,17 +177,23 @@ export default async function ResultsPage({ searchParams }: Props) {
                       {[r.competitionName, r.seasonName].filter(Boolean).join(" · ") || "—"}
                       {r.provinceName ? ` · ${r.provinceName}` : ""}
                     </div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.matchDate
+                        ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
+                        : ""}
+                    </div>
+                    {r.recordingUrl ? (
+                      <SuperSportsRecordingLink
+                        href={r.recordingUrl}
+                        className="pointer-events-auto pt-0.5 text-xs"
+                      />
+                    ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="font-mono text-xl font-semibold tabular-nums">
                       {r.homeScore} – {r.awayScore}
                     </span>
                     <VerificationBadge level={r.verificationLevel} />
-                    <div className="text-xs text-muted-foreground">
-                      {r.matchDate
-                        ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
-                        : ""}
-                    </div>
                   </div>
                 </CardContent>
               </Card>

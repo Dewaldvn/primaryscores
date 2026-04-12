@@ -39,6 +39,7 @@ export default async function ModeratorPage() {
         : s.submission.moderationStatus,
     submittedAt: s.submission.submittedAt.toISOString(),
     sourceUrl: s.submission.sourceUrl,
+    recordingUrl: s.submission.recordingUrl,
     notes: s.submission.notes,
     submitterEmail: s.submitterEmail,
   }));

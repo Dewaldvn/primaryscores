@@ -10,7 +10,10 @@ import { Input } from "@/components/ui/input";
 import { VerificationBadge } from "@/components/verification-badge";
 import { listProvinces } from "@/lib/data/schools";
 import { getRecentVerifiedResults } from "@/lib/data/results";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { getSessionUser } from "@/lib/auth";
+import { GamesUnderway } from "@/components/games-underway";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
 
@@ -19,6 +22,7 @@ function isStatementTimeoutMessage(msg: string): boolean {
 }
 
 export default async function HomePage() {
+  const sessionUser = isDatabaseConfigured() ? await getSessionUser() : null;
   let provinces: Awaited<ReturnType<typeof listProvinces>> = [];
   let recent: Awaited<ReturnType<typeof getRecentVerifiedResults>> = [];
   /** Whole-page failure (e.g. request timeout before any query settled). */
@@ -138,6 +142,8 @@ export default async function HomePage() {
         )}
       </section>
 
+      {isDatabaseConfigured() ? <GamesUnderway signedIn={Boolean(sessionUser)} /> : null}
+
       <section className="space-y-4">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
@@ -201,6 +207,11 @@ export default async function HomePage() {
                     </CardTitle>
                     <VerificationBadge level={r.verificationLevel} compact />
                   </div>
+                  {r.recordingUrl ? (
+                    <p className="mt-2 text-xs">
+                      <SuperSportsRecordingLink href={r.recordingUrl} />
+                    </p>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                   <span className="font-mono text-lg font-semibold tabular-nums">
@@ -215,7 +226,7 @@ export default async function HomePage() {
                         : ""}
                     </div>
                   </div>
-                  <LinkButton variant="link" size="sm" className="h-auto p-0" href={`/matches/${r.fixtureId}`}>
+                  <LinkButton variant="link" size="sm" className="h-auto w-full p-0 sm:w-auto sm:self-end" href={`/matches/${r.fixtureId}`}>
                     Match details
                   </LinkButton>
                 </CardContent>

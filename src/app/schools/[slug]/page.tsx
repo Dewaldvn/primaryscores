@@ -12,6 +12,7 @@ import {
   getSchoolSeasonSummary,
 } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { slug: string } };
 
@@ -133,6 +134,11 @@ export default async function SchoolPage({ params }: Props) {
                           ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
                           : ""}
                       </div>
+                      {r.recordingUrl ? (
+                        <div className="mt-1">
+                          <SuperSportsRecordingLink href={r.recordingUrl} className="text-xs" />
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="flex items-center gap-2">
