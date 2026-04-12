@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/link-button";
@@ -270,11 +271,6 @@ function CompactLiveSessionCard({ session: s }: { session: LiveSessionClientRow 
             )}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">Open for voting, wrap-up &amp; share</p>
-          {(typeof s.activeViewerCount === "number" ? s.activeViewerCount : 0) > 1 ? (
-            <p className="mt-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-              Multiple people viewing this game
-            </p>
-          ) : null}
         </CardContent>
       </Card>
     </Link>
@@ -374,6 +370,7 @@ function NewLiveGameForm({
   onToken: (t: string | null) => void;
   onDone: () => void;
 }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const homeField = useLiveTeamField();
   const awayField = useLiveTeamField();
@@ -395,8 +392,26 @@ function NewLiveGameForm({
               turnstileToken: turnToken,
             });
             if (!res.ok) {
-              if ("fieldErrors" in res && res.fieldErrors) toast.error("Check the form.");
-              else if ("error" in res) toast.error(res.error);
+              if ("fieldErrors" in res && res.fieldErrors) {
+                toast.error("Check the form.");
+                return;
+              }
+              if ("error" in res) {
+                const existingId =
+                  "existingSessionId" in res && typeof res.existingSessionId === "string"
+                    ? res.existingSessionId
+                    : undefined;
+                if (existingId) {
+                  toast.error(res.error, {
+                    action: {
+                      label: "Open game",
+                      onClick: () => router.push(`/live/${existingId}`),
+                    },
+                  });
+                } else {
+                  toast.error(res.error);
+                }
+              }
               return;
             }
             toast.success("Live game started.");

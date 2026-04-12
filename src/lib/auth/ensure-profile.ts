@@ -12,8 +12,10 @@ export async function ensureContributorProfile(user: User): Promise<void> {
   if (row) return;
 
   const email = user.email?.trim() || "";
+  const meta = user.user_metadata ?? {};
   const displayName =
-    (typeof user.user_metadata?.full_name === "string" && user.user_metadata.full_name.trim()) ||
+    (typeof meta.full_name === "string" && meta.full_name.trim()) ||
+    (typeof meta.name === "string" && meta.name.trim()) ||
     (email ? email.split("@")[0] : "Contributor");
 
   await db

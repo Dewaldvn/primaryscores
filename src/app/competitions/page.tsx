@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
@@ -18,12 +17,6 @@ export default async function CompetitionsPage() {
 
   return (
     <div className="space-y-6">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/seasons#admin-competitions-section", label: "Add or manage competitions" },
-          { href: "/admin/seasons#admin-seasons-section", label: "Seasons" },
-        ]}
-      />
       <div>
         <h1 className="text-2xl font-bold">Competitions</h1>
         <p className="text-sm text-muted-foreground">

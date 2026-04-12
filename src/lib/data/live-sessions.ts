@@ -6,7 +6,6 @@ import type { LiveScoreFeedItem } from "@/lib/live-session-types";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import { majorityFromVotes, type MajorityResult } from "@/lib/live-majority";
-import { getActiveViewerCountsBySessionIds } from "@/lib/data/live-session-presence";
 
 export { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN };
 export type { MajorityResult };
@@ -78,8 +77,6 @@ export type LiveSessionPublic = {
   minutesSinceFirstVote: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
-  /** Distinct viewers with a recent heartbeat on `/live/[id]` (see `live_session_presence`). */
-  activeViewerCount: number;
 };
 
 const VOTER_USER_KEY =
@@ -154,7 +151,6 @@ async function rowToLiveSessionPublic(s: (typeof liveSessions.$inferSelect), now
     : null;
   return {
     id: s.id,
-    activeViewerCount: 0,
     homeTeamName: s.homeTeamName,
     awayTeamName: s.awayTeamName,
     homeLogoPath: s.homeLogoPath ?? null,
@@ -198,8 +194,7 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
   for (const s of rows) {
     out.push(await rowToLiveSessionPublic(s, now));
   }
-  const counts = await getActiveViewerCountsBySessionIds(out.map((x) => x.id));
-  return out.map((x) => ({ ...x, activeViewerCount: counts.get(x.id) ?? 0 }));
+  return out;
 }
 
 export async function getUnderwayLiveSessionById(sessionId: string): Promise<LiveSessionPublic | null> {
@@ -210,9 +205,30 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
     .where(and(eq(liveSessions.id, sessionId), inArray(liveSessions.status, ["ACTIVE", "WRAPUP"])))
     .limit(1);
   if (!s) return null;
-  const row = await rowToLiveSessionPublic(s, new Date());
-  const counts = await getActiveViewerCountsBySessionIds([sessionId]);
-  return { ...row, activeViewerCount: counts.get(sessionId) ?? 0 };
+  return await rowToLiveSessionPublic(s, new Date());
+}
+
+/** Same home/away pairing (trimmed, case-insensitive) already in ACTIVE or WRAPUP — do not start a duplicate board. */
+export async function findOpenLiveSessionDuplicate(
+  homeTeamName: string,
+  awayTeamName: string
+): Promise<{ id: string } | null> {
+  await processLiveSessionDeadlines();
+  const h = homeTeamName.trim().toLowerCase();
+  const a = awayTeamName.trim().toLowerCase();
+  if (!h || !a) return null;
+  const [row] = await db
+    .select({ id: liveSessions.id })
+    .from(liveSessions)
+    .where(
+      and(
+        inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
+        sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
+        sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
+      )
+    )
+    .limit(1);
+  return row ?? null;
 }
 
 export async function insertLiveSessionRow(input: {

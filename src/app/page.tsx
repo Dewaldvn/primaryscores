@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentVerifiedResults } from "@/lib/data/results";
@@ -47,13 +46,6 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-5">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/scores", label: "Scores" },
-          { href: "/admin/seasons", label: "Seasons & competitions" },
-          { href: "/admin/schools", label: "Schools" },
-        ]}
-      />
       {databaseLoadError ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader className="pb-2">

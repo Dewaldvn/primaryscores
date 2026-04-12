@@ -9,6 +9,7 @@ import {
   submitLiveWrapupSchema,
 } from "@/lib/validators/live";
 import {
+  findOpenLiveSessionDuplicate,
   getLiveSessionForVote,
   insertLiveSessionRow,
   insertLiveVoteRow,
@@ -33,6 +34,17 @@ export async function createLiveSessionAction(input: unknown) {
   }
 
   await ensureContributorProfile(user);
+
+  const dup = await findOpenLiveSessionDuplicate(parsed.data.homeTeamName, parsed.data.awayTeamName);
+  if (dup) {
+    return {
+      ok: false as const,
+      error:
+        "A live scoreboard for this match is already open. Join that game instead of starting another.",
+      existingSessionId: dup.id,
+    };
+  }
+
   const row = await insertLiveSessionRow({
     homeTeamName: parsed.data.homeTeamName,
     awayTeamName: parsed.data.awayTeamName,

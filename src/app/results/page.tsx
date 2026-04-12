@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { SchoolLogo } from "@/components/school-logo";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,13 +98,6 @@ export default async function ResultsPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-6">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/scores", label: "Manage scores" },
-          { href: "/admin/seasons#admin-seasons-section", label: "Seasons" },
-          { href: "/admin/seasons#admin-competitions-section", label: "Competitions" },
-        ]}
-      />
       <div>
         <h1 className="text-2xl font-bold">Results archive</h1>
         <p className="text-sm text-muted-foreground">

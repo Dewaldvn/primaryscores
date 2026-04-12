@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { SchoolLogo } from "@/components/school-logo";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,12 +25,6 @@ export default async function MatchPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/scores", label: "Manage scores" },
-          { href: "/admin/seasons", label: "Seasons & competitions" },
-        ]}
-      />
       <div className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <p className="min-w-0 flex-1 text-sm text-muted-foreground">

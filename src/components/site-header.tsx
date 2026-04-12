@@ -37,39 +37,46 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <nav className="hidden items-center gap-1 text-sm lg:flex">
+          <nav
+            className="hidden items-center gap-x-0.5 text-sm lg:flex"
+            aria-label="Main"
+          >
+            <Link
+              href="/live"
+              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              Live Scores
+            </Link>
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
             <Link
               href="/results"
               className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               Results
             </Link>
-            <Link
-              href="/seasons"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Seasons
-            </Link>
-            <Link
-              href="/competitions"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Competitions
-            </Link>
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
             <Link
               href="/submit"
               className="rounded-md px-2 py-1 font-medium text-primary hover:underline"
             >
               Submit
             </Link>
-            {profile?.role === "ADMIN" ? (
-              <Link
-                href="/admin"
-                className="rounded-md px-2 py-1 font-medium text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
-              >
-                Admin
-              </Link>
-            ) : null}
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
+            <Link
+              href="/find-school"
+              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              Schools
+            </Link>
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
             <GlobalSearchOpenButton className="inline-flex" title="Search (⌘K)" />
           </nav>
           <SiteHeaderMobileNav profile={profile} />

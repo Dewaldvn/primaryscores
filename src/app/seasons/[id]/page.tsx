@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { SchoolLogo } from "@/components/school-logo";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,12 +20,6 @@ export default async function SeasonDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/seasons#admin-seasons-section", label: "Manage seasons" },
-          { href: "/admin/scores", label: "Manage scores" },
-        ]}
-      />
       <div>
         <h1 className="text-2xl font-bold">{season.name}</h1>
         <p className="text-sm text-muted-foreground">

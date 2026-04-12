@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { SchoolLogo } from "@/components/school-logo";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,13 +35,6 @@ export default async function SchoolPage({ params }: Props) {
 
   return (
     <div className="space-y-8">
-      <AdminPublicShortcuts
-        links={[
-          { href: "/admin/schools", label: "Schools directory" },
-          { href: "/admin/teams", label: "Teams" },
-          { href: "/admin/scores", label: "Scores" },
-        ]}
-      />
       <div>
         <p className="text-sm text-muted-foreground">{school.provinceName}</p>
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">

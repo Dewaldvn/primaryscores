@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { ChevronDownIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileAvatar } from "@/components/profile-avatar";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { cn } from "@/lib/utils";
 import type { ProfileRole } from "@/lib/auth";
 
 export function UserMenu({
@@ -43,21 +45,19 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={
-          <Button
-            variant="outline"
-            size="sm"
-            className="max-w-[min(100%,220px)] shrink-0 gap-2 px-2"
-            type="button"
-          />
-        }
+        type="button"
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "max-w-[min(100%,220px)] shrink-0 justify-between gap-2 px-2 font-normal"
+        )}
       >
-        <span className="flex min-w-0 items-center gap-2">
+        <span className="flex min-w-0 flex-1 items-center gap-2">
           <ProfileAvatar avatarUrl={avatarUrl} displayName={displayName} size="xs" className="shrink-0" />
           <span className="truncate">{displayName}</span>
         </span>
+        <ChevronDownIcon className="size-4 shrink-0 opacity-60" aria-hidden />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56 min-w-56">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="font-normal">
             <div className="flex gap-2">
@@ -73,15 +73,13 @@ export function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => router.push("/account")}>Profile & picture</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => router.push("/my-submissions")}>
-            My submissions
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/my-submissions")}>My submissions</DropdownMenuItem>
           {(role === "MODERATOR" || role === "ADMIN") && (
             <DropdownMenuItem onClick={() => router.push("/moderator")}>Moderation</DropdownMenuItem>
           )}
-        {role === "ADMIN" && (
-          <DropdownMenuItem onClick={() => router.push("/admin/scores")}>Admin</DropdownMenuItem>
-        )}
+          {role === "ADMIN" && (
+            <DropdownMenuItem onClick={() => router.push("/admin/scores")}>Admin</DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>

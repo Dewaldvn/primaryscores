@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
-import { LIVE_PRESENCE_WINDOW_MINUTES } from "@/lib/live-presence-constants";
 import type { LiveSessionPublic } from "@/lib/data/live-sessions";
 
 export function HomeLiveScoresPeek({
@@ -49,11 +48,6 @@ export function HomeLiveScoresPeek({
                   {s.inWrapup ? (
                     <span className="ml-1.5 text-xs font-normal text-amber-800 dark:text-amber-200">Wrapping up</span>
                   ) : null}
-                  {s.activeViewerCount > 1 ? (
-                    <span className="ml-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
-                      · {s.activeViewerCount} viewing
-                    </span>
-                  ) : null}
                 </span>
                 <span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
                   {s.majority ? (
@@ -69,13 +63,6 @@ export function HomeLiveScoresPeek({
           ))}
         </ul>
       )}
-      {!loadError && sessions.some((s) => s.activeViewerCount > 1) ? (
-        <p className="mt-2 rounded-md border border-amber-600/45 bg-amber-500/10 px-2.5 py-2 text-xs leading-snug text-amber-950 dark:text-amber-50">
-          <strong className="font-semibold">Multiple viewers:</strong> at least one game has more than one device on
-          its live score page in the last {LIVE_PRESENCE_WINDOW_MINUTES} minutes. Coordinate who updates the score so
-          votes don&apos;t clash.
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -41,18 +41,11 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col gap-0.5 px-2 pb-4" aria-label="Main">
+            <Link href="/live" className={navLinkClass} onClick={() => setOpen(false)}>
+              Live Scores
+            </Link>
             <Link href="/results" className={navLinkClass} onClick={() => setOpen(false)}>
               Results
-            </Link>
-            <Link href="/seasons" className={navLinkClass} onClick={() => setOpen(false)}>
-              Seasons
-            </Link>
-            <Link
-              href="/competitions"
-              className={navLinkClass}
-              onClick={() => setOpen(false)}
-            >
-              Competitions
             </Link>
             <Link
               href="/submit"
@@ -60,6 +53,9 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
               onClick={() => setOpen(false)}
             >
               Submit
+            </Link>
+            <Link href="/find-school" className={navLinkClass} onClick={() => setOpen(false)}>
+              Schools
             </Link>
             {showModeration && !showAdmin ? (
               <Link

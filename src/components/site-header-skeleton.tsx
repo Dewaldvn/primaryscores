@@ -10,10 +10,10 @@ export function SiteHeaderSkeleton() {
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <div className="hidden items-center gap-1 lg:flex">
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-[5.5rem]" />
             <Skeleton className="h-8 w-14" />
+            <Skeleton className="h-8 w-14" />
+            <Skeleton className="h-8 w-16" />
             <Skeleton className="h-8 w-8 rounded-md" />
           </div>
           <Skeleton className="h-9 w-9 shrink-0 rounded-md lg:hidden" />

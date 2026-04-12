@@ -28,11 +28,7 @@ export default async function LiveGamePage({ params }: Props) {
           Crowd majority score · refreshes every few seconds. Sign in to add your view.
         </p>
       </div>
-      <LiveSessionDetailClient
-        sessionId={id}
-        signedIn={Boolean(sessionUser)}
-        viewerProfileId={sessionUser?.id ?? null}
-      />
+      <LiveSessionDetailClient sessionId={id} signedIn={Boolean(sessionUser)} />
     </main>
   );
 }
