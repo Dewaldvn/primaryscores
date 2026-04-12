@@ -270,6 +270,11 @@ function CompactLiveSessionCard({ session: s }: { session: LiveSessionClientRow 
             )}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">Open for voting, wrap-up &amp; share</p>
+          {(typeof s.activeViewerCount === "number" ? s.activeViewerCount : 0) > 1 ? (
+            <p className="mt-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
+              Multiple people viewing this game
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </Link>

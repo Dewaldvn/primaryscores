@@ -15,6 +15,8 @@ export type LiveSessionClientRow = {
   minutesSinceFirstVote: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
+  /** From `live_session_presence` heartbeats on the live game page. */
+  activeViewerCount?: number;
 };
 
 export type LiveScoreFeedItem = {

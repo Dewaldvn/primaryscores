@@ -6,6 +6,7 @@ import type { LiveScoreFeedItem } from "@/lib/live-session-types";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import { majorityFromVotes, type MajorityResult } from "@/lib/live-majority";
+import { getActiveViewerCountsBySessionIds } from "@/lib/data/live-session-presence";
 
 export { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN };
 export type { MajorityResult };
@@ -77,6 +78,8 @@ export type LiveSessionPublic = {
   minutesSinceFirstVote: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
+  /** Distinct viewers with a recent heartbeat on `/live/[id]` (see `live_session_presence`). */
+  activeViewerCount: number;
 };
 
 const VOTER_USER_KEY =
@@ -151,6 +154,7 @@ async function rowToLiveSessionPublic(s: (typeof liveSessions.$inferSelect), now
     : null;
   return {
     id: s.id,
+    activeViewerCount: 0,
     homeTeamName: s.homeTeamName,
     awayTeamName: s.awayTeamName,
     homeLogoPath: s.homeLogoPath ?? null,
@@ -194,7 +198,8 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
   for (const s of rows) {
     out.push(await rowToLiveSessionPublic(s, now));
   }
-  return out;
+  const counts = await getActiveViewerCountsBySessionIds(out.map((x) => x.id));
+  return out.map((x) => ({ ...x, activeViewerCount: counts.get(x.id) ?? 0 }));
 }
 
 export async function getUnderwayLiveSessionById(sessionId: string): Promise<LiveSessionPublic | null> {
@@ -205,7 +210,9 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
     .where(and(eq(liveSessions.id, sessionId), inArray(liveSessions.status, ["ACTIVE", "WRAPUP"])))
     .limit(1);
   if (!s) return null;
-  return rowToLiveSessionPublic(s, new Date());
+  const row = await rowToLiveSessionPublic(s, new Date());
+  const counts = await getActiveViewerCountsBySessionIds([sessionId]);
+  return { ...row, activeViewerCount: counts.get(sessionId) ?? 0 };
 }
 
 export async function insertLiveSessionRow(input: {

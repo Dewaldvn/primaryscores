@@ -308,6 +308,21 @@ export const liveScoreVotes = pgTable(
   ]
 );
 
+export const liveSessionPresence = pgTable(
+  "live_session_presence",
+  {
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => liveSessions.id, { onDelete: "cascade" }),
+    viewerKey: text("viewer_key").notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sessionId, t.viewerKey] }),
+    index("live_session_presence_session_seen_idx").on(t.sessionId, t.lastSeenAt),
+  ]
+);
+
 export const attachments = pgTable(
   "attachments",
   {

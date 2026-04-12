@@ -68,9 +68,9 @@ export function LiveSessionShareBar({ session }: { session: LiveSessionClientRow
   const smsHref = `sms:?&body=${encodeURIComponent(combined)}`;
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+    <div className="flex flex-row flex-wrap items-center justify-center gap-2">
       {!pageUrl ? (
-        <p className="text-xs text-muted-foreground">Preparing share links…</p>
+        <p className="w-full basis-full text-center text-xs text-muted-foreground">Preparing share links…</p>
       ) : null}
       <Button
         type="button"
