@@ -5,15 +5,42 @@ import { getRecentVerifiedResultsForSchoolIds } from "@/lib/data/results";
 import { listUnderwayLiveSessions } from "@/lib/data/live-sessions";
 import { SchoolLogo } from "@/components/school-logo";
 import { LinkButton } from "@/components/link-button";
+import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
-export async function FavouritesBar() {
-  if (!isDatabaseConfigured()) return null;
+/** Full “my schools” panel: favourites, recent verified, live name matches. Used on `/my-schools`. */
+export async function MySchoolsContent() {
+  if (!isDatabaseConfigured()) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Database is not configured.
+      </p>
+    );
+  }
+
   const user = await getSessionUser();
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
   const favs = await listFavouriteSchoolsForProfile(user.id);
-  if (favs.length === 0) return null;
+  if (favs.length === 0) {
+    return (
+      <Card>
+        <CardContent className="space-y-4 py-10 text-center text-sm text-muted-foreground">
+          <p>You have not added any favourite schools yet. Search for a school and tap the star on its page.</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <LinkButton href="/find-school" variant="default" size="sm">
+              Find schools
+            </LinkButton>
+            <LinkButton href="/account" variant="outline" size="sm">
+              Account
+            </LinkButton>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const ids = favs.map((f) => f.schoolId);
   const namesLower = new Set(favs.map((f) => f.displayName.toLowerCase()));
@@ -37,9 +64,9 @@ export async function FavouritesBar() {
   return (
     <section className="rounded-lg border bg-muted/20 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">Your favourite schools</h2>
+        <h2 className="text-base font-semibold">Your schools</h2>
         <LinkButton href="/account" variant="outline" size="sm">
-          Manage
+          Manage in account
         </LinkButton>
       </div>
       <div className="mb-4 flex flex-wrap gap-2">

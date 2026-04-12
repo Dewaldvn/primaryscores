@@ -66,14 +66,6 @@ export default async function HomePage() {
       ) : null}
 
       <section className="space-y-3">
-        <div className="text-center sm:text-left">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary">South Africa · U13 primary schools</p>
-          <h1 className="mt-0.5 text-balance text-2xl font-bold tracking-tight sm:text-3xl">Primary Rugby Scores SA</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Jump into live scoring, browse verified archives by province, or find your school. Sign in to favourite
-            schools and see their activity at the top of every page.
-          </p>
-        </div>
         <HomeHeroTiles />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
       </section>

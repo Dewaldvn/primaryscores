@@ -13,8 +13,10 @@ export async function createLiveSubmissionFromSession(opts: {
   auto: boolean;
   now: Date;
   submittedByUserId?: string | null;
+  /** Manual path only: allow submission while still ACTIVE (admin override). */
+  adminSkipWrapupGate?: boolean;
 }): Promise<{ ok: true; submissionId: string } | { ok: false; reason: string }> {
-  const { sessionId, auto, now, submittedByUserId = null } = opts;
+  const { sessionId, auto, now, submittedByUserId = null, adminSkipWrapupGate = false } = opts;
 
   try {
     return await db.transaction(async (tx) => {
@@ -36,7 +38,13 @@ export async function createLiveSubmissionFromSession(opts: {
           return { ok: false, reason: "too_early" };
         }
       } else {
-        if (s.status !== "WRAPUP") return { ok: false, reason: "not_in_wrapup" };
+        if (adminSkipWrapupGate) {
+          if (s.status !== "ACTIVE" && s.status !== "WRAPUP") {
+            return { ok: false, reason: "not_active_or_wrapup" };
+          }
+        } else if (s.status !== "WRAPUP") {
+          return { ok: false, reason: "not_in_wrapup" };
+        }
       }
 
       const voteRows = await tx

@@ -20,3 +20,7 @@ export const submitLiveWrapupSchema = z.object({
   sessionId: z.string().uuid(),
   turnstileToken: z.string().optional().nullable(),
 });
+
+export const adminLiveSessionIdSchema = z.object({
+  sessionId: z.string().uuid(),
+});

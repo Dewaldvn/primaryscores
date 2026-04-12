@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
+import { SchoolLogo } from "@/components/school-logo";
 import type { LiveSessionPublic } from "@/lib/data/live-sessions";
 
 export function HomeLiveScoresPeek({
@@ -42,9 +43,19 @@ export function HomeLiveScoresPeek({
                 className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 px-3 py-2 hover:bg-muted/60"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="font-medium">{s.homeTeamName}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    {s.homeLogoPath ? (
+                      <SchoolLogo logoPath={s.homeLogoPath} alt="" size="xs" className="shrink-0" />
+                    ) : null}
+                    <span>{s.homeTeamName}</span>
+                  </span>
                   <span className="text-muted-foreground"> vs </span>
-                  <span className="font-medium">{s.awayTeamName}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    {s.awayLogoPath ? (
+                      <SchoolLogo logoPath={s.awayLogoPath} alt="" size="xs" className="shrink-0" />
+                    ) : null}
+                    <span>{s.awayTeamName}</span>
+                  </span>
                   {s.inWrapup ? (
                     <span className="ml-1.5 text-xs font-normal text-amber-800 dark:text-amber-200">Wrapping up</span>
                   ) : null}

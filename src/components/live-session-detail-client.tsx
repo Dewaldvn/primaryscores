@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LiveSessionActiveCard } from "@/components/live-session-active-card";
 import { LiveScoreFeedAside } from "@/components/live-score-feed-aside";
 import { LiveSessionShareBar } from "@/components/live-session-share-bar";
@@ -18,10 +19,13 @@ type DetailPayload = {
 export function LiveSessionDetailClient({
   sessionId,
   signedIn,
+  isAdmin,
 }: {
   sessionId: string;
   signedIn: boolean;
+  isAdmin: boolean;
 }) {
+  const router = useRouter();
   const [payload, setPayload] = useState<DetailPayload | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -124,8 +128,10 @@ export function LiveSessionDetailClient({
           <LiveSessionActiveCard
             session={session}
             signedIn={signedIn}
+            isAdmin={isAdmin}
             viewer={viewer}
             onRefresh={refresh}
+            onSessionDeleted={() => router.push("/live")}
             turnVoteToken={turnVote}
             onVoteToken={setTurnVote}
             turnWrapupToken={turnWrapup}

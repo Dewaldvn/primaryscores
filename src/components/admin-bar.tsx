@@ -3,7 +3,7 @@ import { getProfile } from "@/lib/auth";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { ADMIN_NAV_LINKS } from "@/lib/admin-nav-links";
 
-/** Site-wide admin toolbar for ADMIN users, shown above favourite schools. */
+/** Site-wide admin toolbar for ADMIN users, shown above the main page content. */
 export async function AdminBar() {
   if (!isDatabaseConfigured()) return null;
   const profile = await getProfile();

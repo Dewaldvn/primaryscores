@@ -1,6 +1,6 @@
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { liveSessions, liveScoreVotes, profiles } from "@/db/schema";
+import { liveSessions, liveScoreVotes, profiles, schools, submissions } from "@/db/schema";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
 import type { LiveScoreFeedItem } from "@/lib/live-session-types";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
@@ -134,7 +134,60 @@ export type ListUnderwayLiveSessionsOpts = {
   limit?: number;
 };
 
-async function rowToLiveSessionPublic(s: (typeof liveSessions.$inferSelect), now: Date): Promise<LiveSessionPublic> {
+function normalizedTeamKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * For live sessions without `home_logo_path` / `away_logo_path`, resolve logos from active schools when
+ * the team label matches `schools.display_name` or `schools.official_name` (trimmed, case-insensitive).
+ */
+export async function batchResolveSchoolLogosByTeamNames(teamNames: string[]): Promise<Map<string, string | null>> {
+  const unique = Array.from(new Set(teamNames.map(normalizedTeamKey).filter((k) => k.length > 0)));
+  const result = new Map<string, string | null>();
+  if (unique.length === 0) return result;
+
+  const nameOrs = unique.map((norm) =>
+    or(
+      sql`lower(trim(${schools.displayName})) = ${norm}`,
+      sql`lower(trim(coalesce(${schools.officialName}, ''))) = ${norm}`
+    )!
+  );
+
+  const rows = await db
+    .select({
+      logoPath: schools.logoPath,
+      displayNorm: sql<string>`lower(trim(${schools.displayName}))`,
+      officialNorm: sql<string>`lower(trim(coalesce(${schools.officialName}, '')))`,
+    })
+    .from(schools)
+    .where(and(eq(schools.active, true), or(...nameOrs)));
+
+  for (const norm of unique) {
+    const hit = rows.find(
+      (r) => r.displayNorm === norm || (r.officialNorm.length > 0 && r.officialNorm === norm)
+    );
+    result.set(norm, hit?.logoPath ?? null);
+  }
+  return result;
+}
+
+function mergeStoredOrSchoolLogo(
+  stored: string | null | undefined,
+  teamName: string,
+  schoolLogoByNorm: Map<string, string | null> | undefined
+): string | null {
+  const t = stored?.trim();
+  if (t) return t;
+  if (!schoolLogoByNorm) return null;
+  return schoolLogoByNorm.get(normalizedTeamKey(teamName)) ?? null;
+}
+
+async function rowToLiveSessionPublic(
+  s: (typeof liveSessions.$inferSelect),
+  now: Date,
+  schoolLogoByNorm?: Map<string, string | null>
+): Promise<LiveSessionPublic> {
   const votes = await loadVotes(s.id);
   const majority = majorityFromVotes(
     votes.map((v) => ({
@@ -153,8 +206,8 @@ async function rowToLiveSessionPublic(s: (typeof liveSessions.$inferSelect), now
     id: s.id,
     homeTeamName: s.homeTeamName,
     awayTeamName: s.awayTeamName,
-    homeLogoPath: s.homeLogoPath ?? null,
-    awayLogoPath: s.awayLogoPath ?? null,
+    homeLogoPath: mergeStoredOrSchoolLogo(s.homeLogoPath, s.homeTeamName, schoolLogoByNorm),
+    awayLogoPath: mergeStoredOrSchoolLogo(s.awayLogoPath, s.awayTeamName, schoolLogoByNorm),
     venue: s.venue,
     status: s.status as LiveSessionPublic["status"],
     firstVoteAt: first ? first.toISOString() : null,
@@ -189,10 +242,17 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
     .orderBy(desc(liveSessions.createdAt))
     .limit(limitN);
 
+  const namesForLogoLookup: string[] = [];
+  for (const s of rows) {
+    if (!s.homeLogoPath?.trim()) namesForLogoLookup.push(s.homeTeamName);
+    if (!s.awayLogoPath?.trim()) namesForLogoLookup.push(s.awayTeamName);
+  }
+  const schoolLogoByNorm = await batchResolveSchoolLogosByTeamNames(namesForLogoLookup);
+
   const now = new Date();
   const out: LiveSessionPublic[] = [];
   for (const s of rows) {
-    out.push(await rowToLiveSessionPublic(s, now));
+    out.push(await rowToLiveSessionPublic(s, now, schoolLogoByNorm));
   }
   return out;
 }
@@ -205,7 +265,11 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
     .where(and(eq(liveSessions.id, sessionId), inArray(liveSessions.status, ["ACTIVE", "WRAPUP"])))
     .limit(1);
   if (!s) return null;
-  return await rowToLiveSessionPublic(s, new Date());
+  const namesForLogoLookup: string[] = [];
+  if (!s.homeLogoPath?.trim()) namesForLogoLookup.push(s.homeTeamName);
+  if (!s.awayLogoPath?.trim()) namesForLogoLookup.push(s.awayTeamName);
+  const schoolLogoByNorm = await batchResolveSchoolLogosByTeamNames(namesForLogoLookup);
+  return await rowToLiveSessionPublic(s, new Date(), schoolLogoByNorm);
 }
 
 /** Same home/away pairing (trimmed, case-insensitive) already in ACTIVE or WRAPUP — do not start a duplicate board. */
@@ -282,4 +346,43 @@ export async function insertLiveVoteRow(input: {
 export async function getLiveSessionForVote(sessionId: string) {
   const [s] = await db.select().from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
   return s ?? null;
+}
+
+/** Force wrap-up (stop open voting) for an open live session. */
+export async function adminStopLiveSessionRow(
+  sessionId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const now = new Date();
+  const [s] = await db.select().from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
+  if (!s) return { ok: false, error: "Live game not found." };
+  if (s.status === "CLOSED") return { ok: false, error: "This live game is already closed." };
+  if (s.submissionId) {
+    return { ok: false, error: "Already linked to a submission — delete the board if you need it removed." };
+  }
+
+  await db
+    .update(liveSessions)
+    .set({
+      status: "WRAPUP",
+      wrapupStartedAt: s.wrapupStartedAt ?? now,
+      updatedAt: now,
+    })
+    .where(eq(liveSessions.id, sessionId));
+
+  return { ok: true };
+}
+
+/** Remove live session and votes; clears optional `submissions.live_session_id` link. */
+export async function adminDeleteLiveSessionRow(
+  sessionId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const [s] = await db.select({ id: liveSessions.id }).from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
+  if (!s) return { ok: false, error: "Live game not found." };
+
+  await db.transaction(async (tx) => {
+    await tx.update(submissions).set({ liveSessionId: null }).where(eq(submissions.liveSessionId, sessionId));
+    await tx.delete(liveSessions).where(eq(liveSessions.id, sessionId));
+  });
+
+  return { ok: true };
 }

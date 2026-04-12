@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LiveSessionDetailClient } from "@/components/live-session-detail-client";
-import { getSessionUser } from "@/lib/auth";
+import { getProfile, getSessionUser } from "@/lib/auth";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
 const UUID_RE =
@@ -16,6 +16,8 @@ export default async function LiveGamePage({ params }: Props) {
   }
 
   const sessionUser = isDatabaseConfigured() ? await getSessionUser() : null;
+  const profile = isDatabaseConfigured() ? await getProfile() : null;
+  const isAdmin = profile?.role === "ADMIN";
 
   return (
     <main className="container max-w-5xl space-y-6 py-8">
@@ -28,7 +30,7 @@ export default async function LiveGamePage({ params }: Props) {
           Crowd majority score · refreshes every few seconds. Sign in to add your view.
         </p>
       </div>
-      <LiveSessionDetailClient sessionId={id} signedIn={Boolean(sessionUser)} />
+      <LiveSessionDetailClient sessionId={id} signedIn={Boolean(sessionUser)} isAdmin={isAdmin} />
     </main>
   );
 }

@@ -57,6 +57,11 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             <Link href="/find-school" className={navLinkClass} onClick={() => setOpen(false)}>
               Schools
             </Link>
+            {profile ? (
+              <Link href="/my-schools" className={navLinkClass} onClick={() => setOpen(false)}>
+                My schools
+              </Link>
+            ) : null}
             {showModeration && !showAdmin ? (
               <Link
                 href="/moderator"

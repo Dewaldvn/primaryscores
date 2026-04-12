@@ -1,14 +1,17 @@
 "use server";
 
-import { getSessionUser } from "@/lib/auth";
 import { ensureContributorProfile } from "@/lib/auth/ensure-profile";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import {
+  adminLiveSessionIdSchema,
   castLiveVoteSchema,
   createLiveSessionSchema,
   submitLiveWrapupSchema,
 } from "@/lib/validators/live";
+import { getProfile, getSessionUser } from "@/lib/auth";
 import {
+  adminDeleteLiveSessionRow,
+  adminStopLiveSessionRow,
   findOpenLiveSessionDuplicate,
   getLiveSessionForVote,
   insertLiveSessionRow,
@@ -122,4 +125,78 @@ export async function submitLiveWrapupForReviewAction(input: unknown) {
     return { ok: false as const, error: msg };
   }
   return { ok: true as const, submissionId: res.submissionId };
+}
+
+async function requireAdminForLive() {
+  const user = await getSessionUser();
+  if (!user) {
+    return { ok: false as const, error: AUTH_MSG };
+  }
+  const profile = await getProfile();
+  if (!profile || profile.role !== "ADMIN") {
+    return { ok: false as const, error: "Admin only." };
+  }
+  return { ok: true as const, user };
+}
+
+export async function adminStopLiveSessionAction(input: unknown) {
+  const gate = await requireAdminForLive();
+  if (!gate.ok) return gate;
+
+  const parsed = adminLiveSessionIdSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Invalid session." };
+  }
+
+  const res = await adminStopLiveSessionRow(parsed.data.sessionId);
+  if (!res.ok) return { ok: false as const, error: res.error };
+  return { ok: true as const };
+}
+
+export async function adminSubmitLiveSessionAction(input: unknown) {
+  const gate = await requireAdminForLive();
+  if (!gate.ok) return gate;
+
+  const parsed = adminLiveSessionIdSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Invalid session." };
+  }
+
+  await ensureContributorProfile(gate.user);
+  const res = await createLiveSubmissionFromSession({
+    sessionId: parsed.data.sessionId,
+    auto: false,
+    now: new Date(),
+    submittedByUserId: gate.user.id,
+    adminSkipWrapupGate: true,
+  });
+
+  if (!res.ok) {
+    const msg =
+      res.reason === "already_submitted"
+        ? "A submission was already created for this live game."
+        : res.reason === "not_active_or_wrapup"
+          ? "This game is not in a state that can be submitted."
+          : res.reason === "closed"
+            ? "This live game is already closed."
+            : res.reason === "race"
+              ? "Could not submit (try again)."
+              : res.reason;
+    return { ok: false as const, error: msg };
+  }
+  return { ok: true as const, submissionId: res.submissionId };
+}
+
+export async function adminDeleteLiveSessionAction(input: unknown) {
+  const gate = await requireAdminForLive();
+  if (!gate.ok) return gate;
+
+  const parsed = adminLiveSessionIdSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, error: "Invalid session." };
+  }
+
+  const res = await adminDeleteLiveSessionRow(parsed.data.sessionId);
+  if (!res.ok) return { ok: false as const, error: res.error };
+  return { ok: true as const };
 }

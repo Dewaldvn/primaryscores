@@ -10,7 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SchoolLogo } from "@/components/school-logo";
 import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
-import { castLiveVoteAction, submitLiveWrapupForReviewAction } from "@/actions/live-scores";
+import {
+  adminDeleteLiveSessionAction,
+  adminStopLiveSessionAction,
+  adminSubmitLiveSessionAction,
+  castLiveVoteAction,
+  submitLiveWrapupForReviewAction,
+} from "@/actions/live-scores";
+import { cn } from "@/lib/utils";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import type { LiveSessionClientRow, LiveSessionViewer } from "@/lib/live-session-types";
@@ -24,8 +31,10 @@ function wrapupCountdownMin(s: LiveSessionClientRow): number | null {
 export function LiveSessionActiveCard({
   session: s,
   signedIn,
+  isAdmin,
   viewer,
   onRefresh,
+  onSessionDeleted,
   turnVoteToken,
   onVoteToken,
   turnWrapupToken,
@@ -33,8 +42,10 @@ export function LiveSessionActiveCard({
 }: {
   session: LiveSessionClientRow;
   signedIn: boolean;
+  isAdmin: boolean;
   viewer: LiveSessionViewer | null;
   onRefresh: () => void;
+  onSessionDeleted?: () => void;
   turnVoteToken: string | null;
   onVoteToken: (t: string | null) => void;
   turnWrapupToken: string | null;
@@ -92,15 +103,19 @@ export function LiveSessionActiveCard({
         {signedIn ? (
           <VoteForm
             sessionId={s.id}
+            sessionStatus={s.status}
             homeTeamName={s.homeTeamName}
             awayTeamName={s.awayTeamName}
             homeLogoPath={s.homeLogoPath}
             awayLogoPath={s.awayLogoPath}
             viewer={viewer}
+            signedIn={signedIn}
+            isAdmin={isAdmin}
             disabled={s.status === "CLOSED"}
             turnToken={turnVoteToken}
             onToken={onVoteToken}
             onSuccess={() => void onRefresh()}
+            onSessionDeleted={onSessionDeleted}
           />
         ) : (
           <p className="border-t pt-3 text-xs text-muted-foreground">
@@ -164,26 +179,34 @@ export function LiveSessionActiveCard({
 
 function VoteForm({
   sessionId,
+  sessionStatus,
   homeTeamName,
   awayTeamName,
   homeLogoPath,
   awayLogoPath,
   viewer,
+  signedIn,
+  isAdmin,
   disabled,
   turnToken,
   onToken,
   onSuccess,
+  onSessionDeleted,
 }: {
   sessionId: string;
+  sessionStatus: string;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;
   awayLogoPath: string | null;
   viewer: LiveSessionViewer | null;
+  signedIn: boolean;
+  isAdmin: boolean;
   disabled: boolean;
   turnToken: string | null;
   onToken: (t: string | null) => void;
   onSuccess: () => void;
+  onSessionDeleted?: () => void;
 }) {
   const [pending, start] = useTransition();
   return (
@@ -257,6 +280,107 @@ function VoteForm({
       <Button type="submit" size="sm" variant="secondary" disabled={disabled || pending} className="mx-auto">
         {pending ? "Saving…" : "Submit my view"}
       </Button>
+      {isAdmin && signedIn && sessionStatus !== "CLOSED" ? (
+        <AdminLiveControls
+          sessionId={sessionId}
+          pending={pending}
+          start={start}
+          onRefresh={onSuccess}
+          onSessionDeleted={onSessionDeleted}
+        />
+      ) : null}
     </form>
+  );
+}
+
+function AdminLiveControls({
+  sessionId,
+  pending,
+  start,
+  onRefresh,
+  onSessionDeleted,
+}: {
+  sessionId: string;
+  pending: boolean;
+  start: (cb: () => void) => void;
+  onRefresh: () => void;
+  onSessionDeleted?: () => void;
+}) {
+  return (
+    <div className="mt-3 w-full max-w-md border-t border-dashed pt-3">
+      <p className="mb-2 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">Admin</p>
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          size="sm"
+          disabled={pending}
+          className={cn(
+            "w-full border-blue-700 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500"
+          )}
+          onClick={() => {
+            start(() => {
+              void (async () => {
+                const res = await adminStopLiveSessionAction({ sessionId });
+                if (!res.ok) {
+                  if ("error" in res) toast.error(res.error);
+                  return;
+                }
+                toast.success("Live game moved to wrap-up.");
+                onRefresh();
+              })();
+            });
+          }}
+        >
+          Stop — wrap up
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          className="w-full"
+          disabled={pending}
+          onClick={() => {
+            start(() => {
+              void (async () => {
+                const res = await adminSubmitLiveSessionAction({ sessionId });
+                if (!res.ok) {
+                  if ("error" in res) toast.error(res.error);
+                  return;
+                }
+                toast.success("Submitted to moderation queue.");
+                onRefresh();
+              })();
+            });
+          }}
+        >
+          Submit to moderation
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          className="w-full"
+          disabled={pending}
+          onClick={() => {
+            if (!window.confirm("Delete this live scoreboard and all votes? This cannot be undone.")) {
+              return;
+            }
+            start(() => {
+              void (async () => {
+                const res = await adminDeleteLiveSessionAction({ sessionId });
+                if (!res.ok) {
+                  if ("error" in res) toast.error(res.error);
+                  return;
+                }
+                toast.success("Live game deleted.");
+                onSessionDeleted?.();
+              })();
+            });
+          }}
+        >
+          Delete live board
+        </Button>
+      </div>
+    </div>
   );
 }
