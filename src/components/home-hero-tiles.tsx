@@ -30,8 +30,8 @@ export function HomeHeroTiles() {
           <Image
             src="/brand/submit_a_score.png"
             alt="Submit a previous score"
-            width={733}
-            height={654}
+            width={729}
+            height={675}
             className={imgClass}
             sizes="(max-width: 640px) 50vw, 25vw"
             priority
