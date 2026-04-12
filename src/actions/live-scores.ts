@@ -36,6 +36,8 @@ export async function createLiveSessionAction(input: unknown) {
   const row = await insertLiveSessionRow({
     homeTeamName: parsed.data.homeTeamName,
     awayTeamName: parsed.data.awayTeamName,
+    homeLogoPath: parsed.data.homeLogoPath?.trim() || null,
+    awayLogoPath: parsed.data.awayLogoPath?.trim() || null,
     venue: parsed.data.venue ?? null,
     createdByUserId: user.id,
   });

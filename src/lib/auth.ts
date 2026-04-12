@@ -51,7 +51,8 @@ export async function getProfile() {
 export async function requireUser(redirectPath = "/login") {
   const user = await getSessionUser();
   if (!user) {
-    redirect(`${redirectPath}?reason=auth`);
+    const sep = redirectPath.includes("?") ? "&" : "?";
+    redirect(`${redirectPath}${sep}reason=auth`);
   }
   return user;
 }

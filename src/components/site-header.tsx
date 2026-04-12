@@ -10,6 +10,7 @@ export type HeaderProfile = {
   email: string;
   displayName: string;
   role: ProfileRole;
+  avatarUrl: string | null;
 } | null;
 
 export function SiteHeader({ profile }: { profile: HeaderProfile }) {
@@ -86,6 +87,7 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
               email={profile.email}
               displayName={profile.displayName}
               role={profile.role}
+              avatarUrl={profile.avatarUrl}
             />
           ) : (
             <>

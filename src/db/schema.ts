@@ -58,6 +58,8 @@ export const profiles = pgTable(
     id: uuid("id").primaryKey(),
     email: text("email").notNull(),
     displayName: text("display_name").notNull(),
+    /** Storage object path within bucket `user-avatars` (public), e.g. `{userId}/avatar.png`. */
+    avatarPath: text("avatar_path"),
     role: profileRoleEnum("role").notNull().default("CONTRIBUTOR"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -253,6 +255,8 @@ export const liveSessions = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     homeTeamName: text("home_team_name").notNull(),
     awayTeamName: text("away_team_name").notNull(),
+    homeLogoPath: text("home_logo_path"),
+    awayLogoPath: text("away_logo_path"),
     venue: text("venue"),
     status: liveSessionStatusEnum("status").notNull().default("ACTIVE"),
     firstVoteAt: timestamp("first_vote_at", { withTimezone: true }),

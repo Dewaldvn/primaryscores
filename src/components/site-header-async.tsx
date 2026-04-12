@@ -1,4 +1,5 @@
 import { getProfile } from "@/lib/auth";
+import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
 import { SiteHeader } from "@/components/site-header";
 
 export async function SiteHeaderAsync() {
@@ -11,6 +12,7 @@ export async function SiteHeaderAsync() {
               email: profile.email,
               displayName: profile.displayName,
               role: profile.role,
+              avatarUrl: getProfileAvatarPublicUrl(profile.avatarPath),
             }
           : null
       }
