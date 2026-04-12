@@ -61,7 +61,7 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             >
               Submit
             </Link>
-            {showModeration ? (
+            {showModeration && !showAdmin ? (
               <Link
                 href="/moderator"
                 className={navLinkClass}

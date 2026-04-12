@@ -3,8 +3,10 @@ import { AdminPublicShortcuts } from "@/components/admin-public-shortcuts";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRecentVerifiedResults } from "@/lib/data/results";
+import { listUnderwayLiveSessions, type LiveSessionPublic } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { HomeHeroTiles } from "@/components/home-hero-tiles";
+import { HomeLiveScoresPeek } from "@/components/home-live-scores-peek";
 import { RecentVerifiedScoreCards } from "@/components/recent-verified-score-cards";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
@@ -15,16 +17,25 @@ function isStatementTimeoutMessage(msg: string): boolean {
 
 export default async function HomePage() {
   let recent: Awaited<ReturnType<typeof getRecentVerifiedResults>> = [];
+  let livePeek: LiveSessionPublic[] = [];
   let databaseLoadError: string | null = null;
   let recentLoadError: string | null = null;
+  let livePeekError: string | null = null;
 
   if (isDatabaseConfigured()) {
     try {
-      const settled = await withTimeout(Promise.allSettled([getRecentVerifiedResults(8)]), PUBLIC_DB_QUERY_MS);
-      const [rr] = settled;
+      const settled = await withTimeout(
+        Promise.allSettled([getRecentVerifiedResults(8), listUnderwayLiveSessions({ limit: 5 })]),
+        PUBLIC_DB_QUERY_MS
+      );
+      const [rr, rl] = settled;
       recent = rr.status === "fulfilled" ? rr.value : [];
+      livePeek = rl.status === "fulfilled" ? rl.value : [];
       if (rr.status === "rejected") {
         recentLoadError = rr.reason instanceof Error ? rr.reason.message : String(rr.reason);
+      }
+      if (rl.status === "rejected") {
+        livePeekError = rl.reason instanceof Error ? rl.reason.message : String(rl.reason);
       }
     } catch (e) {
       databaseLoadError = e instanceof Error ? e.message : "Database connection failed";
@@ -62,7 +73,7 @@ export default async function HomePage() {
         </Card>
       ) : null}
 
-      <section className="space-y-2">
+      <section className="space-y-3">
         <div className="text-center sm:text-left">
           <p className="text-sm font-medium uppercase tracking-wide text-primary">South Africa · U13 primary schools</p>
           <h1 className="mt-0.5 text-balance text-2xl font-bold tracking-tight sm:text-3xl">Primary Rugby Scores SA</h1>
@@ -72,6 +83,7 @@ export default async function HomePage() {
           </p>
         </div>
         <HomeHeroTiles />
+        {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
       </section>
 
       <section className="space-y-3">

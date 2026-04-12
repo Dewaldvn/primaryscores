@@ -11,7 +11,7 @@ const imgClass = "max-h-full max-w-full object-contain";
 
 export function HomeHeroTiles() {
   return (
-    <section className="mx-auto grid w-full max-w-4xl grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center justify-items-stretch gap-2 sm:gap-3 md:gap-4">
+    <section className="mx-auto grid w-full max-w-5xl grid-cols-2 items-center justify-items-stretch gap-2 sm:grid-cols-4 sm:gap-3 md:gap-4">
       <Link href="/live" className={tileClass}>
         <div className={frameClass}>
           <Image
@@ -20,7 +20,20 @@ export function HomeHeroTiles() {
             width={800}
             height={500}
             className={imgClass}
-            sizes="(max-width: 640px) 33vw, 25vw"
+            sizes="(max-width: 640px) 50vw, 25vw"
+            priority
+          />
+        </div>
+      </Link>
+      <Link href="/submit" className={tileClass}>
+        <div className={frameClass}>
+          <Image
+            src="/brand/submit_a_score.png"
+            alt="Submit a previous score"
+            width={733}
+            height={654}
+            className={imgClass}
+            sizes="(max-width: 640px) 50vw, 25vw"
             priority
           />
         </div>
@@ -33,7 +46,7 @@ export function HomeHeroTiles() {
             width={410}
             height={395}
             className={imgClass}
-            sizes="(max-width: 640px) 33vw, 25vw"
+            sizes="(max-width: 640px) 50vw, 25vw"
             priority
           />
         </div>
@@ -46,7 +59,7 @@ export function HomeHeroTiles() {
             width={800}
             height={500}
             className={imgClass}
-            sizes="(max-width: 640px) 33vw, 25vw"
+            sizes="(max-width: 640px) 50vw, 25vw"
             priority
           />
         </div>

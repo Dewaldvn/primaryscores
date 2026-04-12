@@ -62,14 +62,6 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
             >
               Submit
             </Link>
-            {profile?.role === "MODERATOR" || profile?.role === "ADMIN" ? (
-              <Link
-                href="/moderator"
-                className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                Moderation
-              </Link>
-            ) : null}
             {profile?.role === "ADMIN" ? (
               <Link
                 href="/admin"
