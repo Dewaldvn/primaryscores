@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { createLiveSessionAction } from "@/actions/live-scores";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import type { LiveSessionClientRow, LiveSessionMajority } from "@/lib/live-session-types";
 import type { SchoolSport } from "@/lib/sports";
@@ -260,7 +261,8 @@ function CompactLiveSessionCard({
       href={`/live/${s.id}`}
       className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <Card className="h-full transition-colors hover:bg-muted/50">
+      <Card className="relative h-full overflow-hidden transition-colors hover:bg-muted/50">
+        <ScoreCardSportIcons sport={s.sport} teamGender={s.teamGender} />
         <CardHeader className="pb-2 pt-4 text-center">
           {showSportBadge ? (
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -283,7 +285,7 @@ function CompactLiveSessionCard({
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-4 pt-0 text-center">
+        <CardContent className="pb-8 pt-0 text-center">
           <p className="font-mono text-3xl font-semibold tabular-nums sm:text-4xl">
             {majority ? (
               <>
@@ -443,6 +445,7 @@ function NewLiveGameForm({
               awayLogoPath: awayField.logoPath,
               venue: fd.get("venue") ? String(fd.get("venue")) : null,
               sport: effectiveSport,
+              teamGender: effectiveSport === "HOCKEY" ? (hockeyGender as TeamGender) : null,
               turnstileToken: turnToken,
             });
             if (!res.ok) {

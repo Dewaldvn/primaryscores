@@ -6,15 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
 import {
   getSchoolBySlug,
-  getU13TeamsForSchool,
+  listActiveTeamsForSchool,
   getVerifiedResultsForSchool,
   getSchoolSeasonSummary,
 } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { getSessionUser } from "@/lib/auth";
 import { isSchoolFavourited } from "@/lib/data/favourite-schools";
+import { filterFavouritedTeamIds } from "@/lib/data/favourite-teams";
 import { SchoolFavouriteButton } from "@/components/school-favourite-button";
+import { TeamFavouriteButton } from "@/components/team-favourite-button";
+import { formatTeamListingSubtitle } from "@/lib/format-team";
+import type { SchoolSport } from "@/lib/sports";
 
 type Props = { params: { slug: string } };
 
@@ -25,13 +30,23 @@ export default async function SchoolPage({ params }: Props) {
   if (!school) notFound();
 
   const user = await getSessionUser();
-  const favourited = user ? await isSchoolFavourited(user.id, school.id) : false;
+  const favouritedSchool = user ? await isSchoolFavourited(user.id, school.id) : false;
 
-  const [teams, results, summary] = await Promise.all([
-    getU13TeamsForSchool(school.id),
+  const [schoolTeams, results, summary] = await Promise.all([
+    listActiveTeamsForSchool(school.id),
     getVerifiedResultsForSchool(school.id, 40),
     getSchoolSeasonSummary(school.id),
   ]);
+
+  const favouritedTeamIds =
+    user && schoolTeams.length > 0
+      ? await filterFavouritedTeamIds(
+          user.id,
+          schoolTeams.map((t) => t.id)
+        )
+      : new Set<string>();
+
+  const loginPath = `/schools/${params.slug}`;
 
   return (
     <div className="space-y-8">
@@ -45,8 +60,8 @@ export default async function SchoolPage({ params }: Props) {
           <SchoolFavouriteButton
             schoolId={school.id}
             signedIn={Boolean(user)}
-            initialFavourited={favourited}
-            loginRedirectPath={`/schools/${params.slug}`}
+            initialFavourited={favouritedSchool}
+            loginRedirectPath={loginPath}
           />
         </div>
         <p className="text-sm text-muted-foreground">{school.officialName}</p>
@@ -69,15 +84,41 @@ export default async function SchoolPage({ params }: Props) {
         )}
       </div>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">U13 teams</h2>
-        {teams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active U13 teams on record.</p>
+      <section id="teams" className="scroll-mt-24">
+        <h2 className="mb-3 text-lg font-semibold">Teams</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Active sides on record for this school. Favourite a specific team to show it on your home page and under{" "}
+          <strong>My favourites</strong> in the account menu.
+        </p>
+        {schoolTeams.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No active teams on record yet.</p>
         ) : (
-          <ul className="list-inside list-disc text-sm">
-            {teams.map((t) => (
-              <li key={t.id}>
-                {t.teamLabel} {t.isFirstTeam ? "(first side)" : ""}
+          <ul className="space-y-2">
+            {schoolTeams.map((t) => (
+              <li
+                key={t.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2.5 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">
+                    {formatTeamListingSubtitle({
+                      sport: t.sport as SchoolSport,
+                      ageGroup: t.ageGroup,
+                      teamLabel: t.teamLabel,
+                      gender: t.gender,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.isFirstTeam ? "First side" : "Additional side"}
+                  </p>
+                </div>
+                <TeamFavouriteButton
+                  teamId={t.id}
+                  signedIn={Boolean(user)}
+                  initialFavourited={favouritedTeamIds.has(t.id)}
+                  loginRedirectPath={`${loginPath}#teams`}
+                  compact
+                />
               </li>
             ))}
           </ul>
@@ -117,8 +158,9 @@ export default async function SchoolPage({ params }: Props) {
           <ul className="space-y-3">
             {results.map((r) => (
               <li key={r.resultId}>
-                <Card>
-                  <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <Card className="relative">
+                  <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
+                  <CardContent className="flex flex-col gap-2 pb-8 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
                         <span className="inline-flex items-center gap-2">

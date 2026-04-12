@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import { liveSessions, liveScoreVotes, submissions } from "@/db/schema";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { majorityFromVotes } from "@/lib/live-majority";
+import {
+  liveSessionsHasTeamGenderColumn,
+  liveSessionsSelectColumns,
+} from "@/lib/live-session-db-support";
 
 function toDate(v: Date | string): Date {
   return v instanceof Date ? v : new Date(v);
@@ -19,9 +23,11 @@ export async function createLiveSubmissionFromSession(opts: {
   const { sessionId, auto, now, submittedByUserId = null, adminSkipWrapupGate = false } = opts;
 
   try {
+    const includeTg = await liveSessionsHasTeamGenderColumn();
+    const lsCols = liveSessionsSelectColumns(includeTg);
     return await db.transaction(async (tx) => {
       const [s] = await tx
-        .select()
+        .select(lsCols)
         .from(liveSessions)
         .where(eq(liveSessions.id, sessionId))
         .for("update");

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
 import { SchoolLogo } from "@/components/school-logo";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import type { LiveSessionPublic } from "@/lib/data/live-sessions";
 import { schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
@@ -48,10 +49,11 @@ export function HomeLiveScoresPeek({
       ) : (
         <ul className="mt-2 divide-y rounded-md border bg-background/80 text-sm">
           {sessions.map((s) => (
-            <li key={s.id}>
+            <li key={s.id} className="relative">
+              <ScoreCardSportIcons sport={s.sport} teamGender={s.teamGender} className="bottom-2 left-2 z-[2]" />
               <Link
                 href={`/live/${s.id}`}
-                className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 px-3 py-2 hover:bg-muted/60"
+                className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 px-3 py-2 pl-10 pb-8 hover:bg-muted/60"
               >
                 <span className="min-w-0 flex-1">
                   {!sportFilter ? (

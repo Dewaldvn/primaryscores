@@ -4,6 +4,7 @@ import { UserMenu } from "@/components/user-menu";
 import { LinkButton } from "@/components/link-button";
 import { GlobalSearchOpenButton } from "@/components/global-search";
 import { SiteHeaderMobileNav } from "@/components/site-header-mobile-nav";
+import { SiteHeaderSportsMenu } from "@/components/site-header-sports-menu";
 import type { ProfileRole } from "@/lib/auth";
 
 export type HeaderProfile = {
@@ -47,6 +48,10 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
             >
               Live Scores
             </Link>
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
+            <SiteHeaderSportsMenu />
             <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
               |
             </span>

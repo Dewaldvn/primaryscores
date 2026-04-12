@@ -35,7 +35,12 @@ import {
   rejectSubmissionAction,
   flagNeedsReviewAction,
 } from "@/actions/moderation";
-import { defaultTeamIdFromSubmission } from "@/lib/moderation-defaults";
+import {
+  defaultTeamIdFromSubmission,
+  pickModerationSportFilter,
+} from "@/lib/moderation-defaults";
+import type { ModerationTeamOption } from "@/lib/moderation-defaults";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { cn } from "@/lib/utils";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
@@ -59,7 +64,6 @@ export type ModRow = {
   submitterEmail: string | null;
 };
 
-export type ModTeamOpt = { teamId: string; label: string };
 export type ModSeasonOpt = { id: string; label: string };
 export type ModCompOpt = { id: string; label: string };
 
@@ -70,7 +74,7 @@ export function ModeratorDashboard({
   competitionOptions,
 }: {
   rows: ModRow[];
-  teamOptions: ModTeamOpt[];
+  teamOptions: ModerationTeamOption[];
   seasonOptions: ModSeasonOpt[];
   competitionOptions: ModCompOpt[];
 }) {
@@ -188,7 +192,7 @@ function ReviewDialog({
   setBusy,
 }: {
   row: ModRow;
-  teamOptions: ModTeamOpt[];
+  teamOptions: ModerationTeamOption[];
   seasonOptions: ModSeasonOpt[];
   competitionOptions: ModCompOpt[];
   busyId: string | null;
@@ -196,26 +200,6 @@ function ReviewDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
-
-  const homeTeamDefault = useMemo(
-    () =>
-      defaultTeamIdFromSubmission(
-        row.proposedHomeTeamName,
-        row.proposedHomeTeamId,
-        teamOptions
-      ),
-    [row.proposedHomeTeamName, row.proposedHomeTeamId, teamOptions]
-  );
-
-  const awayTeamDefault = useMemo(
-    () =>
-      defaultTeamIdFromSubmission(
-        row.proposedAwayTeamName,
-        row.proposedAwayTeamId,
-        teamOptions
-      ),
-    [row.proposedAwayTeamName, row.proposedAwayTeamId, teamOptions]
-  );
 
   const seasonDefault = useMemo(() => {
     const id = row.proposedSeasonId;
@@ -229,14 +213,46 @@ function ReviewDialog({
     return "";
   }, [row.proposedCompetitionId, competitionOptions]);
 
+  const [sportSel, setSportSel] = useState<SchoolSport>("RUGBY");
   const [homeTeamSel, setHomeTeamSel] = useState("");
   const [awayTeamSel, setAwayTeamSel] = useState("");
 
+  const teamsForSport = useMemo(
+    () => teamOptions.filter((t) => t.sport === sportSel),
+    [teamOptions, sportSel]
+  );
+
   useLayoutEffect(() => {
     if (!open) return;
-    setHomeTeamSel(homeTeamDefault);
-    setAwayTeamSel(awayTeamDefault);
-  }, [open, homeTeamDefault, awayTeamDefault]);
+    const s = pickModerationSportFilter(
+      {
+        notes: row.notes,
+        proposedHomeTeamId: row.proposedHomeTeamId,
+        proposedAwayTeamId: row.proposedAwayTeamId,
+      },
+      teamOptions
+    );
+    setSportSel(s);
+    const tf = teamOptions.filter((t) => t.sport === s);
+    setHomeTeamSel(defaultTeamIdFromSubmission(row.proposedHomeTeamName, row.proposedHomeTeamId, tf));
+    setAwayTeamSel(defaultTeamIdFromSubmission(row.proposedAwayTeamName, row.proposedAwayTeamId, tf));
+  }, [
+    open,
+    row.id,
+    row.notes,
+    row.proposedHomeTeamName,
+    row.proposedAwayTeamName,
+    row.proposedHomeTeamId,
+    row.proposedAwayTeamId,
+    teamOptions,
+  ]);
+
+  function onSportChange(s: SchoolSport) {
+    setSportSel(s);
+    const tf = teamOptions.filter((t) => t.sport === s);
+    setHomeTeamSel(defaultTeamIdFromSubmission(row.proposedHomeTeamName, row.proposedHomeTeamId, tf));
+    setAwayTeamSel(defaultTeamIdFromSubmission(row.proposedAwayTeamName, row.proposedAwayTeamId, tf));
+  }
 
   function approveForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -374,10 +390,26 @@ function ReviewDialog({
         <form key={`approve-${row.id}`} onSubmit={approveForm} className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">Approve & publish</p>
           <p className="text-xs text-muted-foreground">
-            Teams default from the submission (IDs or closest school name match). Change the dropdown if the
-            spelling differs.
+            Pick the sport first; home and away lists only show teams for that sport. Defaults use submitted team IDs,
+            school names, and team labels (including nicknames). Change sport or team if the match is in another code.
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor={`mod-sport-${row.id}`}>Sport</Label>
+              <select
+                id={`mod-sport-${row.id}`}
+                value={sportSel}
+                onChange={(e) => onSportChange(e.target.value as SchoolSport)}
+                className="flex h-9 w-full max-w-md rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                {SCHOOL_SPORTS.map((s) => (
+                  <option key={s} value={s}>
+                    {schoolSportLabel(s)}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Team dropdowns below are filtered by this sport.</p>
+            </div>
             <div className="space-y-1">
               <Label>Home team</Label>
               <select
@@ -387,14 +419,17 @@ function ReviewDialog({
                 value={homeTeamSel}
                 onChange={(e) => setHomeTeamSel(e.target.value)}
               >
-                <option value="">Select…</option>
-                {teamOptions.map((t) => (
+                <option value="">
+                  {teamsForSport.length === 0
+                    ? `No teams for ${schoolSportLabel(sportSel)} — choose another sport above`
+                    : `Choose team (submitted: ${row.proposedHomeTeamName})`}
+                </option>
+                {teamsForSport.map((t) => (
                   <option key={t.teamId} value={t.teamId}>
                     {t.label}
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-muted-foreground">Submitted: {row.proposedHomeTeamName}</p>
             </div>
             <div className="space-y-1">
               <Label>Away team</Label>
@@ -405,14 +440,17 @@ function ReviewDialog({
                 value={awayTeamSel}
                 onChange={(e) => setAwayTeamSel(e.target.value)}
               >
-                <option value="">Select…</option>
-                {teamOptions.map((t) => (
+                <option value="">
+                  {teamsForSport.length === 0
+                    ? `No teams for ${schoolSportLabel(sportSel)} — choose another sport above`
+                    : `Choose team (submitted: ${row.proposedAwayTeamName})`}
+                </option>
+                {teamsForSport.map((t) => (
                   <option key={`a-${t.teamId}`} value={t.teamId}>
                     {t.label}
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-muted-foreground">Submitted: {row.proposedAwayTeamName}</p>
             </div>
             <div className="space-y-1">
               <Label>Season (optional)</Label>

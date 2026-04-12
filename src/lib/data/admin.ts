@@ -53,6 +53,19 @@ export async function adminListTeams() {
     .orderBy(asc(schools.displayName), asc(teams.ageGroup));
 }
 
+export async function adminGetTeamById(id: string) {
+  const [row] = await db
+    .select({
+      team: teams,
+      schoolName: schools.displayName,
+    })
+    .from(teams)
+    .innerJoin(schools, eq(teams.schoolId, schools.id))
+    .where(eq(teams.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function adminListSeasons() {
   return db.select().from(seasons).orderBy(desc(seasons.year));
 }

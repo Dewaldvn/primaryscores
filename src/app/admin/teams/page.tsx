@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LinkButton } from "@/components/link-button";
 import { AdminTeamForm } from "@/components/admin-team-form";
 import { adminListTeams, adminListSchools } from "@/lib/data/admin";
 import { isDatabaseConfigured } from "@/lib/db-safe";
@@ -42,6 +43,7 @@ export default async function AdminTeamsPage() {
                 <TableHead>Label</TableHead>
                 <TableHead>First</TableHead>
                 <TableHead>Active</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -54,6 +56,11 @@ export default async function AdminTeamsPage() {
                   <TableCell>{r.team.teamLabel}</TableCell>
                   <TableCell>{r.team.isFirstTeam ? "Yes" : "No"}</TableCell>
                   <TableCell>{r.team.active ? "Yes" : "No"}</TableCell>
+                  <TableCell className="text-right">
+                    <LinkButton href={`/admin/teams/${r.team.id}`} variant="outline" size="sm">
+                      Edit
+                    </LinkButton>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { LinkButton } from "@/components/link-button";
 import { SchoolLogo } from "@/components/school-logo";
 import { Card, CardContent } from "@/components/ui/card";
+import { FindSchoolNoResultsAdd } from "@/components/find-school-no-results-add";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 
@@ -31,6 +32,7 @@ export function FindSchoolClient({
   selectedProvinceName,
   searchSport,
   searchGender,
+  signedIn,
 }: {
   provinces: ProvinceRow[];
   schoolsInProvince: SchoolListRow[];
@@ -40,6 +42,7 @@ export function FindSchoolClient({
   searchSport?: SchoolSport;
   /** With hockey, narrows school search to boys or girls teams. */
   searchGender?: TeamGender;
+  signedIn: boolean;
 }) {
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -114,23 +117,33 @@ export function FindSchoolClient({
         {loading ? <p className="text-sm text-muted-foreground">Searching…</p> : null}
         {err ? <p className="text-sm text-destructive">{err}</p> : null}
         {debounced.length >= 2 && !loading && !err && hits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No schools match that search.</p>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">No schools match that search.</p>
+            <FindSchoolNoResultsAdd key={debounced} nameHint={debounced} provinces={provinces} signedIn={signedIn} />
+          </div>
         ) : null}
         {hits.length > 0 ? (
           <ul className="max-w-2xl divide-y rounded-lg border bg-card">
             {hits.map((s) => (
               <li key={s.id}>
-                <Link
-                  href={`/schools/${s.slug}`}
-                  className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted/60"
-                >
-                  <SchoolLogo logoPath={s.logoPath} alt="" size="sm" />
-                  <span className="font-medium">{s.displayName}</span>
-                  <span className="text-muted-foreground">
-                    {s.town ? `${s.town} · ` : ""}
-                    {s.provinceName}
-                  </span>
-                </Link>
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm hover:bg-muted/60">
+                  <Link href={`/schools/${s.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
+                    <SchoolLogo logoPath={s.logoPath} alt="" size="sm" />
+                    <span>
+                      <span className="font-medium">{s.displayName}</span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {s.town ? `${s.town} · ` : ""}
+                        {s.provinceName}
+                      </span>
+                    </span>
+                  </Link>
+                  <Link
+                    href={`/schools/${s.slug}#teams`}
+                    className="shrink-0 text-xs text-primary underline-offset-4 hover:underline"
+                  >
+                    Teams →
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

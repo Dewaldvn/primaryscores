@@ -10,6 +10,7 @@ import { adminListSchools } from "@/lib/data/admin";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { ResultsFilterForm } from "@/components/results-filter-form";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
@@ -143,6 +144,7 @@ export default async function ResultsPage({ searchParams }: Props) {
           {rows.map((r) => (
             <li key={r.resultId}>
               <Card className="relative transition-colors hover:bg-muted/30">
+                <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
                 <Link
                   href={`/matches/${r.fixtureId}`}
                   className="absolute inset-0 z-[1] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -152,7 +154,7 @@ export default async function ResultsPage({ searchParams }: Props) {
                     View match details: {r.homeSchoolName} versus {r.awaySchoolName}
                   </span>
                 </Link>
-                <CardContent className="relative z-[2] pointer-events-none flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="relative z-[2] pointer-events-none flex flex-col gap-2 pb-8 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
                       <span className="inline-flex items-center gap-2">

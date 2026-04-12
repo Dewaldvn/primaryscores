@@ -22,6 +22,7 @@ import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import type { LiveSessionClientRow, LiveSessionViewer } from "@/lib/live-session-types";
 import { schoolSportLabel } from "@/lib/sports";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 
 function wrapupCountdownMin(s: LiveSessionClientRow): number | null {
   if (!s.firstVoteAt || !s.inWrapup) return null;
@@ -55,7 +56,8 @@ export function LiveSessionActiveCard({
   const [pending, start] = useTransition();
 
   return (
-    <Card>
+    <Card className="relative overflow-hidden">
+      <ScoreCardSportIcons sport={s.sport} teamGender={s.teamGender} />
       <CardHeader className="pb-2 text-center">
         <CardTitle className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-base leading-snug">
           <span className="inline-flex max-w-full items-center justify-center gap-1.5">
@@ -89,7 +91,7 @@ export function LiveSessionActiveCard({
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center space-y-3 text-center text-sm">
+      <CardContent className="flex flex-col items-center space-y-3 pb-10 text-center text-sm">
         <p className="font-mono text-3xl font-semibold tabular-nums sm:text-4xl">
           {s.majority ? (
             <>

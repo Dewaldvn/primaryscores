@@ -1,21 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { upsertTeamAction } from "@/actions/admin-crud";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
-import { TEAM_GENDERS, teamGenderLabel } from "@/lib/team-gender";
+import { TEAM_GENDERS, teamGenderLabel, type TeamGender } from "@/lib/team-gender";
+
+export type AdminTeamFormInitial = {
+  id: string;
+  schoolId: string;
+  sport: SchoolSport;
+  gender: TeamGender | null;
+  ageGroup: string;
+  teamLabel: string;
+  isFirstTeam: boolean;
+  active: boolean;
+};
 
 export function AdminTeamForm({
   schools,
+  initial,
 }: {
   schools: { id: string; label: string }[];
+  initial?: AdminTeamFormInitial;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [sport, setSport] = useState<SchoolSport>("RUGBY");
+  const [sport, setSport] = useState<SchoolSport>(initial?.sport ?? "RUGBY");
 
   return (
     <form
@@ -24,7 +39,10 @@ export function AdminTeamForm({
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
         setPending(true);
+        const rawId = fd.get("id");
+        const id = typeof rawId === "string" && rawId.length > 0 ? rawId : undefined;
         void upsertTeamAction({
+          ...(id ? { id } : {}),
           schoolId: fd.get("schoolId"),
           sport: fd.get("sport"),
           gender: sport === "HOCKEY" ? fd.get("gender") : null,
@@ -42,18 +60,22 @@ export function AdminTeamForm({
             toast.error("Save failed");
             return;
           }
-          toast.success("Team created");
-          (e.target as HTMLFormElement).reset();
-          setSport("RUGBY");
-          window.location.reload();
+          toast.success(initial ? "Team updated" : "Team created");
+          if (!initial) {
+            (e.target as HTMLFormElement).reset();
+            setSport("RUGBY");
+          }
+          router.refresh();
         });
       }}
     >
+      {initial ? <input type="hidden" name="id" value={initial.id} /> : null}
       <div className="space-y-1 sm:col-span-2">
         <Label>School</Label>
         <select
           name="schoolId"
           required
+          defaultValue={initial?.schoolId}
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {schools.map((s) => (
@@ -87,7 +109,7 @@ export function AdminTeamForm({
             id="team-gender"
             name="gender"
             required
-            defaultValue=""
+            defaultValue={initial?.gender ?? ""}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="" disabled>
@@ -103,22 +125,27 @@ export function AdminTeamForm({
       ) : null}
       <div className="space-y-1">
         <Label htmlFor="ageGroup">Age group</Label>
-        <Input id="ageGroup" name="ageGroup" defaultValue="U13" required />
+        <Input id="ageGroup" name="ageGroup" defaultValue={initial?.ageGroup ?? "U13"} required />
       </div>
       <div className="space-y-1">
         <Label htmlFor="teamLabel">Team label</Label>
-        <Input id="teamLabel" name="teamLabel" defaultValue="A" required />
+        <Input id="teamLabel" name="teamLabel" defaultValue={initial?.teamLabel ?? "A"} required />
       </div>
       <div className="flex items-center gap-2">
-        <input type="checkbox" name="isFirstTeam" id="isFirstTeam" defaultChecked />
+        <input
+          type="checkbox"
+          name="isFirstTeam"
+          id="isFirstTeam"
+          defaultChecked={initial?.isFirstTeam ?? true}
+        />
         <Label htmlFor="isFirstTeam">First team</Label>
       </div>
       <div className="flex items-center gap-2">
-        <input type="checkbox" name="active" id="active-t" defaultChecked />
+        <input type="checkbox" name="active" id="active-t" defaultChecked={initial?.active ?? true} />
         <Label htmlFor="active-t">Active</Label>
       </div>
       <Button type="submit" disabled={pending} className="sm:col-span-2">
-        Create team
+        {initial ? "Save changes" : "Create team"}
       </Button>
     </form>
   );

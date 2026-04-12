@@ -4,7 +4,10 @@ import { SchoolLogo } from "@/components/school-logo";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
+import type { SchoolSport } from "@/lib/sports";
+import type { TeamGender } from "@/lib/team-gender";
 
 export type RecentVerifiedRow = {
   resultId: string;
@@ -22,6 +25,8 @@ export type RecentVerifiedRow = {
   competitionName: string | null;
   seasonName: string | null;
   recordingUrl: string | null;
+  sport: SchoolSport;
+  teamGender: TeamGender | null;
 };
 
 export function RecentVerifiedScoreCards({ rows }: { rows: RecentVerifiedRow[] }) {
@@ -29,7 +34,8 @@ export function RecentVerifiedScoreCards({ rows }: { rows: RecentVerifiedRow[] }
   return (
     <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
       {rows.map((r) => (
-        <Card key={r.resultId} className="overflow-hidden">
+        <Card key={r.resultId} className="relative overflow-hidden">
+          <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
           <CardHeader className="relative border-b bg-muted/30 px-4 py-4">
             <div className="absolute right-3 top-3 z-10">
               <VerificationBadge level={r.verificationLevel} compact />
@@ -57,7 +63,7 @@ export function RecentVerifiedScoreCards({ rows }: { rows: RecentVerifiedRow[] }
               </p>
             ) : null}
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-2 px-4 py-4 text-center text-sm">
+          <CardContent className="flex flex-col items-center gap-2 px-4 pb-8 pt-4 text-center text-sm">
             <span className="font-mono text-lg font-semibold tabular-nums">
               {r.homeScore} – {r.awayScore}
             </span>

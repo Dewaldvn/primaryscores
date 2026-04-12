@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, desc, eq, ilike, or, sql, count } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, sql, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
@@ -148,6 +148,15 @@ export async function getU13TeamsForSchool(schoolId: string) {
     );
 }
 
+/** All active teams for a school (any sport / age), ordered for display. */
+export async function listActiveTeamsForSchool(schoolId: string) {
+  return db
+    .select()
+    .from(teams)
+    .where(and(eq(teams.schoolId, schoolId), eq(teams.active, true)))
+    .orderBy(asc(teams.sport), asc(teams.ageGroup), asc(teams.gender), asc(teams.teamLabel));
+}
+
 export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) {
   return db
     .select({
@@ -165,6 +174,8 @@ export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) 
       awaySchoolLogoPath: awaySchool.logoPath,
       recordingUrl: fixtures.recordingUrl,
       isHome: sql<boolean>`${homeSchool.id} = ${schoolId}`,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))

@@ -8,7 +8,7 @@ import { LinkButton } from "@/components/link-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
-/** Full “my schools” panel: favourites, recent verified, live name matches. Used on `/my-schools`. */
+/** Full “my schools” panel: favourites, recent verified, live name matches. Used on `/my-favourites`. */
 export async function MySchoolsContent() {
   if (!isDatabaseConfigured()) {
     return (

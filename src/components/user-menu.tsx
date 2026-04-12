@@ -92,8 +92,11 @@ export function UserMenu({
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/account")}>
             Profile & picture
           </DropdownMenu.Item>
-          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-schools")}>
-            My schools
+          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-favourites")}>
+            My favourites
+          </DropdownMenu.Item>
+          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/add-team")}>
+            Add a school or team
           </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-submissions")}>
             My submissions

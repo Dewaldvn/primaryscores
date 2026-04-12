@@ -127,6 +127,23 @@ export const profileFavouriteSchools = pgTable(
   ]
 );
 
+export const profileFavouriteTeams = pgTable(
+  "profile_favourite_teams",
+  {
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.teamId] }),
+    index("profile_favourite_teams_profile_idx").on(t.profileId),
+  ]
+);
+
 export const teams = pgTable(
   "teams",
   {
@@ -289,6 +306,7 @@ export const liveSessions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     sport: schoolSportEnum("sport").notNull().default("RUGBY"),
+    teamGender: teamGenderEnum("team_gender"),
     homeTeamName: text("home_team_name").notNull(),
     awayTeamName: text("away_team_name").notNull(),
     homeLogoPath: text("home_logo_path"),

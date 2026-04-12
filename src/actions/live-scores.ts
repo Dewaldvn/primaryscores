@@ -38,10 +38,13 @@ export async function createLiveSessionAction(input: unknown) {
 
   await ensureContributorProfile(user);
 
+  const teamGenderForSession =
+    parsed.data.sport === "HOCKEY" ? (parsed.data.teamGender ?? null) : null;
   const dup = await findOpenLiveSessionDuplicate(
     parsed.data.homeTeamName,
     parsed.data.awayTeamName,
-    parsed.data.sport
+    parsed.data.sport,
+    teamGenderForSession
   );
   if (dup) {
     return {
@@ -54,6 +57,7 @@ export async function createLiveSessionAction(input: unknown) {
 
   const row = await insertLiveSessionRow({
     sport: parsed.data.sport,
+    teamGender: teamGenderForSession,
     homeTeamName: parsed.data.homeTeamName,
     awayTeamName: parsed.data.awayTeamName,
     homeLogoPath: parsed.data.homeLogoPath?.trim() || null,

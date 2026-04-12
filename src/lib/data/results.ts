@@ -69,6 +69,8 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
       seasonName: seasons.name,
       provinceName: provinces.name,
       recordingUrl: fixtures.recordingUrl,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -109,6 +111,8 @@ export const getRecentVerifiedResultsBySport = cache(async function getRecentVer
       seasonName: seasons.name,
       provinceName: provinces.name,
       recordingUrl: fixtures.recordingUrl,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -152,6 +156,8 @@ export const getRecentVerifiedResultsForSchoolIds = cache(async function getRece
       seasonName: seasons.name,
       provinceName: provinces.name,
       recordingUrl: fixtures.recordingUrl,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -219,6 +225,8 @@ export async function listVerifiedResults(filters: ResultListFilters) {
       seasonName: seasons.name,
       provinceName: provinces.name,
       recordingUrl: fixtures.recordingUrl,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -320,6 +328,8 @@ export async function getMatchDetails(fixtureId: string) {
       seasonYear: seasons.year,
       provinceName: provinces.name,
       recordingUrl: fixtures.recordingUrl,
+      sport: homeTeam.sport,
+      teamGender: homeTeam.gender,
     })
     .from(fixtures)
     .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))

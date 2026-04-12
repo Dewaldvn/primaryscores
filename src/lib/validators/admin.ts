@@ -18,36 +18,44 @@ export const schoolUpsertSchema = z.object({
   active: z.coerce.boolean().optional().default(true),
 });
 
-export const teamUpsertSchema = z
-  .object({
-    id: z.string().uuid().optional(),
-    schoolId: z.string().uuid(),
-    sport: schoolSportEnum.optional().default("RUGBY"),
-    gender: z.preprocess(
-      (v) => (v === "" || v == null || v === "__none__" ? null : v),
-      teamGenderEnum.nullable().optional()
-    ),
-    ageGroup: z.string().min(1),
-    teamLabel: z.string().min(1),
-    isFirstTeam: z.coerce.boolean().optional().default(true),
-    active: z.coerce.boolean().optional().default(true),
-  })
-  .superRefine((data, ctx) => {
-    if (data.sport === "HOCKEY" && data.gender == null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Gender is required for hockey teams (boys or girls side).",
-        path: ["gender"],
-      });
-    }
-    if (data.sport !== "HOCKEY" && data.gender != null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Gender is only used for hockey; leave unset for other sports.",
-        path: ["gender"],
-      });
-    }
-  });
+/** Plain object shape for team create/update (refinements applied separately). */
+export const teamUpsertObjectSchema = z.object({
+  id: z.string().uuid().optional(),
+  schoolId: z.string().uuid(),
+  sport: schoolSportEnum.optional().default("RUGBY"),
+  gender: z.preprocess(
+    (v) => (v === "" || v == null || v === "__none__" ? null : v),
+    teamGenderEnum.nullable().optional()
+  ),
+  ageGroup: z.string().min(1),
+  teamLabel: z.string().min(1),
+  isFirstTeam: z.coerce.boolean().optional().default(true),
+  active: z.coerce.boolean().optional().default(true),
+});
+
+function refineTeamHockeyGender(data: z.infer<typeof teamUpsertObjectSchema>, ctx: z.RefinementCtx) {
+  if (data.sport === "HOCKEY" && data.gender == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Gender is required for hockey teams (boys or girls side).",
+      path: ["gender"],
+    });
+  }
+  if (data.sport !== "HOCKEY" && data.gender != null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Gender is only used for hockey; leave unset for other sports.",
+      path: ["gender"],
+    });
+  }
+}
+
+export const teamUpsertSchema = teamUpsertObjectSchema.superRefine(refineTeamHockeyGender);
+
+/** Contributor create-team payload (no `id`). Cannot use `.omit()` on `teamUpsertSchema` because of refinements. */
+export const contributorTeamBodySchema = teamUpsertObjectSchema
+  .omit({ id: true })
+  .superRefine(refineTeamHockeyGender);
 
 export const seasonUpsertSchema = z.object({
   id: z.string().uuid().optional(),

@@ -7,6 +7,7 @@ import { VerificationBadge } from "@/components/verification-badge";
 import { getSeason } from "@/lib/data/reference";
 import { listVerifiedResults } from "@/lib/data/results";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { id: string } };
@@ -36,8 +37,9 @@ export default async function SeasonDetailPage({ params }: Props) {
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.resultId}>
-              <Card>
-                <CardContent className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <Card className="relative">
+                <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
+                <CardContent className="flex flex-col gap-2 pb-8 pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="inline-flex items-center gap-2">

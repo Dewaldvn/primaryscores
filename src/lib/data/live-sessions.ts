@@ -1,5 +1,6 @@
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import type { SchoolSport } from "@/lib/sports";
+import type { TeamGender } from "@/lib/team-gender";
 import { db } from "@/lib/db";
 import { liveSessions, liveScoreVotes, profiles, schools, submissions } from "@/db/schema";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
@@ -7,6 +8,10 @@ import type { LiveScoreFeedItem } from "@/lib/live-session-types";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import { majorityFromVotes, type MajorityResult } from "@/lib/live-majority";
+import {
+  liveSessionsHasTeamGenderColumn,
+  liveSessionsSelectColumns,
+} from "@/lib/live-session-db-support";
 
 export { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN };
 export type { MajorityResult };
@@ -30,8 +35,10 @@ async function loadVotes(sessionId: string) {
 }
 
 export async function processLiveSessionDeadlines(now = new Date()): Promise<void> {
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const lsCols = liveSessionsSelectColumns(includeTg);
   const open = await db
-    .select()
+    .select(lsCols)
     .from(liveSessions)
     .where(inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]));
 
@@ -53,7 +60,7 @@ export async function processLiveSessionDeadlines(now = new Date()): Promise<voi
   }
 
   const wrapup = await db
-    .select()
+    .select(lsCols)
     .from(liveSessions)
     .where(and(eq(liveSessions.status, "WRAPUP"), sql`${liveSessions.submissionId} is null`));
 
@@ -68,6 +75,7 @@ export async function processLiveSessionDeadlines(now = new Date()): Promise<voi
 export type LiveSessionPublic = {
   id: string;
   sport: SchoolSport;
+  teamGender: TeamGender | null;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;
@@ -187,8 +195,12 @@ function mergeStoredOrSchoolLogo(
   return schoolLogoByNorm.get(normalizedTeamKey(teamName)) ?? null;
 }
 
+type LiveSessionRowForPublic = Omit<typeof liveSessions.$inferSelect, "teamGender"> & {
+  teamGender?: typeof liveSessions.$inferSelect.teamGender;
+};
+
 async function rowToLiveSessionPublic(
-  s: (typeof liveSessions.$inferSelect),
+  s: LiveSessionRowForPublic,
   now: Date,
   schoolLogoByNorm?: Map<string, string | null>
 ): Promise<LiveSessionPublic> {
@@ -209,6 +221,8 @@ async function rowToLiveSessionPublic(
   return {
     id: s.id,
     sport: s.sport as SchoolSport,
+    teamGender:
+      "teamGender" in s && s.teamGender != null ? (s.teamGender as TeamGender) : null,
     homeTeamName: s.homeTeamName,
     awayTeamName: s.awayTeamName,
     homeLogoPath: mergeStoredOrSchoolLogo(s.homeLogoPath, s.homeTeamName, schoolLogoByNorm),
@@ -246,8 +260,9 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
           ? and(statusOpen, searchClause)
           : statusOpen;
 
+  const includeTg = await liveSessionsHasTeamGenderColumn();
   const rows = await db
-    .select()
+    .select(liveSessionsSelectColumns(includeTg))
     .from(liveSessions)
     .where(whereClause)
     .orderBy(desc(liveSessions.createdAt))
@@ -270,8 +285,9 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
 
 export async function getUnderwayLiveSessionById(sessionId: string): Promise<LiveSessionPublic | null> {
   await processLiveSessionDeadlines();
+  const includeTg = await liveSessionsHasTeamGenderColumn();
   const [s] = await db
-    .select()
+    .select(liveSessionsSelectColumns(includeTg))
     .from(liveSessions)
     .where(and(eq(liveSessions.id, sessionId), inArray(liveSessions.status, ["ACTIVE", "WRAPUP"])))
     .limit(1);
@@ -287,29 +303,41 @@ export async function getUnderwayLiveSessionById(sessionId: string): Promise<Liv
 export async function findOpenLiveSessionDuplicate(
   homeTeamName: string,
   awayTeamName: string,
-  sport: SchoolSport
+  sport: SchoolSport,
+  teamGender: TeamGender | null
 ): Promise<{ id: string } | null> {
   await processLiveSessionDeadlines();
   const h = homeTeamName.trim().toLowerCase();
   const a = awayTeamName.trim().toLowerCase();
   if (!h || !a) return null;
-  const [row] = await db
-    .select({ id: liveSessions.id })
-    .from(liveSessions)
-    .where(
-      and(
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const dupGender = sport === "HOCKEY" ? teamGender : null;
+  const genderClause = includeTg
+    ? dupGender != null
+      ? eq(liveSessions.teamGender, dupGender)
+      : isNull(liveSessions.teamGender)
+    : null;
+  const dupWhere = includeTg
+    ? and(
+        inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
+        eq(liveSessions.sport, sport),
+        genderClause!,
+        sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
+        sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
+      )
+    : and(
         inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]),
         eq(liveSessions.sport, sport),
         sql`lower(trim(${liveSessions.homeTeamName})) = ${h}`,
         sql`lower(trim(${liveSessions.awayTeamName})) = ${a}`
-      )
-    )
-    .limit(1);
+      );
+  const [row] = await db.select({ id: liveSessions.id }).from(liveSessions).where(dupWhere).limit(1);
   return row ?? null;
 }
 
 export async function insertLiveSessionRow(input: {
   sport: SchoolSport;
+  teamGender: TeamGender | null;
   homeTeamName: string;
   awayTeamName: string;
   homeLogoPath: string | null;
@@ -317,10 +345,12 @@ export async function insertLiveSessionRow(input: {
   venue: string | null;
   createdByUserId: string | null;
 }) {
+  const includeTg = await liveSessionsHasTeamGenderColumn();
   const [row] = await db
     .insert(liveSessions)
     .values({
       sport: input.sport,
+      ...(includeTg ? { teamGender: input.teamGender } : {}),
       homeTeamName: input.homeTeamName.trim(),
       awayTeamName: input.awayTeamName.trim(),
       homeLogoPath: input.homeLogoPath,
@@ -347,7 +377,12 @@ export async function insertLiveVoteRow(input: {
     awayScore: input.awayScore,
   });
 
-  const [s] = await db.select().from(liveSessions).where(eq(liveSessions.id, input.sessionId)).limit(1);
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const [s] = await db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(eq(liveSessions.id, input.sessionId))
+    .limit(1);
   if (s && !s.firstVoteAt) {
     await db
       .update(liveSessions)
@@ -359,7 +394,12 @@ export async function insertLiveVoteRow(input: {
 }
 
 export async function getLiveSessionForVote(sessionId: string) {
-  const [s] = await db.select().from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const [s] = await db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(eq(liveSessions.id, sessionId))
+    .limit(1);
   return s ?? null;
 }
 
@@ -368,7 +408,12 @@ export async function adminStopLiveSessionRow(
   sessionId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const now = new Date();
-  const [s] = await db.select().from(liveSessions).where(eq(liveSessions.id, sessionId)).limit(1);
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const [s] = await db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(eq(liveSessions.id, sessionId))
+    .limit(1);
   if (!s) return { ok: false, error: "Live game not found." };
   if (s.status === "CLOSED") return { ok: false, error: "This live game is already closed." };
   if (s.submissionId) {

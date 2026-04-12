@@ -5,6 +5,7 @@ import { listAllTeamsForModeration } from "@/lib/data/admin";
 import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import type { SchoolSport } from "@/lib/sports";
 
 export default async function ModeratorPage() {
   if (!isDatabaseConfigured()) {
@@ -47,6 +48,9 @@ export default async function ModeratorPage() {
   const teamOptions = teams.map((t) => ({
     teamId: t.teamId,
     label: `${t.schoolName} — ${t.sport}${t.gender ? ` ${t.gender}` : ""} ${t.ageGroup} ${t.teamLabel}${t.active ? "" : " (inactive)"}`,
+    sport: t.sport as SchoolSport,
+    schoolName: t.schoolName,
+    teamLabel: t.teamLabel,
   }));
 
   const seasonOptions = seasons.map((x) => ({

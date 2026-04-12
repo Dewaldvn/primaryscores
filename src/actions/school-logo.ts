@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { schools } from "@/db/schema";
-import { requireRole } from "@/lib/auth";
+import { requireRole, requireUser } from "@/lib/auth";
 import { SCHOOL_LOGOS_BUCKET } from "@/lib/school-logo";
 
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -16,25 +16,28 @@ function serviceSupabase() {
   return createClient(url, key);
 }
 
-export async function uploadSchoolLogoAction(formData: FormData) {
-  await requireRole(["ADMIN"]);
-  const schoolId = String(formData.get("schoolId") ?? "").trim();
-  const file = formData.get("file");
+type UploadBytesResult = { ok: true; logoPath: string } | { ok: false; error: string };
 
-  if (!/^[0-9a-f-]{36}$/i.test(schoolId) || !(file instanceof File) || file.size === 0) {
-    return { ok: false as const, error: "Invalid school or file." };
+async function validateAndUploadSchoolLogoBytes(params: {
+  schoolId: string;
+  file: File;
+}): Promise<UploadBytesResult> {
+  const { schoolId, file } = params;
+
+  if (!/^[0-9a-f-]{36}$/i.test(schoolId) || file.size === 0) {
+    return { ok: false, error: "Invalid school or file." };
   }
   if (!file.type.startsWith("image/")) {
-    return { ok: false as const, error: "Please upload an image file." };
+    return { ok: false, error: "Please upload an image file." };
   }
   if (file.size > MAX_BYTES) {
-    return { ok: false as const, error: "Image must be 2 MB or smaller." };
+    return { ok: false, error: "Image must be 2 MB or smaller." };
   }
 
   const supabase = serviceSupabase();
   if (!supabase) {
     return {
-      ok: false as const,
+      ok: false,
       error: "Set SUPABASE_SERVICE_ROLE_KEY in .env.local to enable logo uploads.",
     };
   }
@@ -50,16 +53,79 @@ export async function uploadSchoolLogoAction(formData: FormData) {
   });
 
   if (error) {
-    return { ok: false as const, error: error.message };
+    return { ok: false, error: error.message };
+  }
+
+  return { ok: true, logoPath: objectPath };
+}
+
+export async function uploadSchoolLogoAction(formData: FormData) {
+  await requireRole(["ADMIN"]);
+  const schoolId = String(formData.get("schoolId") ?? "").trim();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return { ok: false as const, error: "Invalid school or file." };
+  }
+
+  const uploaded = await validateAndUploadSchoolLogoBytes({ schoolId, file });
+  if (!uploaded.ok) {
+    return { ok: false as const, error: uploaded.error };
   }
 
   const now = new Date();
   await db
     .update(schools)
-    .set({ logoPath: objectPath, updatedAt: now })
+    .set({ logoPath: uploaded.logoPath, updatedAt: now })
     .where(eq(schools.id, schoolId));
 
   return { ok: true as const };
+}
+
+/** Signed-in users may set a crest only while `schools.logo_path` is still empty (e.g. right after adding a school). */
+export async function uploadSchoolLogoContributorAction(formData: FormData) {
+  const returnToRaw = String(formData.get("_returnTo") ?? "").trim();
+  const loginRedirect =
+    returnToRaw === "find-school"
+      ? "/login?redirect=%2Ffind-school"
+      : "/login?redirect=%2Fadd-team"; // includes empty / unknown → same as other contributor flows
+  await requireUser(loginRedirect);
+
+  const schoolId = String(formData.get("schoolId") ?? "").trim();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return { ok: false as const, error: "Invalid school or file." };
+  }
+
+  const [row] = await db
+    .select({ logoPath: schools.logoPath })
+    .from(schools)
+    .where(eq(schools.id, schoolId))
+    .limit(1);
+
+  if (!row) {
+    return { ok: false as const, error: "School not found." };
+  }
+  if (row.logoPath?.trim()) {
+    return {
+      ok: false as const,
+      error: "This school already has a logo. Contact an admin to replace it.",
+    };
+  }
+
+  const uploaded = await validateAndUploadSchoolLogoBytes({ schoolId, file });
+  if (!uploaded.ok) {
+    return { ok: false as const, error: uploaded.error };
+  }
+
+  const now = new Date();
+  await db
+    .update(schools)
+    .set({ logoPath: uploaded.logoPath, updatedAt: now })
+    .where(eq(schools.id, schoolId));
+
+  return { ok: true as const, logoPath: uploaded.logoPath };
 }
 
 export async function removeSchoolLogoAction(schoolId: string) {

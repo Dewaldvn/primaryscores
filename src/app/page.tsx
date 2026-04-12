@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getSessionUser } from "@/lib/auth";
 import { getRecentVerifiedResults } from "@/lib/data/results";
 import { listUnderwayLiveSessions, type LiveSessionPublic } from "@/lib/data/live-sessions";
+import { listFavouriteTeamsForProfile, type FavouriteTeamRow } from "@/lib/data/favourite-teams";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { HomeSportPickTiles } from "@/components/home-sport-pick-tiles";
 import { HomeLiveScoresPeek } from "@/components/home-live-scores-peek";
+import { HomeFavouriteTeamsPeek } from "@/components/home-favourite-teams";
 import { RecentVerifiedScoreCards } from "@/components/recent-verified-score-cards";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
@@ -20,16 +23,23 @@ export default async function HomePage() {
   let databaseLoadError: string | null = null;
   let recentLoadError: string | null = null;
   let livePeekError: string | null = null;
+  let favouriteTeams: FavouriteTeamRow[] = [];
 
   if (isDatabaseConfigured()) {
     try {
+      const sessionUser = await getSessionUser();
       const settled = await withTimeout(
-        Promise.allSettled([getRecentVerifiedResults(8), listUnderwayLiveSessions({ limit: 5 })]),
+        Promise.allSettled([
+          getRecentVerifiedResults(8),
+          listUnderwayLiveSessions({ limit: 5 }),
+          sessionUser ? listFavouriteTeamsForProfile(sessionUser.id, 8) : Promise.resolve([] as FavouriteTeamRow[]),
+        ]),
         PUBLIC_DB_QUERY_MS
       );
-      const [rr, rl] = settled;
+      const [rr, rl, ft] = settled;
       recent = rr.status === "fulfilled" ? rr.value : [];
       livePeek = rl.status === "fulfilled" ? rl.value : [];
+      favouriteTeams = ft.status === "fulfilled" ? ft.value : [];
       if (rr.status === "rejected") {
         recentLoadError = rr.reason instanceof Error ? rr.reason.message : String(rr.reason);
       }
@@ -68,6 +78,7 @@ export default async function HomePage() {
       <section className="space-y-3">
         <HomeSportPickTiles />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
+        {favouriteTeams.length > 0 ? <HomeFavouriteTeamsPeek rows={favouriteTeams} /> : null}
       </section>
 
       <section className="space-y-3">

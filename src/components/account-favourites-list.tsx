@@ -23,8 +23,9 @@ export function AccountFavouritesList({
         <CardHeader>
           <CardTitle>Favourite schools</CardTitle>
           <CardDescription>
-            Open any school page and use <strong>Favourite school</strong> to pin teams you follow. They will appear
-            in the bar at the top of the site when you are signed in.
+            Open any school page and use <strong>Favourite school</strong> for the whole school. For a specific side
+            (e.g. U13), open the school, scroll to <strong>Teams</strong>, and favourite the team row — those appear on
+            your home page and under <strong>My favourites</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent>

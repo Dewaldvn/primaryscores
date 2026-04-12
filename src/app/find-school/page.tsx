@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FindSchoolClient } from "@/components/find-school-client";
+import { getSessionUser } from "@/lib/auth";
 import { listProvinces, listSchoolsByProvince } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { parseSportQueryParam, schoolSportLabel } from "@/lib/sports";
@@ -38,7 +39,7 @@ export default async function FindSchoolPage({ searchParams }: Props) {
   const searchSport = parseSportQueryParam(qp(searchParams, "sport"));
   const searchGender = parseTeamGenderQueryParam(qp(searchParams, "gender"));
 
-  const provinces = await listProvinces();
+  const [provinces, user] = await Promise.all([listProvinces(), getSessionUser()]);
   const rawSchools = provinceId ? await listSchoolsByProvince(provinceId) : [];
   const schoolsInProvince = dedupeSchoolsById(rawSchools);
   const selectedProvinceName = provinceId ? provinces.find((p) => p.id === provinceId)?.name ?? null : null;
@@ -48,7 +49,11 @@ export default async function FindSchoolPage({ searchParams }: Props) {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Find your school</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Search by name (live) or open a province to scroll the full directory.
+          Search by name (live) or open a province to scroll the full directory. Open a school to see all its teams and
+          favourite a specific side (U13, hockey girls, etc.).{" "}
+          <Link href="/add-team" className="text-primary underline-offset-4 hover:underline">
+            Missing a school or team?
+          </Link>
           {searchSport
             ? ` Name search is filtered to schools with an active ${schoolSportLabel(searchSport)} team in the database.`
             : null}
@@ -82,6 +87,7 @@ export default async function FindSchoolPage({ searchParams }: Props) {
         selectedProvinceName={selectedProvinceName}
         searchSport={searchSport}
         searchGender={searchGender}
+        signedIn={Boolean(user)}
       />
       <p className="text-center text-sm text-muted-foreground sm:text-left">
         Wrong school?{" "}

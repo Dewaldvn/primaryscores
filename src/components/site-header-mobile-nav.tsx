@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import type { HeaderProfile } from "@/components/site-header";
+import { SCHOOL_SPORTS, schoolSportLabel, sportToRouteSlug } from "@/lib/sports";
 
 const navLinkClass =
   "rounded-md px-3 py-2.5 text-base text-foreground hover:bg-muted active:bg-muted";
@@ -44,6 +45,19 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             <Link href="/live" className={navLinkClass} onClick={() => setOpen(false)}>
               Live Scores
             </Link>
+            <p className="px-3 pb-0.5 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sports
+            </p>
+            {SCHOOL_SPORTS.map((sport) => (
+              <Link
+                key={sport}
+                href={`/sport/${sportToRouteSlug(sport)}`}
+                className={navLinkClass}
+                onClick={() => setOpen(false)}
+              >
+                {schoolSportLabel(sport)}
+              </Link>
+            ))}
             <Link href="/results" className={navLinkClass} onClick={() => setOpen(false)}>
               Results
             </Link>
@@ -58,8 +72,13 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
               Schools
             </Link>
             {profile ? (
-              <Link href="/my-schools" className={navLinkClass} onClick={() => setOpen(false)}>
-                My schools
+              <Link href="/my-favourites" className={navLinkClass} onClick={() => setOpen(false)}>
+                My favourites
+              </Link>
+            ) : null}
+            {profile ? (
+              <Link href="/add-team" className={navLinkClass} onClick={() => setOpen(false)}>
+                Add school or team
               </Link>
             ) : null}
             {showModeration && !showAdmin ? (
