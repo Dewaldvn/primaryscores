@@ -10,6 +10,7 @@ import {
   pgEnum,
   uniqueIndex,
   index,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -97,6 +98,23 @@ export const schools = pgTable(
   (t) => [
     index("schools_province_idx").on(t.provinceId),
     index("schools_display_name_idx").on(t.displayName),
+  ]
+);
+
+export const profileFavouriteSchools = pgTable(
+  "profile_favourite_schools",
+  {
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    schoolId: uuid("school_id")
+      .notNull()
+      .references(() => schools.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.schoolId] }),
+    index("profile_favourite_schools_profile_idx").on(t.profileId),
   ]
 );
 

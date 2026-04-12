@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { SiteHeaderAsync } from "@/components/site-header-async";
 import { SiteHeaderSkeleton } from "@/components/site-header-skeleton";
+import { FavouritesBar } from "@/components/favourites-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,12 @@ export default function RootLayout({
           <Suspense fallback={<SiteHeaderSkeleton />}>
             <SiteHeaderAsync />
           </Suspense>
-          <div className="mx-auto max-w-6xl px-4 py-6">{children}</div>
+          <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
+            <Suspense fallback={null}>
+              <FavouritesBar />
+            </Suspense>
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

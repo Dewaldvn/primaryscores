@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,14 @@ type SchoolHit = {
   u13TeamId: string | null;
 };
 
-export function GamesUnderway({ signedIn }: { signedIn: boolean }) {
+export function GamesUnderway({
+  signedIn,
+  startImageAbove = false,
+}: {
+  signedIn: boolean;
+  /** When true (live hub), show start_live_game.png above the list; signed-out image links to login. */
+  startImageAbove?: boolean;
+}) {
   const [sessions, setSessions] = useState<LiveSessionClientRow[]>([]);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -80,45 +88,110 @@ export function GamesUnderway({ signedIn }: { signedIn: boolean }) {
     return () => clearInterval(t);
   }, [refresh]);
 
+  const startLiveImage = (
+    <Image
+      src="/brand/start_live_game.png"
+      alt="Start a live game"
+      width={420}
+      height={220}
+      className="h-auto max-w-[min(100%,460px)] w-full"
+      priority={startImageAbove}
+    />
+  );
+
+  const newGameDialog = (
+    <DialogContent className="max-h-[90vh] overflow-y-auto text-center sm:max-w-md">
+      <DialogHeader className="text-center sm:text-center">
+        <DialogTitle>Start a live game</DialogTitle>
+      </DialogHeader>
+      <NewLiveGameForm
+        turnToken={turnCreate}
+        onToken={setTurnCreate}
+        onDone={() => {
+          setOpenNew(false);
+          setTurnCreate(null);
+          void refresh();
+        }}
+      />
+    </DialogContent>
+  );
+
   return (
     <section className="space-y-4">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-        <div>
-          <h2 className="text-lg font-semibold">Games underway</h2>
-          <p className="text-sm text-muted-foreground">
-            Only the {LIST_LIMIT} most recently started open games are listed here (not every active game). Use search
-            to find a school, or open a game from its share link. Tap a card for the full scoreboard.
-            Majority view refreshes every {POLL_MS / 1000}s. After {LIVE_WRAPUP_AFTER_MIN} minutes you can send the
-            result for moderation; after {LIVE_AUTO_SUBMIT_AFTER_MIN} minutes a submission is created automatically if no
-            one does.
-          </p>
-        </div>
-        {signedIn ? (
-          <Dialog open={openNew} onOpenChange={setOpenNew}>
-            <DialogTrigger render={<Button variant="default" size="sm" />}>
-              Start live game
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto text-center sm:max-w-md">
-              <DialogHeader className="text-center sm:text-center">
-                <DialogTitle>Start a live game</DialogTitle>
-              </DialogHeader>
-              <NewLiveGameForm
-                turnToken={turnCreate}
-                onToken={setTurnCreate}
-                onDone={() => {
-                  setOpenNew(false);
-                  setTurnCreate(null);
-                  void refresh();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        ) : (
-          <LinkButton href="/login?redirect=%2F" variant="default" size="sm">
-            Sign in to start a live game
-          </LinkButton>
-        )}
-      </div>
+      {signedIn ? (
+        <Dialog open={openNew} onOpenChange={setOpenNew}>
+          {startImageAbove ? (
+            <div className="mb-2 flex justify-center sm:mb-4">
+              <DialogTrigger
+                render={
+                  <button
+                    type="button"
+                    className="rounded-lg ring-offset-background transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  />
+                }
+              >
+                {startLiveImage}
+              </DialogTrigger>
+            </div>
+          ) : null}
+          <div
+            className={
+              startImageAbove
+                ? "flex flex-col gap-3"
+                : "flex flex-col justify-between gap-3 sm:flex-row sm:items-end"
+            }
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Games underway</h2>
+              <p className="text-sm text-muted-foreground">
+                Only the {LIST_LIMIT} most recently started open games are listed here (not every active game). Use search
+                to find a school, or open a game from its share link. Tap a card for the full scoreboard. Majority view
+                refreshes every {POLL_MS / 1000}s. After {LIVE_WRAPUP_AFTER_MIN} minutes you can send the result for
+                moderation; after {LIVE_AUTO_SUBMIT_AFTER_MIN} minutes a submission is created automatically if no one does.
+              </p>
+            </div>
+            {!startImageAbove ? (
+              <DialogTrigger render={<Button variant="default" size="sm" />}>Start live game</DialogTrigger>
+            ) : null}
+          </div>
+          {newGameDialog}
+        </Dialog>
+      ) : (
+        <>
+          {startImageAbove ? (
+            <div className="mb-2 flex justify-center sm:mb-4">
+              <Link
+                href="/login?redirect=%2Flive"
+                className="inline-block rounded-lg ring-offset-background transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {startLiveImage}
+              </Link>
+            </div>
+          ) : null}
+          <div
+            className={
+              startImageAbove
+                ? "flex flex-col gap-3"
+                : "flex flex-col justify-between gap-3 sm:flex-row sm:items-end"
+            }
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Games underway</h2>
+              <p className="text-sm text-muted-foreground">
+                Only the {LIST_LIMIT} most recently started open games are listed here (not every active game). Use search
+                to find a school, or open a game from its share link. Tap a card for the full scoreboard. Majority view
+                refreshes every {POLL_MS / 1000}s. After {LIVE_WRAPUP_AFTER_MIN} minutes you can send the result for
+                moderation; after {LIVE_AUTO_SUBMIT_AFTER_MIN} minutes a submission is created automatically if no one does.
+              </p>
+            </div>
+            {!startImageAbove ? (
+              <LinkButton href="/login?redirect=%2Flive" variant="default" size="sm">
+                Sign in to start a live game
+              </LinkButton>
+            ) : null}
+          </div>
+        </>
+      )}
 
       <div className="max-w-md space-y-1.5">
         <Label htmlFor="live-games-search" className="text-muted-foreground">

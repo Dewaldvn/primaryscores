@@ -4,6 +4,7 @@ import {
   desc,
   eq,
   gte,
+  inArray,
   lte,
   ilike,
   or,
@@ -76,6 +77,52 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
     .where(verifiedCondition())
     .orderBy(desc(results.publishedAt))
     .limit(limit);
+});
+
+export const getRecentVerifiedResultsForSchoolIds = cache(async function getRecentVerifiedResultsForSchoolIds(
+  schoolIds: string[],
+  limit = 12
+) {
+  const unique = Array.from(new Set(schoolIds)).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  if (unique.length === 0) return [];
+  const cap = Math.min(Math.max(1, limit), 50);
+  return db
+    .select({
+      resultId: results.id,
+      fixtureId: fixtures.id,
+      homeScore: results.homeScore,
+      awayScore: results.awayScore,
+      verificationLevel: results.verificationLevel,
+      publishedAt: results.publishedAt,
+      matchDate: fixtures.matchDate,
+      homeSchoolName: homeSchool.displayName,
+      awaySchoolName: awaySchool.displayName,
+      homeSchoolSlug: homeSchool.slug,
+      awaySchoolSlug: awaySchool.slug,
+      homeSchoolLogoPath: homeSchool.logoPath,
+      awaySchoolLogoPath: awaySchool.logoPath,
+      competitionName: competitions.name,
+      seasonName: seasons.name,
+      provinceName: provinces.name,
+      recordingUrl: fixtures.recordingUrl,
+    })
+    .from(results)
+    .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
+    .leftJoin(competitions, eq(fixtures.competitionId, competitions.id))
+    .leftJoin(seasons, eq(fixtures.seasonId, seasons.id))
+    .innerJoin(homeTeam, eq(fixtures.homeTeamId, homeTeam.id))
+    .innerJoin(awayTeam, eq(fixtures.awayTeamId, awayTeam.id))
+    .innerJoin(homeSchool, eq(homeTeam.schoolId, homeSchool.id))
+    .innerJoin(awaySchool, eq(awayTeam.schoolId, awaySchool.id))
+    .leftJoin(provinces, eq(competitions.provinceId, provinces.id))
+    .where(
+      and(
+        verifiedCondition(),
+        or(inArray(homeTeam.schoolId, unique), inArray(awayTeam.schoolId, unique))!
+      )
+    )
+    .orderBy(desc(results.publishedAt))
+    .limit(cap);
 });
 
 export async function countVerifiedResults(filters: ResultListFilters) {

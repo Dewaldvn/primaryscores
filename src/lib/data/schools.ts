@@ -20,6 +20,29 @@ export const listProvinces = cache(async function listProvinces() {
   return db.select().from(provinces).orderBy(provinces.name);
 });
 
+export const listSchoolsByProvince = cache(async function listSchoolsByProvince(provinceId: string, limit = 250) {
+  const cap = Math.min(Math.max(1, limit), 500);
+  return db
+    .select({
+      id: schools.id,
+      displayName: schools.displayName,
+      slug: schools.slug,
+      town: schools.town,
+      provinceName: provinces.name,
+      logoPath: schools.logoPath,
+      u13TeamId: teams.id,
+    })
+    .from(schools)
+    .innerJoin(provinces, eq(schools.provinceId, provinces.id))
+    .leftJoin(
+      teams,
+      and(eq(teams.schoolId, schools.id), eq(teams.ageGroup, "U13"), eq(teams.active, true))
+    )
+    .where(and(eq(schools.active, true), eq(schools.provinceId, provinceId)))
+    .orderBy(schools.displayName)
+    .limit(cap);
+});
+
 export async function searchSchools(q: string, limit = 30) {
   const term = `%${q.trim()}%`;
   if (q.trim().length < 2) return [];

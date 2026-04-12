@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { ProfileAccountClient } from "@/components/profile-account-client";
+import { AccountFavouritesList } from "@/components/account-favourites-list";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getProfileAvatarPublicUrl } from "@/lib/profile-avatar";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { listFavouriteSchoolsForProfile } from "@/lib/data/favourite-schools";
 
 export default async function AccountPage() {
   if (!isDatabaseConfigured()) redirect("/");
@@ -13,6 +15,7 @@ export default async function AccountPage() {
 
   const avatarUrl = getProfileAvatarPublicUrl(profile.avatarPath);
   const hasAvatar = Boolean(profile.avatarPath?.trim());
+  const favouriteSchools = await listFavouriteSchoolsForProfile(profile.id);
 
   return (
     <main className="container max-w-2xl space-y-6 py-8">
@@ -20,6 +23,13 @@ export default async function AccountPage() {
         <h1 className="text-2xl font-semibold">Account</h1>
         <p className="text-sm text-muted-foreground">Manage how you appear on the site.</p>
       </div>
+      <AccountFavouritesList
+        schools={favouriteSchools.map((f) => ({
+          id: f.schoolId,
+          displayName: f.displayName,
+          slug: f.slug,
+        }))}
+      />
       <ProfileAccountClient
         key={profile.avatarPath ?? "none"}
         email={profile.email}

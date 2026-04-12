@@ -13,6 +13,9 @@ import {
 } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
+import { getSessionUser } from "@/lib/auth";
+import { isSchoolFavourited } from "@/lib/data/favourite-schools";
+import { SchoolFavouriteButton } from "@/components/school-favourite-button";
 
 type Props = { params: { slug: string } };
 
@@ -21,6 +24,9 @@ export default async function SchoolPage({ params }: Props) {
 
   const school = await getSchoolBySlug(params.slug);
   if (!school) notFound();
+
+  const user = await getSessionUser();
+  const favourited = user ? await isSchoolFavourited(user.id, school.id) : false;
 
   const [teams, results, summary] = await Promise.all([
     getU13TeamsForSchool(school.id),
@@ -39,10 +45,18 @@ export default async function SchoolPage({ params }: Props) {
       />
       <div>
         <p className="text-sm text-muted-foreground">{school.provinceName}</p>
-        <h1 className="flex flex-wrap items-center gap-3 text-3xl font-bold">
-          <SchoolLogo logoPath={school.logoPath} alt="" size="xl" />
-          {school.displayName}
-        </h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <h1 className="flex flex-wrap items-center gap-3 text-3xl font-bold">
+            <SchoolLogo logoPath={school.logoPath} alt="" size="xl" />
+            {school.displayName}
+          </h1>
+          <SchoolFavouriteButton
+            schoolId={school.id}
+            signedIn={Boolean(user)}
+            initialFavourited={favourited}
+            loginRedirectPath={`/schools/${params.slug}`}
+          />
+        </div>
         <p className="text-sm text-muted-foreground">{school.officialName}</p>
         {(school.town || school.district) && (
           <p className="mt-1 text-sm">
