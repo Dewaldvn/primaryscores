@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminScoresTable } from "@/components/admin-scores-table";
-import { adminListAllResults } from "@/lib/data/admin";
+import { z } from "zod";
+import { adminGetTeamById, adminListAllResults } from "@/lib/data/admin";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
 type Props = {
@@ -21,10 +22,25 @@ export default async function AdminScoresPage({ searchParams }: Props) {
   const page = Math.max(1, Number(q("page")) || 1);
   const pageSize = 25;
 
+  const rawTeamId = q("teamId");
+  const parsedTeam = z.string().uuid().safeParse(rawTeamId);
+  let teamFilterId: string | undefined;
+  let teamFilterLabel: string | null = null;
+  if (parsedTeam.success) {
+    const teamRow = await adminGetTeamById(parsedTeam.data);
+    if (teamRow) {
+      teamFilterId = parsedTeam.data;
+      teamFilterLabel = `${teamRow.schoolName} · ${teamRow.team.sport} · ${teamRow.team.ageGroup} ${teamRow.team.teamLabel}${
+        teamRow.team.gender ? ` · ${teamRow.team.gender}` : ""
+      }`;
+    }
+  }
+
   const { rows, total, page: p, pageSize: ps } = await adminListAllResults({
     page,
     pageSize,
     search: search.trim() || undefined,
+    teamId: teamFilterId,
   });
 
   const serialized = rows.map((r) => ({
@@ -70,6 +86,8 @@ export default async function AdminScoresPage({ searchParams }: Props) {
             page={p}
             pageSize={ps}
             initialSearch={search}
+            teamFilterId={teamFilterId}
+            teamFilterLabel={teamFilterLabel}
           />
         </CardContent>
       </Card>

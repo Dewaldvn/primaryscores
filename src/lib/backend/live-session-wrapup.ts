@@ -39,9 +39,9 @@ export async function createLiveSubmissionFromSession(opts: {
 
       if (auto) {
         if (s.status !== "WRAPUP") return { ok: false, reason: "not_wrapup" };
-        if (!s.firstVoteAt) return { ok: false, reason: "no_first_vote" };
-        const first = toDate(s.firstVoteAt);
-        if ((now.getTime() - first.getTime()) / 60_000 < LIVE_AUTO_SUBMIT_AFTER_MIN) {
+        const anchorRaw = s.scoringOpenedAt ?? s.createdAt;
+        const anchor = toDate(anchorRaw);
+        if ((now.getTime() - anchor.getTime()) / 60_000 < LIVE_AUTO_SUBMIT_AFTER_MIN) {
           return { ok: false, reason: "too_early" };
         }
       } else {

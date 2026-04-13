@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,6 @@ export function AdminSchoolForm({
     nickname: string | null;
     slug: string;
     provinceId: string;
-    district: string | null;
     town: string | null;
     website: string | null;
     active: boolean;
@@ -30,7 +30,9 @@ export function AdminSchoolForm({
   /** When creating a school (no `initial`), default form fields from moderation deep-links etc. */
   prefillNew?: { displayName?: string; officialName?: string };
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [formFeedback, setFormFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   return (
     <form
@@ -39,6 +41,7 @@ export function AdminSchoolForm({
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
         setPending(true);
+        setFormFeedback(null);
         void upsertSchoolAction({
           id: initial?.id,
           officialName: fd.get("officialName"),
@@ -46,19 +49,24 @@ export function AdminSchoolForm({
           nickname: fd.get("nickname") || null,
           slug: fd.get("slug") || undefined,
           provinceId: fd.get("provinceId"),
-          district: fd.get("district") || null,
           town: fd.get("town") || null,
           website: fd.get("website") || null,
           active: fd.get("active") === "on",
         }).then((res) => {
           setPending(false);
           if (!res.ok) {
+            setFormFeedback({ kind: "error", text: "Update failed. Please check your inputs and try again." });
             toast.error("Save failed");
             return;
           }
-          toast.success("Saved");
-          if (!initial) (e.target as HTMLFormElement).reset();
-          window.location.reload();
+          const msg = initial ? "Update successful" : "School created successfully";
+          setFormFeedback({ kind: "ok", text: msg });
+          toast.success(msg);
+          if (!initial) {
+            (e.target as HTMLFormElement).reset();
+          } else {
+            router.refresh();
+          }
         });
       }}
     >
@@ -66,7 +74,6 @@ export function AdminSchoolForm({
       {schoolAdminMode && initial ? (
         <>
           <input type="hidden" name="slug" value={initial.slug} />
-          <input type="hidden" name="provinceId" value={initial.provinceId} />
           <input type="hidden" name="active" value={initial.active ? "on" : ""} />
         </>
       ) : null}
@@ -104,30 +111,24 @@ export function AdminSchoolForm({
           <Input id="slug" name="slug" placeholder="auto from display name" defaultValue={initial?.slug} />
         </div>
       ) : null}
-      {!schoolAdminMode ? (
-        <div className="space-y-1">
-          <Label>Province</Label>
-          <select
-            name="provinceId"
-            required
-            defaultValue={initial?.provinceId}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-          >
-            {provinces.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+      <div className="space-y-1">
+        <Label>Province</Label>
+        <select
+          name="provinceId"
+          required
+          defaultValue={initial?.provinceId}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+        >
+          {provinces.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="space-y-1">
         <Label htmlFor="town">Town</Label>
         <Input id="town" name="town" defaultValue={initial?.town ?? ""} />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="district">District</Label>
-        <Input id="district" name="district" defaultValue={initial?.district ?? ""} />
       </div>
       <div className="space-y-1 sm:col-span-2">
         <Label htmlFor="website">Website</Label>
@@ -142,6 +143,15 @@ export function AdminSchoolForm({
       <Button type="submit" disabled={pending} className="sm:col-span-2">
         {initial ? "Update school" : "Create school"}
       </Button>
+      {formFeedback ? (
+        <p
+          className={`sm:col-span-2 text-center text-sm ${
+            formFeedback.kind === "ok" ? "text-emerald-700" : "text-destructive"
+          }`}
+        >
+          {formFeedback.text}
+        </p>
+      ) : null}
     </form>
   );
 }

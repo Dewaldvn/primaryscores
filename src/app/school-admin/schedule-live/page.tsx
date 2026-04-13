@@ -31,6 +31,8 @@ export default async function SchoolAdminScheduleLivePage() {
   const teamRows = await adminListTeamsForSchoolIds(managed);
   const homeTeamOptions = teamRows.map((r) => ({
     id: r.team.id,
+    schoolId: r.schoolId,
+    schoolName: r.schoolName,
     label: `${r.schoolName} · ${r.team.sport} ${r.team.ageGroup} ${r.team.teamLabel}${r.team.gender ? ` ${r.team.gender}` : ""}`,
   }));
 

@@ -115,7 +115,6 @@ async function main() {
         displayName: s.displayName,
         slug,
         provinceId: gp.id,
-        district: "Demo district",
         town: "Johannesburg",
         active: true,
       })

@@ -19,7 +19,8 @@ import { filterFavouritedTeamIds } from "@/lib/data/favourite-teams";
 import { SchoolFavouriteButton } from "@/components/school-favourite-button";
 import { TeamFavouriteButton } from "@/components/team-favourite-button";
 import { formatTeamListingSubtitle } from "@/lib/format-team";
-import type { SchoolSport } from "@/lib/sports";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
+import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
 
 type Props = { params: { slug: string } };
 
@@ -45,6 +46,22 @@ export default async function SchoolPage({ params }: Props) {
           schoolTeams.map((t) => t.id)
         )
       : new Set<string>();
+  const orderedSchoolTeams = [...schoolTeams].sort((a, b) =>
+    compareTeamsBySportAndChronologicalAge(
+      {
+        sport: a.sport as SchoolSport,
+        ageGroup: a.ageGroup,
+        gender: a.gender,
+        teamLabel: a.teamLabel,
+      },
+      {
+        sport: b.sport as SchoolSport,
+        ageGroup: b.ageGroup,
+        gender: b.gender,
+        teamLabel: b.teamLabel,
+      },
+    ),
+  );
 
   const loginPath = `/schools/${params.slug}`;
 
@@ -65,11 +82,9 @@ export default async function SchoolPage({ params }: Props) {
           />
         </div>
         <p className="text-sm text-muted-foreground">{school.officialName}</p>
-        {(school.town || school.district) && (
+        {school.town && (
           <p className="mt-1 text-sm">
             {school.town}
-            {school.town && school.district ? " · " : ""}
-            {school.district}
           </p>
         )}
         {school.website && (
@@ -90,38 +105,46 @@ export default async function SchoolPage({ params }: Props) {
           Active sides on record for this school. Favourite a specific team to show it on your home page and under{" "}
           <strong>My favourites</strong> in the account menu.
         </p>
-        {schoolTeams.length === 0 ? (
+        {orderedSchoolTeams.length === 0 ? (
           <p className="text-sm text-muted-foreground">No active teams on record yet.</p>
         ) : (
-          <ul className="space-y-2">
-            {schoolTeams.map((t) => (
-              <li
-                key={t.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2.5 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground">
-                    {formatTeamListingSubtitle({
-                      sport: t.sport as SchoolSport,
-                      ageGroup: t.ageGroup,
-                      teamLabel: t.teamLabel,
-                      gender: t.gender,
-                    })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.isFirstTeam ? "First side" : "Additional side"}
-                  </p>
+          <div className="space-y-4">
+            {SCHOOL_SPORTS.map((sport) => {
+              const sportTeams = orderedSchoolTeams.filter((t) => t.sport === sport);
+              if (sportTeams.length === 0) return null;
+              return (
+                <div key={sport} className="space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">{schoolSportLabel(sport)}</h3>
+                  <ul className="space-y-2">
+                    {sportTeams.map((t) => (
+                      <li
+                        key={t.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2.5 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">
+                            {formatTeamListingSubtitle({
+                              sport: t.sport as SchoolSport,
+                              ageGroup: t.ageGroup,
+                              teamLabel: t.teamLabel,
+                              gender: t.gender,
+                            })}
+                          </p>
+                        </div>
+                        <TeamFavouriteButton
+                          teamId={t.id}
+                          signedIn={Boolean(user)}
+                          initialFavourited={favouritedTeamIds.has(t.id)}
+                          loginRedirectPath={`${loginPath}#teams`}
+                          compact
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <TeamFavouriteButton
-                  teamId={t.id}
-                  signedIn={Boolean(user)}
-                  initialFavourited={favouritedTeamIds.has(t.id)}
-                  loginRedirectPath={`${loginPath}#teams`}
-                  compact
-                />
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         )}
       </section>
 

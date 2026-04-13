@@ -26,8 +26,8 @@ import { schoolSportLabel } from "@/lib/sports";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 
 function wrapupCountdownMin(s: LiveSessionClientRow): number | null {
-  if (!s.firstVoteAt || !s.inWrapup) return null;
-  const left = s.autoSubmitAfterMinutes - (s.minutesSinceFirstVote ?? 0);
+  if (!s.inWrapup || s.minutesSinceScoringOpened == null) return null;
+  const left = s.autoSubmitAfterMinutes - s.minutesSinceScoringOpened;
   return Math.max(0, Math.ceil(left));
 }
 
@@ -91,6 +91,11 @@ export function LiveSessionActiveCard({
             </span>
           ) : s.firstVoteAt ? (
             <span>First score {formatDistanceToNowStrict(new Date(s.firstVoteAt), { addSuffix: true })}</span>
+          ) : s.scoringOpenedAt ? (
+            <span>
+              Scoring open {formatDistanceToNowStrict(new Date(s.scoringOpenedAt), { addSuffix: true })}
+              {" · "}waiting for first score
+            </span>
           ) : (
             "Waiting for first score update"
           )}

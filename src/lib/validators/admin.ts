@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeAgeGroupInput } from "@/lib/age-group";
 
 const schoolSportEnum = z.enum(["RUGBY", "NETBALL", "HOCKEY", "SOCCER"]);
 const teamGenderEnum = z.enum(["MALE", "FEMALE"]);
@@ -13,7 +14,6 @@ export const schoolUpsertSchema = z.object({
   ),
   slug: z.string().min(2).optional(),
   provinceId: z.string().uuid(),
-  district: z.string().optional().nullable(),
   town: z.string().optional().nullable(),
   website: z.preprocess(
     (v) => (v === "" || v == null ? undefined : v),
@@ -31,8 +31,18 @@ export const teamUpsertObjectSchema = z.object({
     (v) => (v === "" || v == null || v === "__none__" ? null : v),
     teamGenderEnum.nullable().optional()
   ),
-  ageGroup: z.string().min(1),
-  teamLabel: z.string().min(1),
+  ageGroup: z.preprocess(
+    (v) => normalizeAgeGroupInput(v),
+    z.string().min(2, "Complete the age group after U (e.g. U13)")
+  ),
+  teamLabel: z.preprocess(
+    (v) => (typeof v === "string" ? v.trim().toUpperCase() : v),
+    z.string().min(1, "Team label is required")
+  ),
+  teamNickname: z.preprocess(
+    (v) => (v === "" || v == null ? null : String(v).trim()),
+    z.string().max(120).nullable().optional()
+  ),
   isFirstTeam: z.coerce.boolean().optional().default(true),
   active: z.coerce.boolean().optional().default(true),
 });

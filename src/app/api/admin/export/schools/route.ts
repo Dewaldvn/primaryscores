@@ -7,7 +7,7 @@ export async function GET() {
   const rows = await adminListSchools();
 
   const lines = [
-    ["id", "slug", "display_name", "official_name", "province", "active", "town", "district"].join(
+    ["id", "slug", "display_name", "official_name", "province", "active", "town"].join(
       ","
     ),
     ...rows.map((r) =>
@@ -19,7 +19,6 @@ export async function GET() {
         JSON.stringify(r.provinceName),
         r.school.active,
         r.school.town ?? "",
-        r.school.district ?? "",
       ].join(",")
     ),
   ];

@@ -1,6 +1,8 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { competitions, schools, seasons, teams } from "@/db/schema";
 import { schoolsHasNicknameColumn, schoolsSelectColumns } from "@/lib/school-db-support";
@@ -50,8 +52,7 @@ export async function upsertSchoolAction(input: unknown) {
           displayName: v.displayName,
           ...(includeNick ? { nickname: v.nickname ?? null } : {}),
           slug: sch.slug,
-          provinceId: sch.provinceId,
-          district: v.district ?? null,
+          provinceId: v.provinceId,
           town: v.town ?? null,
           website: v.website ?? null,
           active: sch.active,
@@ -70,7 +71,6 @@ export async function upsertSchoolAction(input: unknown) {
         ...(includeNickAdmin ? { nickname: v.nickname ?? null } : {}),
         slug,
         provinceId: v.provinceId,
-        district: v.district ?? null,
         town: v.town ?? null,
         website: v.website ?? null,
         active: v.active,
@@ -93,7 +93,6 @@ export async function upsertSchoolAction(input: unknown) {
       ...(includeNickCreate ? { nickname: v.nickname ?? null } : {}),
       slug,
       provinceId: v.provinceId,
-      district: v.district ?? null,
       town: v.town ?? null,
       website: v.website ?? null,
       active: v.active,
@@ -119,6 +118,7 @@ export async function upsertTeamAction(input: unknown) {
   }
   const v = parsed.data;
   const now = new Date();
+  const teamGender = v.sport === "HOCKEY" ? (v.gender ?? null) : null;
 
   const managedSchoolIds =
     profile.role === "SCHOOL_ADMIN" ? await getActiveManagedSchoolIds(profile.id) : [];
@@ -136,15 +136,36 @@ export async function upsertTeamAction(input: unknown) {
     }
   }
 
+  const duplicateBase = and(
+    eq(teams.schoolId, v.schoolId),
+    eq(teams.sport, v.sport),
+    eq(teams.ageGroup, v.ageGroup),
+    sql`upper(${teams.teamLabel}) = upper(${v.teamLabel})`,
+    sql`${teams.gender} is not distinct from ${teamGender}`,
+  );
+  const duplicateWhere = v.id ? and(duplicateBase, ne(teams.id, v.id)) : duplicateBase;
+  const [dup] = await db
+    .select({ id: teams.id })
+    .from(teams)
+    .where(duplicateWhere)
+    .limit(1);
+  if (dup) {
+    return {
+      ok: false as const,
+      error: "That team already exists for this school, sport, age group, and side.",
+    };
+  }
+
   if (v.id) {
     await db
       .update(teams)
       .set({
         schoolId: v.schoolId,
         sport: v.sport,
-        gender: v.sport === "HOCKEY" ? (v.gender ?? null) : null,
+        gender: teamGender,
         ageGroup: v.ageGroup,
         teamLabel: v.teamLabel,
+        teamNickname: v.teamNickname ?? null,
         isFirstTeam: v.isFirstTeam,
         active: v.active,
         updatedAt: now,
@@ -158,15 +179,54 @@ export async function upsertTeamAction(input: unknown) {
     .values({
       schoolId: v.schoolId,
       sport: v.sport,
-      gender: v.sport === "HOCKEY" ? (v.gender ?? null) : null,
+      gender: teamGender,
       ageGroup: v.ageGroup,
       teamLabel: v.teamLabel,
+      teamNickname: v.teamNickname ?? null,
       isFirstTeam: v.isFirstTeam,
       active: v.active,
     })
     .returning({ id: teams.id });
 
   return { ok: true as const, id: inserted.id };
+}
+
+export async function deleteTeamAction(input: unknown) {
+  const { profile } = await requireRole(["ADMIN", "SCHOOL_ADMIN"]);
+  const parsed = z.object({ id: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const teamId = parsed.data.id;
+
+  const [existing] = await db
+    .select({ id: teams.id, schoolId: teams.schoolId })
+    .from(teams)
+    .where(eq(teams.id, teamId))
+    .limit(1);
+  if (!existing) {
+    return { ok: false as const, error: "Team not found." };
+  }
+
+  if (profile.role === "SCHOOL_ADMIN") {
+    const managedSchoolIds = await getActiveManagedSchoolIds(profile.id);
+    if (!managedSchoolIds.includes(existing.schoolId)) {
+      return { ok: false as const, error: "You can only delete teams for your linked school(s)." };
+    }
+  }
+
+  try {
+    await db.delete(teams).where(eq(teams.id, teamId));
+  } catch {
+    return {
+      ok: false as const,
+      error: "This team is used by existing fixtures/results and cannot be deleted. Mark it inactive instead.",
+    };
+  }
+
+  revalidatePath("/admin/teams");
+  revalidatePath("/school-admin/teams");
+  return { ok: true as const };
 }
 
 export async function upsertSeasonAction(input: unknown) {

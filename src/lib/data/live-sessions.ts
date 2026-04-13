@@ -21,6 +21,22 @@ function minutesSince(start: Date | null, end: Date): number {
   return (end.getTime() - start.getTime()) / 60_000;
 }
 
+function toJsDate(v: Date | string | null | undefined): Date | null {
+  if (v == null) return null;
+  return v instanceof Date ? v : new Date(v);
+}
+
+/** Anchor for wrap-up / auto-submit: when the board opened for scoring, not first vote. */
+function scoringDeadlineAnchor(s: {
+  scoringOpenedAt?: Date | string | null;
+  createdAt: Date | string;
+}): Date {
+  const opened = toJsDate(s.scoringOpenedAt);
+  if (opened) return opened;
+  const created = toJsDate(s.createdAt);
+  return created ?? new Date();
+}
+
 async function loadVotes(sessionId: string) {
   return db
     .select({
@@ -34,7 +50,11 @@ async function loadVotes(sessionId: string) {
     .orderBy(desc(liveScoreVotes.createdAt));
 }
 
-/** Flip scheduled boards to ACTIVE once `goes_live_at` has passed. */
+/**
+ * Flip scheduled boards to ACTIVE once `goes_live_at` has passed.
+ * Sets `scoring_opened_at` to `goes_live_at` (RPC) so wrap-up / auto-submit timers start at the
+ * scheduled start — same rules as immediate boards, but from go-live, not row creation.
+ */
 export async function activateDueScheduledLiveSessions(now = new Date()): Promise<void> {
   // Use SECURITY DEFINER RPC (migration 00019): direct UPDATE hits RLS when DATABASE_URL
   // is not the table owner; live_sessions only has a SELECT policy.
@@ -55,9 +75,8 @@ export async function processLiveSessionDeadlines(now = new Date()): Promise<voi
     .where(inArray(liveSessions.status, ["ACTIVE", "WRAPUP"]));
 
   for (const s of open) {
-    if (!s.firstVoteAt) continue;
-    const first = s.firstVoteAt instanceof Date ? s.firstVoteAt : new Date(s.firstVoteAt);
-    const minSince = minutesSince(first, now);
+    const anchor = scoringDeadlineAnchor(s);
+    const minSince = minutesSince(anchor, now);
 
     if (s.status === "ACTIVE" && minSince >= LIVE_WRAPUP_AFTER_MIN) {
       await db
@@ -77,9 +96,8 @@ export async function processLiveSessionDeadlines(now = new Date()): Promise<voi
     .where(and(eq(liveSessions.status, "WRAPUP"), sql`${liveSessions.submissionId} is null`));
 
   for (const s of wrapup) {
-    if (!s.firstVoteAt) continue;
-    const first = s.firstVoteAt instanceof Date ? s.firstVoteAt : new Date(s.firstVoteAt);
-    if (minutesSince(first, now) < LIVE_AUTO_SUBMIT_AFTER_MIN) continue;
+    const anchor = scoringDeadlineAnchor(s);
+    if (minutesSince(anchor, now) < LIVE_AUTO_SUBMIT_AFTER_MIN) continue;
     await createLiveSubmissionFromSession({ sessionId: s.id, auto: true, now });
   }
 }
@@ -94,9 +112,11 @@ export type LiveSessionPublic = {
   awayLogoPath: string | null;
   venue: string | null;
   status: "ACTIVE" | "WRAPUP" | "CLOSED";
+  scoringOpenedAt: string | null;
   firstVoteAt: string | null;
   majority: MajorityResult | null;
   minutesSinceFirstVote: number | null;
+  minutesSinceScoringOpened: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
 };
@@ -230,6 +250,7 @@ async function rowToLiveSessionPublic(
       ? s.firstVoteAt
       : new Date(s.firstVoteAt)
     : null;
+  const openedAt = scoringDeadlineAnchor(s);
   return {
     id: s.id,
     sport: s.sport as SchoolSport,
@@ -241,9 +262,11 @@ async function rowToLiveSessionPublic(
     awayLogoPath: mergeStoredOrSchoolLogo(s.awayLogoPath, s.awayTeamName, schoolLogoByNorm),
     venue: s.venue,
     status: s.status as LiveSessionPublic["status"],
+    scoringOpenedAt: openedAt.toISOString(),
     firstVoteAt: first ? first.toISOString() : null,
     majority,
     minutesSinceFirstVote: first ? minutesSince(first, now) : null,
+    minutesSinceScoringOpened: minutesSince(openedAt, now),
     inWrapup: s.status === "WRAPUP",
     autoSubmitAfterMinutes: LIVE_AUTO_SUBMIT_AFTER_MIN,
   };
@@ -328,9 +351,11 @@ function liveSessionPublicToClientRow(
     awayLogoPath: pub.awayLogoPath,
     venue: pub.venue,
     status: pub.status,
+    scoringOpenedAt: pub.scoringOpenedAt,
     firstVoteAt: pub.firstVoteAt,
     majority: pub.majority,
     minutesSinceFirstVote: pub.minutesSinceFirstVote,
+    minutesSinceScoringOpened: pub.minutesSinceScoringOpened,
     inWrapup: pub.inWrapup,
     autoSubmitAfterMinutes: pub.autoSubmitAfterMinutes,
     goesLiveAt: null,
@@ -360,9 +385,11 @@ function scheduledSessionToClientRow(
     awayLogoPath: mergeStoredOrSchoolLogo(s.awayLogoPath, s.awayTeamName, schoolLogoByNorm),
     venue: s.venue,
     status: "SCHEDULED",
+    scoringOpenedAt: null,
     firstVoteAt: null,
     majority: null,
     minutesSinceFirstVote: null,
+    minutesSinceScoringOpened: null,
     inWrapup: false,
     autoSubmitAfterMinutes: LIVE_AUTO_SUBMIT_AFTER_MIN,
     goesLiveAt: gl ? gl.toISOString() : null,
@@ -445,6 +472,7 @@ export async function insertLiveSessionRow(input: {
 }) {
   const includeTg = await liveSessionsHasTeamGenderColumn();
   const status = input.status ?? "ACTIVE";
+  const now = new Date();
   const [row] = await db
     .insert(liveSessions)
     .values({
@@ -458,6 +486,7 @@ export async function insertLiveSessionRow(input: {
       createdByUserId: input.createdByUserId,
       status,
       goesLiveAt: status === "SCHEDULED" ? (input.goesLiveAt ?? null) : null,
+      scoringOpenedAt: status === "ACTIVE" ? now : null,
     })
     .returning({ id: liveSessions.id });
   return row;

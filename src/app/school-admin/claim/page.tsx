@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolAdminClaimForm } from "@/components/school-admin-claim-form";
+import { listProvinces } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
 export default async function SchoolAdminClaimPage() {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Configure DATABASE_URL first.</p>;
   }
+
+  const provinces = await listProvinces();
 
   return (
     <div className="space-y-6">
@@ -21,7 +24,7 @@ export default async function SchoolAdminClaimPage() {
           <CardTitle className="text-base">Request access</CardTitle>
         </CardHeader>
         <CardContent>
-          <SchoolAdminClaimForm />
+          <SchoolAdminClaimForm provinces={provinces} />
         </CardContent>
       </Card>
     </div>

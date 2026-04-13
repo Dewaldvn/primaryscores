@@ -1,19 +1,14 @@
 import { redirect } from "next/navigation";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LinkButton } from "@/components/link-button";
 import { AdminTeamForm } from "@/components/admin-team-form";
+import { SchoolAdminTeamsRosterTable } from "@/components/school-admin-teams-roster-table";
 import { getProfile } from "@/lib/auth";
 import { adminListSchools, adminListTeamsForSchoolIds } from "@/lib/data/admin";
 import { getActiveManagedSchoolIds } from "@/lib/school-admin-access";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import type { SchoolSport } from "@/lib/sports";
+import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
 
 export default async function SchoolAdminTeamsPage() {
   if (!isDatabaseConfigured()) {
@@ -41,6 +36,24 @@ export default async function SchoolAdminTeamsPage() {
     adminListTeamsForSchoolIds(managed),
     adminListSchools(),
   ]);
+  const orderedRows = [...rows].sort((a, b) => {
+    const schoolCmp = a.schoolName.localeCompare(b.schoolName, undefined, { sensitivity: "base" });
+    if (schoolCmp !== 0) return schoolCmp;
+    return compareTeamsBySportAndChronologicalAge(
+      {
+        sport: a.team.sport as SchoolSport,
+        ageGroup: a.team.ageGroup,
+        gender: a.team.gender,
+        teamLabel: a.team.teamLabel,
+      },
+      {
+        sport: b.team.sport as SchoolSport,
+        ageGroup: b.team.ageGroup,
+        gender: b.team.gender,
+        teamLabel: b.team.teamLabel,
+      },
+    );
+  });
   const schools = managed.map((id) => {
     const hit = allSchoolRows.find((r) => r.school.id === id);
     return { id, label: hit?.school.displayName ?? id };
@@ -56,6 +69,25 @@ export default async function SchoolAdminTeamsPage() {
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle>Roster</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <SchoolAdminTeamsRosterTable
+            rows={orderedRows.map((r) => ({
+              id: r.team.id,
+              schoolName: r.schoolName,
+              sport: r.team.sport,
+              gender: r.team.gender,
+              ageGroup: r.team.ageGroup,
+              teamLabel: r.team.teamLabel,
+              teamNickname: r.team.teamNickname ?? null,
+            }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle>Add a team</CardTitle>
           <div className="flex flex-wrap gap-2">
@@ -68,42 +100,6 @@ export default async function SchoolAdminTeamsPage() {
         </CardHeader>
         <CardContent>
           <AdminTeamForm schools={schools} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Roster</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>School</TableHead>
-                <TableHead>Sport</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Label</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.team.id}>
-                  <TableCell>{r.schoolName}</TableCell>
-                  <TableCell>{r.team.sport}</TableCell>
-                  <TableCell>{r.team.gender ?? "—"}</TableCell>
-                  <TableCell>{r.team.ageGroup}</TableCell>
-                  <TableCell>{r.team.teamLabel}</TableCell>
-                  <TableCell className="text-right">
-                    <LinkButton href={`/school-admin/teams/${r.team.id}`} variant="outline" size="sm">
-                      Edit
-                    </LinkButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
     </div>

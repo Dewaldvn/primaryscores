@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminTeamForm } from "@/components/admin-team-form";
+import { TeamDeleteButton } from "@/components/team-delete-button";
 import { adminGetTeamById, adminListSchools } from "@/lib/data/admin";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import type { SchoolSport } from "@/lib/sports";
@@ -49,10 +50,22 @@ export default async function AdminEditTeamPage({ params }: Props) {
               gender: (t.gender ?? null) as TeamGender | null,
               ageGroup: t.ageGroup,
               teamLabel: t.teamLabel,
-              isFirstTeam: t.isFirstTeam,
+              teamNickname: t.teamNickname ?? null,
               active: t.active,
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Danger zone</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Permanently remove this team. If it is already used in fixtures or results, deletion will be blocked.
+          </p>
+          <TeamDeleteButton teamId={t.id} returnHref="/admin/teams" />
         </CardContent>
       </Card>
     </div>

@@ -130,7 +130,6 @@ export function ContributorNewSchoolForm({
                   officialName: fd.get("officialName"),
                   displayName: fd.get("displayName"),
                   provinceId: fd.get("provinceId"),
-                  district: fd.get("district") || null,
                   town: fd.get("town") || null,
                   website: fd.get("website") || null,
                   active: true,
@@ -220,10 +219,6 @@ export function ContributorNewSchoolForm({
           <div className="space-y-1">
             <Label htmlFor={`${baseId}-town`}>Town</Label>
             <Input id={`${baseId}-town`} name="town" />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor={`${baseId}-district`}>District</Label>
-            <Input id={`${baseId}-district`} name="district" />
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor={`${baseId}-website`}>Website</Label>
@@ -328,7 +323,8 @@ export function ContributorAddTeamForm({
               gender: sport === "HOCKEY" ? fd.get("gender") : null,
               ageGroup: fd.get("ageGroup"),
               teamLabel: fd.get("teamLabel"),
-              isFirstTeam: fd.get("isFirstTeam") === "on",
+              teamNickname: fd.get("teamNickname"),
+              isFirstTeam: true,
               active: fd.get("active") === "on",
               _returnTo: returnTo,
             }).then((res) => {
@@ -388,15 +384,31 @@ export function ContributorAddTeamForm({
           ) : null}
           <div className="space-y-1">
             <Label htmlFor={`${baseId}-ageGroup`}>Age group</Label>
-            <Input id={`${baseId}-ageGroup`} name="ageGroup" defaultValue="U13" required />
+            <Input
+              id={`${baseId}-ageGroup`}
+              name="ageGroup"
+              defaultValue="U"
+              placeholder="U plus age (e.g. type 13 for U13)"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              The letter U is added automatically if you only type the number.
+            </p>
           </div>
           <div className="space-y-1">
-            <Label htmlFor={`${baseId}-teamLabel`}>Team label</Label>
-            <Input id={`${baseId}-teamLabel`} name="teamLabel" defaultValue="A" required />
+            <Label htmlFor={`${baseId}-teamLabel`}>Team Label (e.g. A, B, C etc)</Label>
+            <Input
+              id={`${baseId}-teamLabel`}
+              name="teamLabel"
+              onBlur={(e) => {
+                e.currentTarget.value = e.currentTarget.value.toUpperCase();
+              }}
+              required
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" name="isFirstTeam" id={`${baseId}-isFirstTeam`} defaultChecked />
-            <Label htmlFor={`${baseId}-isFirstTeam`}>First team</Label>
+          <div className="space-y-1">
+            <Label htmlFor={`${baseId}-teamNickname`}>Team nickname</Label>
+            <Input id={`${baseId}-teamNickname`} name="teamNickname" placeholder="Optional" />
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" name="active" id={`${baseId}-active-t`} defaultChecked />

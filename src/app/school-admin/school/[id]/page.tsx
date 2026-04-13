@@ -56,8 +56,8 @@ export default async function SchoolAdminEditSchoolPage({ params }: Props) {
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted-foreground">
-            Province, URL slug, and active status are managed by site administrators. You can update
-            names, town, district, and website.
+            URL slug and active status are managed by site administrators. You can update
+            province, names, town, and website.
           </p>
           <AdminSchoolForm
             provinces={provinces}
@@ -69,7 +69,6 @@ export default async function SchoolAdminEditSchoolPage({ params }: Props) {
               nickname: s.nickname ?? null,
               slug: s.slug,
               provinceId: s.provinceId,
-              district: s.district,
               town: s.town,
               website: s.website,
               active: s.active,

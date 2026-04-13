@@ -17,7 +17,7 @@ export type AdminTeamFormInitial = {
   gender: TeamGender | null;
   ageGroup: string;
   teamLabel: string;
-  isFirstTeam: boolean;
+  teamNickname: string | null;
   active: boolean;
 };
 
@@ -55,13 +55,18 @@ export function AdminTeamForm({
           gender: sport === "HOCKEY" ? fd.get("gender") : null,
           ageGroup: fd.get("ageGroup"),
           teamLabel: fd.get("teamLabel"),
-          isFirstTeam: fd.get("isFirstTeam") === "on",
+          teamNickname: fd.get("teamNickname"),
+          isFirstTeam: true,
           active: fd.get("active") === "on",
         }).then((res) => {
           setPending(false);
           if (!res.ok) {
             if ("fieldErrors" in res && res.fieldErrors) {
               toast.error("Check the form (hockey needs boys or girls).");
+              return;
+            }
+            if ("error" in res && res.error) {
+              toast.error(res.error);
               return;
             }
             toast.error("Save failed");
@@ -139,20 +144,35 @@ export function AdminTeamForm({
       ) : null}
       <div className="space-y-1">
         <Label htmlFor="ageGroup">Age group</Label>
-        <Input id="ageGroup" name="ageGroup" defaultValue={initial?.ageGroup ?? "U13"} required />
+        <Input
+          id="ageGroup"
+          name="ageGroup"
+          defaultValue={initial?.ageGroup ?? "U"}
+          placeholder="U plus age (e.g. type 13 for U13)"
+          required
+        />
+        <p className="text-xs text-muted-foreground">The letter U is added automatically if you only type the number.</p>
       </div>
       <div className="space-y-1">
-        <Label htmlFor="teamLabel">Team label</Label>
-        <Input id="teamLabel" name="teamLabel" defaultValue={initial?.teamLabel ?? "A"} required />
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          name="isFirstTeam"
-          id="isFirstTeam"
-          defaultChecked={initial?.isFirstTeam ?? true}
+        <Label htmlFor="teamLabel">Team Label (e.g. A, B, C etc)</Label>
+        <Input
+          id="teamLabel"
+          name="teamLabel"
+          defaultValue={initial?.teamLabel}
+          onBlur={(e) => {
+            e.currentTarget.value = e.currentTarget.value.toUpperCase();
+          }}
+          required
         />
-        <Label htmlFor="isFirstTeam">First team</Label>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="teamNickname">Team nickname</Label>
+        <Input
+          id="teamNickname"
+          name="teamNickname"
+          defaultValue={initial?.teamNickname ?? ""}
+          placeholder="Optional"
+        />
       </div>
       <div className="flex items-center gap-2">
         <input type="checkbox" name="active" id="active-t" defaultChecked={initial?.active ?? true} />

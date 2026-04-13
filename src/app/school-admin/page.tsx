@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { LinkButton } from "@/components/link-button";
 import { getProfile } from "@/lib/auth";
 import { listMembershipsForProfile } from "@/lib/data/school-admin-dashboard";
+import { listActiveTeamsForSchoolIds } from "@/lib/data/schools";
+import { formatTeamListingSubtitle } from "@/lib/format-team";
+import type { SchoolSport } from "@/lib/sports";
+import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { cancelSchoolAdminMembershipFormAction } from "@/actions/school-admin-membership";
 
@@ -22,6 +26,34 @@ export default async function SchoolAdminHomePage() {
   const active = memberships.filter((m) => m.status === "ACTIVE");
   const pending = memberships.filter((m) => m.status === "PENDING");
 
+  const activeSchoolIds = active.map((m) => m.schoolId);
+  const allActiveTeams =
+    activeSchoolIds.length > 0 ? await listActiveTeamsForSchoolIds(activeSchoolIds) : [];
+  const teamsBySchool = new Map<string, typeof allActiveTeams>();
+  for (const t of allActiveTeams) {
+    const arr = teamsBySchool.get(t.schoolId) ?? [];
+    arr.push(t);
+    teamsBySchool.set(t.schoolId, arr);
+  }
+  teamsBySchool.forEach((arr) => {
+    arr.sort((a, b) =>
+      compareTeamsBySportAndChronologicalAge(
+        {
+          sport: a.sport as SchoolSport,
+          ageGroup: a.ageGroup,
+          gender: a.gender,
+          teamLabel: a.teamLabel,
+        },
+        {
+          sport: b.sport as SchoolSport,
+          ageGroup: b.ageGroup,
+          gender: b.gender,
+          teamLabel: b.teamLabel,
+        },
+      ),
+    );
+  });
+
   return (
     <div className="space-y-8">
       <div>
@@ -37,7 +69,7 @@ export default async function SchoolAdminHomePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Active schools</CardTitle>
+          <CardTitle className="text-base">Active teams</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           {active.length === 0 ? (
@@ -46,23 +78,66 @@ export default async function SchoolAdminHomePage() {
             </p>
           ) : (
             <ul className="space-y-2">
-              {active.map((m) => (
-                <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
-                  <span className="font-medium">{m.schoolDisplayName}</span>
-                  <div className="flex flex-wrap gap-2">
-                    <LinkButton variant="outline" size="sm" href={`/school-admin/school/${m.schoolId}`}>
-                      School & logo
-                    </LinkButton>
-                    <LinkButton
-                      variant="outline"
-                      size="sm"
-                      href={`/school-admin/teams/new?schoolId=${m.schoolId}`}
-                    >
-                      Add team
-                    </LinkButton>
-                  </div>
-                </li>
-              ))}
+              {active.map((m) => {
+                const schoolTeams = teamsBySchool.get(m.schoolId) ?? [];
+                return (
+                  <li key={m.id} className="rounded-md border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-medium">{m.schoolDisplayName}</span>
+                      <div className="flex flex-wrap gap-2">
+                        <LinkButton variant="outline" size="sm" href={`/school-admin/school/${m.schoolId}`}>
+                          School & logo
+                        </LinkButton>
+                        <LinkButton
+                          variant="outline"
+                          size="sm"
+                          href={`/school-admin/teams/new?schoolId=${m.schoolId}`}
+                        >
+                          Add team
+                        </LinkButton>
+                      </div>
+                    </div>
+                    {schoolTeams.length > 0 ? (
+                      <div className="mt-3 space-y-2 border-t pt-3">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Active teams
+                        </p>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {schoolTeams.map((t) => (
+                            <li key={t.id}>
+                              {formatTeamListingSubtitle({
+                                sport: t.sport as SchoolSport,
+                                ageGroup: t.ageGroup,
+                                teamLabel: t.teamLabel,
+                                gender: t.gender,
+                              })}
+                              {t.teamNickname ? (
+                                <span className="text-muted-foreground"> · {t.teamNickname}</span>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                        <Link
+                          href="/school-admin/teams"
+                          className="inline-block text-sm font-medium text-primary hover:underline"
+                        >
+                          Edit teams
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="mt-3 border-t pt-3">
+                        <p className="mb-2 text-sm text-muted-foreground">No active teams on record yet.</p>
+                        <Link
+                          href="/school-admin/teams"
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Edit teams
+                        </Link>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </CardContent>

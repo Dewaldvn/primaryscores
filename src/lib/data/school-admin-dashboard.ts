@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { profiles, schoolAdminMemberships, schools } from "@/db/schema";
+import { getSchoolAdminClaimLetterPublicUrl } from "@/lib/school-admin-claim-letter";
 
 export type SchoolAdminMembershipRow = {
   id: string;
@@ -39,10 +40,13 @@ export type PendingSchoolAdminClaimRow = {
   profileDisplayName: string;
   schoolId: string;
   schoolDisplayName: string;
+  requestedLetterPath: string | null;
+  requestedLetterFileName: string | null;
+  requestedLetterUrl: string | null;
 };
 
 export async function listPendingSchoolAdminClaims(): Promise<PendingSchoolAdminClaimRow[]> {
-  return db
+  const rows = await db
     .select({
       membershipId: schoolAdminMemberships.id,
       requestedAt: schoolAdminMemberships.requestedAt,
@@ -51,10 +55,16 @@ export async function listPendingSchoolAdminClaims(): Promise<PendingSchoolAdmin
       profileDisplayName: profiles.displayName,
       schoolId: schools.id,
       schoolDisplayName: schools.displayName,
+      requestedLetterPath: schoolAdminMemberships.requestedLetterPath,
+      requestedLetterFileName: schoolAdminMemberships.requestedLetterFileName,
     })
     .from(schoolAdminMemberships)
     .innerJoin(profiles, eq(schoolAdminMemberships.profileId, profiles.id))
     .innerJoin(schools, eq(schoolAdminMemberships.schoolId, schools.id))
     .where(eq(schoolAdminMemberships.status, "PENDING"))
     .orderBy(desc(schoolAdminMemberships.requestedAt));
+  return rows.map((r) => ({
+    ...r,
+    requestedLetterUrl: getSchoolAdminClaimLetterPublicUrl(r.requestedLetterPath),
+  }));
 }

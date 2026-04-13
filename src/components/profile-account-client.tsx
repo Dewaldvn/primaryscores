@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import { removeProfileAvatarAction, uploadProfileAvatarAction } from "@/actions/profile-avatar";
+import { updateProfileDisplayNameAction } from "@/actions/profile";
 
 export function ProfileAccountClient({
   email,
@@ -100,8 +101,31 @@ export function ProfileAccountClient({
         </div>
         <div className="space-y-2 border-t pt-4">
           <Label htmlFor="acc-dn">Display name</Label>
-          <Input id="acc-dn" value={displayName} readOnly className="bg-muted/50" />
-          <p className="text-xs text-muted-foreground">Name changes are not supported here yet.</p>
+          <form
+            className="space-y-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const nextName = String(fd.get("displayName") ?? "").trim();
+              start(() => {
+                void (async () => {
+                  const res = await updateProfileDisplayNameAction({ displayName: nextName });
+                  if (!res.ok) {
+                    toast.error("error" in res ? res.error : "Could not update name.");
+                    return;
+                  }
+                  toast.success("Display name updated.");
+                  router.refresh();
+                })();
+              });
+            }}
+          >
+            <Input id="acc-dn" name="displayName" defaultValue={displayName} minLength={2} maxLength={80} />
+            <Button type="submit" size="sm" disabled={pending}>
+              Save name
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground">This name is shown beside your scores and profile avatar.</p>
         </div>
       </CardContent>
     </Card>

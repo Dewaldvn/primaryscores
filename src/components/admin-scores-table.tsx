@@ -62,6 +62,8 @@ export function AdminScoresTable({
   initialSearch,
   scoresBasePath = "/admin/scores",
   verificationCap = "all",
+  teamFilterId,
+  teamFilterLabel,
 }: {
   rows: AdminScoreRowSerialized[];
   total: number;
@@ -72,11 +74,15 @@ export function AdminScoresTable({
   scoresBasePath?: string;
   /** School admins cannot assign source-verified. */
   verificationCap?: "all" | "moderator_only";
+  /** When set, results are limited to fixtures involving this team (home or away). */
+  teamFilterId?: string;
+  teamFilterLabel?: string | null;
 }) {
   function scoresListHref(pageNum: number, search: string): string {
     const q = new URLSearchParams();
     if (search.trim().length >= 2) q.set("q", search.trim());
     q.set("page", String(pageNum));
+    if (teamFilterId) q.set("teamId", teamFilterId);
     return `${scoresBasePath}?${q.toString()}`;
   }
   const [searchInput, setSearchInput] = useState(initialSearch);
@@ -120,12 +126,21 @@ export function AdminScoresTable({
 
   return (
     <div className="space-y-4">
+      {teamFilterId && teamFilterLabel ? (
+        <div className="rounded-md border border-primary/25 bg-primary/5 px-3 py-2 text-sm">
+          Showing matches involving <strong>{teamFilterLabel}</strong>.{" "}
+          <Link href={scoresBasePath} className="text-primary underline">
+            Clear team filter
+          </Link>
+        </div>
+      ) : null}
       <form
         className="flex flex-col gap-2 sm:flex-row sm:items-end"
         action={scoresBasePath}
         method="get"
       >
         <input type="hidden" name="page" value="1" />
+        {teamFilterId ? <input type="hidden" name="teamId" value={teamFilterId} /> : null}
         <div className="flex-1 space-y-1">
           <Label htmlFor="q">Search schools, competition, or season</Label>
           <Input

@@ -25,6 +25,7 @@ export async function ensureContributorProfile(user: User): Promise<void> {
       email: email || "unknown@user",
       displayName: displayName || "Contributor",
       role: "CONTRIBUTOR",
+      onboardingStatus: "PENDING",
     })
     .onConflictDoNothing({ target: profiles.id });
 }

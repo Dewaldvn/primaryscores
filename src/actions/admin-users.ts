@@ -1,13 +1,17 @@
 "use server";
 
 import { z } from "zod";
-import { updateUserRoleInDb } from "@/lib/backend/admin-users-service";
+import { deleteUserProfileInDb, updateUserRoleInDb } from "@/lib/backend/admin-users-service";
 import { requireRole } from "@/lib/auth";
 import type { ProfileRole } from "@/lib/auth";
 
 const updateRoleSchema = z.object({
   userId: z.string().uuid(),
   role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"]),
+});
+
+const deleteUserSchema = z.object({
+  userId: z.string().uuid(),
 });
 
 export async function updateUserRoleAction(input: unknown) {
@@ -20,5 +24,15 @@ export async function updateUserRoleAction(input: unknown) {
 
   await updateUserRoleInDb(userId, role as ProfileRole);
 
+  return { ok: true as const };
+}
+
+export async function deleteUserAction(input: unknown) {
+  await requireRole(["ADMIN"]);
+  const parsed = deleteUserSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  await deleteUserProfileInDb(parsed.data.userId);
   return { ok: true as const };
 }

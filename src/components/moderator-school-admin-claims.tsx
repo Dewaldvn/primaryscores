@@ -38,6 +38,8 @@ export function ModeratorSchoolAdminClaims({ rows }: { rows: PendingSchoolAdminC
               <TableHead>Requested</TableHead>
               <TableHead>School</TableHead>
               <TableHead>User</TableHead>
+              <TableHead>Letter</TableHead>
+              <TableHead>Admin tools</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -51,6 +53,28 @@ export function ModeratorSchoolAdminClaims({ rows }: { rows: PendingSchoolAdminC
                 <TableCell className="text-sm">
                   <div>{r.profileDisplayName}</div>
                   <div className="font-mono text-xs text-muted-foreground">{r.profileEmail}</div>
+                </TableCell>
+                <TableCell className="text-sm">
+                  {r.requestedLetterUrl ? (
+                    <a
+                      href={r.requestedLetterUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline"
+                    >
+                      {r.requestedLetterFileName ?? "Open letter"}
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground">Missing</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm">
+                  <a
+                    href={`/admin/users?email=${encodeURIComponent(r.profileEmail)}`}
+                    className="text-primary underline"
+                  >
+                    Open user roles
+                  </a>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

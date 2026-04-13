@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminScoresTable } from "@/components/admin-scores-table";
 import { getProfile } from "@/lib/auth";
-import { adminListAllResults } from "@/lib/data/admin";
+import { adminGetTeamById, adminListAllResults } from "@/lib/data/admin";
 import { getActiveManagedSchoolIds } from "@/lib/school-admin-access";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { redirect } from "next/navigation";
@@ -43,11 +43,25 @@ export default async function SchoolAdminScoresPage({ searchParams }: Props) {
   const page = Math.max(1, Number(q("page")) || 1);
   const pageSize = 25;
 
+  const rawTeamId = q("teamId");
+  let teamFilterId: string | undefined;
+  let teamFilterLabel: string | null = null;
+  if (rawTeamId) {
+    const teamRow = await adminGetTeamById(rawTeamId);
+    if (teamRow && managed.includes(teamRow.team.schoolId)) {
+      teamFilterId = rawTeamId;
+      teamFilterLabel = `${teamRow.schoolName} · ${teamRow.team.sport} · ${teamRow.team.ageGroup} ${teamRow.team.teamLabel}${
+        teamRow.team.gender ? ` · ${teamRow.team.gender}` : ""
+      }`;
+    }
+  }
+
   const { rows, total, page: p, pageSize: ps } = await adminListAllResults({
     page,
     pageSize,
     search: search.trim() || undefined,
     scopeSchoolIds: managed,
+    teamId: teamFilterId,
   });
 
   const serialized = rows.map((r) => ({
@@ -96,6 +110,8 @@ export default async function SchoolAdminScoresPage({ searchParams }: Props) {
             initialSearch={search}
             scoresBasePath="/school-admin/scores"
             verificationCap="moderator_only"
+            teamFilterId={teamFilterId}
+            teamFilterLabel={teamFilterLabel}
           />
         </CardContent>
       </Card>

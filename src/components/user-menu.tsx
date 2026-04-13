@@ -36,17 +36,9 @@ export function UserMenu({
 }) {
   const router = useRouter();
 
-  async function signOut() {
-    try {
-      const res = await fetch("/api/auth/sign-out", { method: "POST", credentials: "include" });
-      if (!res.ok) {
-        console.error("[sign-out] route failed", res.status);
-      }
-    } catch (e) {
-      console.error("[sign-out] fetch failed", e);
-    }
-    router.refresh();
-    router.push("/");
+  function signOut() {
+    // Use hard navigation so the browser fully reloads after cookies are cleared server-side.
+    window.location.assign("/api/auth/sign-out?redirect=/");
   }
 
   return (
@@ -101,6 +93,9 @@ export function UserMenu({
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-submissions")}>
             My submissions
           </DropdownMenu.Item>
+          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/apply-school-admin")}>
+            Apply for school admin privileges
+          </DropdownMenu.Item>
           {(role === "MODERATOR" || role === "ADMIN") && (
             <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/moderator")}>
               Moderation
@@ -119,7 +114,7 @@ export function UserMenu({
 
           <DropdownMenu.Separator className={separatorClass} />
 
-          <DropdownMenu.Item className={menuItemClass} onSelect={() => void signOut()}>
+          <DropdownMenu.Item className={menuItemClass} onSelect={() => signOut()}>
             Sign out
           </DropdownMenu.Item>
         </DropdownMenu.Content>

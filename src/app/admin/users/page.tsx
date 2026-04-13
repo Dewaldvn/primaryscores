@@ -3,7 +3,11 @@ import { AdminUsersTable } from "@/components/admin-users-table";
 import { adminListProfiles } from "@/lib/data/admin";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: { email?: string };
+}) {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Configure DATABASE_URL first.</p>;
   }
@@ -29,6 +33,7 @@ export default async function AdminUsersPage() {
               displayName: p.displayName,
               role: p.role,
             }))}
+            initialEmailFilter={searchParams?.email ?? ""}
           />
         </CardContent>
       </Card>

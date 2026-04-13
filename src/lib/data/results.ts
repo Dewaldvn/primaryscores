@@ -24,6 +24,7 @@ import {
 } from "@/db/schema";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
+import { schoolsHasNicknameColumn } from "@/lib/school-db-support";
 
 const homeTeam = alias(teams, "home_team");
 const awayTeam = alias(teams, "away_team");
@@ -179,7 +180,8 @@ export const getRecentVerifiedResultsForSchoolIds = cache(async function getRece
 });
 
 export async function countVerifiedResults(filters: ResultListFilters) {
-  const conditions = buildFilterConditions(filters);
+  const includeNickname = await schoolsHasNicknameColumn();
+  const conditions = buildFilterConditions(filters, includeNickname);
   const whereClause = conditions
     ? and(verifiedCondition(), conditions)
     : verifiedCondition();
@@ -201,7 +203,8 @@ export async function listVerifiedResults(filters: ResultListFilters) {
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(50, Math.max(5, filters.pageSize ?? 15));
   const offset = (page - 1) * pageSize;
-  const conditions = buildFilterConditions(filters);
+  const includeNickname = await schoolsHasNicknameColumn();
+  const conditions = buildFilterConditions(filters, includeNickname);
   const whereClause = conditions
     ? and(verifiedCondition(), conditions)
     : verifiedCondition();
@@ -246,7 +249,7 @@ export async function listVerifiedResults(filters: ResultListFilters) {
   return { rows, total, page, pageSize };
 }
 
-function buildFilterConditions(filters: ResultListFilters) {
+function buildFilterConditions(filters: ResultListFilters, includeNickname: boolean) {
   const parts = [];
 
   if (filters.provinceId) {
@@ -289,10 +292,17 @@ function buildFilterConditions(filters: ResultListFilters) {
 
   if (filters.search && filters.search.trim()) {
     const q = `%${filters.search.trim()}%`;
+    const schoolTextMatch = includeNickname
+      ? or(
+          ilike(homeSchool.displayName, q),
+          ilike(awaySchool.displayName, q),
+          ilike(homeSchool.nickname, q),
+          ilike(awaySchool.nickname, q),
+        )
+      : or(ilike(homeSchool.displayName, q), ilike(awaySchool.displayName, q));
     parts.push(
       or(
-        ilike(homeSchool.displayName, q),
-        ilike(awaySchool.displayName, q),
+        schoolTextMatch!,
         ilike(competitions.name, q),
         ilike(seasons.name, q)
       )!

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, desc, eq, ilike, or, sql, count } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql, count } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/lib/db";
 import {
@@ -10,6 +10,7 @@ import {
   results,
   seasons,
 } from "@/db/schema";
+import { schoolsHasNicknameColumn } from "@/lib/school-db-support";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 
@@ -91,6 +92,15 @@ export async function searchSchools(
           limit 1
         )`.as("u13_team_id");
 
+  const includeNickname = await schoolsHasNicknameColumn();
+  const schoolNameMatch = includeNickname
+    ? or(
+        ilike(schools.displayName, term),
+        ilike(schools.officialName, term),
+        ilike(schools.nickname, term)
+      )
+    : or(ilike(schools.displayName, term), ilike(schools.officialName, term));
+
   return db
     .select({
       id: schools.id,
@@ -106,7 +116,7 @@ export async function searchSchools(
     .where(
       and(
         eq(schools.active, true),
-        or(ilike(schools.displayName, term), ilike(schools.officialName, term))!
+        schoolNameMatch!
       )
     )
     .orderBy(schools.displayName)
@@ -120,7 +130,6 @@ export async function getSchoolBySlug(slug: string) {
       officialName: schools.officialName,
       displayName: schools.displayName,
       slug: schools.slug,
-      district: schools.district,
       town: schools.town,
       website: schools.website,
       logoPath: schools.logoPath,
@@ -155,6 +164,16 @@ export async function listActiveTeamsForSchool(schoolId: string) {
     .from(teams)
     .where(and(eq(teams.schoolId, schoolId), eq(teams.active, true)))
     .orderBy(asc(teams.sport), asc(teams.ageGroup), asc(teams.gender), asc(teams.teamLabel));
+}
+
+/** Active teams for any of the given schools (e.g. school admin overview). */
+export async function listActiveTeamsForSchoolIds(schoolIds: string[]) {
+  if (schoolIds.length === 0) return [];
+  return db
+    .select()
+    .from(teams)
+    .where(and(eq(teams.active, true), inArray(teams.schoolId, schoolIds)))
+    .orderBy(asc(teams.schoolId), asc(teams.sport), asc(teams.ageGroup), asc(teams.gender), asc(teams.teamLabel));
 }
 
 export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) {

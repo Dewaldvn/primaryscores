@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { schoolAdminScheduleLiveSessionAction } from "@/actions/school-admin-live";
 
-type TeamOpt = { id: string; label: string };
+type TeamOpt = { id: string; label: string; schoolId: string; schoolName: string };
 
 type AwayHit = { id: string; label: string };
 
@@ -16,6 +16,7 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   const router = useRouter();
   const [pending, start] = useTransition();
   const [homeTeamId, setHomeTeamId] = useState(homeTeamOptions[0]?.id ?? "");
+  const [homeQ, setHomeQ] = useState("");
   const [awayTeamId, setAwayTeamId] = useState("");
   const [awayLabel, setAwayLabel] = useState("");
   const [awayHits, setAwayHits] = useState<AwayHit[]>([]);
@@ -23,6 +24,14 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   const [debouncedAway, setDebouncedAway] = useState("");
   const [venue, setVenue] = useState("");
   const [goesLocal, setGoesLocal] = useState("");
+
+  const selectedHome = homeTeamOptions.find((o) => o.id === homeTeamId) ?? null;
+  const filteredHome = homeQ.trim()
+    ? homeTeamOptions.filter((o) => o.label.toLowerCase().includes(homeQ.trim().toLowerCase()))
+    : homeTeamOptions;
+  const schoolLinks = Array.from(
+    new Map(homeTeamOptions.map((o) => [o.schoolId, { schoolId: o.schoolId, schoolName: o.schoolName }])).values()
+  );
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedAway(awayQ.trim()), 300);
@@ -89,18 +98,53 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
     >
       <div className="space-y-1">
         <Label>Home team (your school)</Label>
+        <Input
+          value={homeQ}
+          onChange={(e) => setHomeQ(e.target.value)}
+          placeholder="Search your team list…"
+          autoComplete="off"
+        />
         <select
           className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
           value={homeTeamId}
           onChange={(e) => setHomeTeamId(e.target.value)}
           required
         >
-          {homeTeamOptions.map((o) => (
+          {filteredHome.map((o) => (
             <option key={o.id} value={o.id}>
               {o.label}
             </option>
           ))}
         </select>
+        {filteredHome.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No matching home team found. Add the missing team first, then return here.
+          </p>
+        ) : null}
+        {selectedHome ? (
+          <p className="text-xs text-muted-foreground">
+            Selected school: {selectedHome.schoolName} ·{" "}
+            <a
+              href={`/school-admin/teams/new?schoolId=${selectedHome.schoolId}`}
+              className="text-primary underline"
+            >
+              Add team for this school
+            </a>
+          </p>
+        ) : null}
+        {!selectedHome && schoolLinks.length > 0 ? (
+          <div className="flex flex-wrap gap-2 pt-1 text-xs">
+            {schoolLinks.map((s) => (
+              <a
+                key={s.schoolId}
+                href={`/school-admin/teams/new?schoolId=${s.schoolId}`}
+                className="text-primary underline"
+              >
+                Add team: {s.schoolName}
+              </a>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="space-y-1">
         <Label htmlFor="away-search">Away team (search)</Label>

@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminTeamForm } from "@/components/admin-team-form";
+import { TeamDeleteButton } from "@/components/team-delete-button";
 import { getProfile } from "@/lib/auth";
 import { adminGetTeamById, adminListSchools } from "@/lib/data/admin";
+import { listProfilesLinkedToTeam } from "@/lib/data/school-admin-team-users";
 import { getActiveManagedSchoolIds } from "@/lib/school-admin-access";
+import { SchoolAdminTeamLinkedUsers } from "@/components/school-admin-team-linked-users";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
@@ -22,7 +25,11 @@ export default async function SchoolAdminEditTeamPage({ params }: Props) {
   }
 
   const managed = await getActiveManagedSchoolIds(profile.id);
-  const [row, schoolRows] = await Promise.all([adminGetTeamById(params.id), adminListSchools()]);
+  const [row, schoolRows, linkedProfiles] = await Promise.all([
+    adminGetTeamById(params.id),
+    adminListSchools(),
+    listProfilesLinkedToTeam(params.id),
+  ]);
   if (!row) notFound();
   if (!managed.includes(row.team.schoolId)) notFound();
 
@@ -62,10 +69,31 @@ export default async function SchoolAdminEditTeamPage({ params }: Props) {
               gender: (t.gender ?? null) as TeamGender | null,
               ageGroup: t.ageGroup,
               teamLabel: t.teamLabel,
-              isFirstTeam: t.isFirstTeam,
+              teamNickname: t.teamNickname ?? null,
               active: t.active,
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Users linked to this team</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SchoolAdminTeamLinkedUsers teamId={t.id} initialRows={linkedProfiles} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Danger zone</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Permanently remove this team. If it is already used in fixtures or results, deletion will be blocked.
+          </p>
+          <TeamDeleteButton teamId={t.id} returnHref="/school-admin/teams" />
         </CardContent>
       </Card>
     </div>

@@ -15,9 +15,14 @@ export type LiveSessionClientRow = {
   awayLogoPath: string | null;
   venue: string | null;
   status: string;
+  /** When the board opened for scoring (immediate start or scheduled go-live). */
+  scoringOpenedAt: string | null;
   firstVoteAt: string | null;
   majority: LiveSessionMajority;
+  /** Minutes since first submitted score (display only). */
   minutesSinceFirstVote: number | null;
+  /** Minutes since scoring opened — used for wrap-up / auto-submit countdown. */
+  minutesSinceScoringOpened: number | null;
   inWrapup: boolean;
   autoSubmitAfterMinutes: number;
   /** Present when status is SCHEDULED — when voting opens (ISO). */

@@ -9,3 +9,7 @@ export async function updateUserRoleInDb(userId: string, role: ProfileRole): Pro
     .set({ role, updatedAt: new Date() })
     .where(eq(profiles.id, userId));
 }
+
+export async function deleteUserProfileInDb(userId: string): Promise<void> {
+  await db.delete(profiles).where(eq(profiles.id, userId));
+}

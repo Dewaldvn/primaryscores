@@ -32,14 +32,12 @@ const POLL_MS = 15_000;
 const LIST_LIMIT = 10;
 const SEARCH_DEBOUNCE_MS = 350;
 
-type SchoolHit = {
+type TeamHit = {
   id: string;
-  displayName: string;
-  slug: string;
-  town: string | null;
-  provinceName: string;
-  logoPath: string | null;
-  u13TeamId: string | null;
+  schoolId?: string;
+  schoolName?: string;
+  schoolLogoPath?: string | null;
+  label: string;
 };
 
 export function GamesUnderway({
@@ -307,7 +305,7 @@ function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGen
   const [name, setName] = useState("");
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [lockedPickName, setLockedPickName] = useState<string | null>(null);
-  const [hits, setHits] = useState<SchoolHit[]>([]);
+  const [hits, setHits] = useState<TeamHit[]>([]);
 
   useEffect(() => {
     setHits([]);
@@ -321,10 +319,10 @@ function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGen
     }
   };
 
-  const pickHit = (h: SchoolHit) => {
-    setName(h.displayName);
-    setLogoPath(h.logoPath);
-    setLockedPickName(h.displayName);
+  const pickHit = (h: TeamHit) => {
+    setName(h.label);
+    setLogoPath(h.schoolLogoPath ?? null);
+    setLockedPickName(h.label);
     setHits([]);
   };
 
@@ -342,13 +340,13 @@ function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGen
         ? `&gender=${encodeURIComponent(hockeySearchGender)}`
         : "";
     const res = await fetch(
-      `/api/schools/search?q=${encodeURIComponent(q)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`
+      `/api/teams/search?q=${encodeURIComponent(q)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`
     );
     const data = (await res.json()) as unknown;
-    setHits(Array.isArray(data) ? (data as SchoolHit[]) : []);
+    setHits(Array.isArray(data) ? (data as TeamHit[]) : []);
   };
 
-  return { name, logoPath, hits, onInputChange, pickHit, fetchHits };
+  return { name, logoPath, hits, isLockedPick: lockedPickName !== null, onInputChange, pickHit, fetchHits };
 }
 
 function LiveTeamSchoolField({
@@ -361,11 +359,15 @@ function LiveTeamSchoolField({
   field: ReturnType<typeof useLiveTeamField>;
 }) {
   const [matchPickSeq, setMatchPickSeq] = useState(0);
+  const teamHint = field.name.trim();
+  const addTeamHref = teamHint
+    ? `/add-team?q=${encodeURIComponent(teamHint)}&prefillName=${encodeURIComponent(teamHint)}`
+    : "/add-team";
   return (
     <div className="space-y-1.5 text-left">
       <Label htmlFor={id}>{label}</Label>
       <p className="text-xs text-muted-foreground">
-        Type to search the directory, tap a result below, or use the dropdown when matches appear.
+        Search teams linked to schools, tap a result below, or use the dropdown when matches appear.
       </p>
       <Input
         id={id}
@@ -375,7 +377,7 @@ function LiveTeamSchoolField({
           field.onInputChange(v);
           void field.fetchHits(v);
         }}
-        placeholder="Search schools or type a name…"
+        placeholder="Search teams or schools…"
         autoComplete="off"
         required
         minLength={2}
@@ -402,8 +404,7 @@ function LiveTeamSchoolField({
               <option value="">— Choose a school —</option>
               {field.hits.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.displayName}
-                  {h.town ? ` · ${h.town}` : ""}
+                  {h.label}
                 </option>
               ))}
             </select>
@@ -417,18 +418,33 @@ function LiveTeamSchoolField({
                   onClick={() => field.pickHit(h)}
                 >
                   <span className="flex items-center gap-2">
-                    <SchoolLogo logoPath={h.logoPath} alt="" size="xs" />
-                    {h.displayName}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {h.town} · {h.provinceName}
+                    <SchoolLogo logoPath={h.schoolLogoPath ?? null} alt="" size="xs" />
+                    {h.label}
                   </span>
                 </button>
               </li>
             ))}
+            <li className="border-t">
+              <Link
+                href={addTeamHref}
+                className="block px-3 py-2 text-sm text-primary underline hover:bg-muted"
+              >
+                Add a school or team
+              </Link>
+            </li>
           </ul>
         </>
       ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        {field.name.trim().length >= 2 && field.hits.length === 0 && !field.isLockedPick ? (
+          <p className="text-muted-foreground">No team match found yet.</p>
+        ) : (
+          <span className="text-muted-foreground">Missing team?</span>
+        )}
+        <Link href={addTeamHref} className="text-primary underline">
+          Add a school or team
+        </Link>
+      </div>
     </div>
   );
 }

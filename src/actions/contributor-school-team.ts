@@ -54,7 +54,6 @@ export async function contributorCreateSchoolAction(input: unknown) {
       ...(includeNickContributor ? { nickname: null } : {}),
       slug,
       provinceId: v.provinceId,
-      district: v.district ?? null,
       town: v.town ?? null,
       website: v.website ?? null,
       active: v.active ?? true,
@@ -90,7 +89,7 @@ export async function contributorCreateTeamAction(input: unknown) {
         eq(teams.schoolId, v.schoolId),
         eq(teams.sport, v.sport),
         eq(teams.ageGroup, v.ageGroup),
-        eq(teams.teamLabel, v.teamLabel),
+        sql`upper(${teams.teamLabel}) = upper(${v.teamLabel})`,
         sql`${teams.gender} is not distinct from ${gender}`
       )
     )
@@ -107,6 +106,7 @@ export async function contributorCreateTeamAction(input: unknown) {
       gender,
       ageGroup: v.ageGroup,
       teamLabel: v.teamLabel,
+      teamNickname: v.teamNickname ?? null,
       isFirstTeam: v.isFirstTeam,
       active: v.active,
     })

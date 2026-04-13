@@ -8,5 +8,6 @@ export const SCHOOL_ADMIN_NAV_LINKS: readonly SchoolAdminNavLink[] = [
   { href: "/school-admin/schedule-live", label: "Schedule live game" },
   { href: "/school-admin/scores", label: "Scores" },
   { href: "/school-admin/teams", label: "Teams" },
+  { href: "/school-admin/export", label: "Export" },
   { href: "/school-admin/claim", label: "Link school" },
 ];

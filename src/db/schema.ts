@@ -29,6 +29,11 @@ export const schoolAdminMembershipStatusEnum = pgEnum("school_admin_membership_s
   "REVOKED",
 ]);
 
+export const profileOnboardingStatusEnum = pgEnum("profile_onboarding_status", [
+  "PENDING",
+  "COMPLETED",
+]);
+
 export const moderationStatusEnum = pgEnum("moderation_status", [
   "PENDING",
   "APPROVED",
@@ -79,6 +84,9 @@ export const profiles = pgTable(
     /** Storage object path within bucket `user-avatars` (public), e.g. `{userId}/avatar.png`. */
     avatarPath: text("avatar_path"),
     role: profileRoleEnum("role").notNull().default("CONTRIBUTOR"),
+    onboardingStatus: profileOnboardingStatusEnum("onboarding_status")
+      .notNull()
+      .default("PENDING"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -99,7 +107,6 @@ export const schools = pgTable(
     provinceId: uuid("province_id")
       .notNull()
       .references(() => provinces.id),
-    district: text("district"),
     town: text("town"),
     website: text("website"),
     /** Optional very short label (crest, app badges); listings still use display_name. */
@@ -131,6 +138,9 @@ export const schoolAdminMemberships = pgTable(
       .notNull()
       .references(() => schools.id, { onDelete: "cascade" }),
     status: schoolAdminMembershipStatusEnum("status").notNull().default("PENDING"),
+    /** Uploaded proof letter path in `school-admin-claims` bucket (required for new requests). */
+    requestedLetterPath: text("requested_letter_path"),
+    requestedLetterFileName: text("requested_letter_file_name"),
     requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
     decidedAt: timestamp("decided_at", { withTimezone: true }),
     decidedByProfileId: uuid("decided_by_profile_id").references(() => profiles.id),
@@ -192,6 +202,7 @@ export const teams = pgTable(
     /** Boys / girls side where relevant (e.g. hockey); null for unspecified or other sports. */
     gender: teamGenderEnum("gender"),
     teamLabel: text("team_label").notNull(),
+    teamNickname: text("team_nickname"),
     isFirstTeam: boolean("is_first_team").notNull().default(true),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -205,6 +216,25 @@ export const teams = pgTable(
     index("teams_school_idx").on(t.schoolId),
     index("teams_school_sport_idx").on(t.schoolId, t.sport),
     index("teams_school_sport_gender_idx").on(t.schoolId, t.sport, t.gender),
+  ]
+);
+
+/** Optional association between a registered user and a team (e.g. coaches / managers). */
+export const profileTeamLinks = pgTable(
+  "profile_team_links",
+  {
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    teamId: uuid("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdByProfileId: uuid("created_by_profile_id").references(() => profiles.id),
+  },
+  (t) => [
+    primaryKey({ columns: [t.profileId, t.teamId] }),
+    index("profile_team_links_team_idx").on(t.teamId),
   ]
 );
 
@@ -350,6 +380,8 @@ export const liveSessions = pgTable(
     /** When status is SCHEDULED, voting opens at this instant (UTC). Null for immediate boards. */
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     status: liveSessionStatusEnum("status").notNull().default("ACTIVE"),
+    /** When scoring opened: immediate ACTIVE insert, or SCHEDULED→ACTIVE uses goes_live_at (not first vote). */
+    scoringOpenedAt: timestamp("scoring_opened_at", { withTimezone: true }),
     firstVoteAt: timestamp("first_vote_at", { withTimezone: true }),
     wrapupStartedAt: timestamp("wrapup_started_at", { withTimezone: true }),
     submissionId: uuid("submission_id").references(() => submissions.id),
@@ -449,6 +481,18 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   school: one(schools, { fields: [teams.schoolId], references: [schools.id] }),
   homeFixtures: many(fixtures, { relationName: "homeTeam" }),
   awayFixtures: many(fixtures, { relationName: "awayTeam" }),
+  profileLinks: many(profileTeamLinks),
+}));
+
+export const profileTeamLinksRelations = relations(profileTeamLinks, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [profileTeamLinks.profileId],
+    references: [profiles.id],
+  }),
+  team: one(teams, {
+    fields: [profileTeamLinks.teamId],
+    references: [teams.id],
+  }),
 }));
 
 export const fixturesRelations = relations(fixtures, ({ one }) => ({
@@ -502,4 +546,5 @@ export const profilesRelations = relations(profiles, ({ many }) => ({
     relationName: "submissionReviewer",
   }),
   schoolAdminMemberships: many(schoolAdminMemberships),
+  teamLinks: many(profileTeamLinks),
 }));

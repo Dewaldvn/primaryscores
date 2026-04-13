@@ -171,18 +171,30 @@ function adminResultsSchoolScopeCondition(schoolIds: string[] | undefined) {
   )!;
 }
 
-function adminResultsWhere(search: string | undefined, scopeSchoolIds: string[] | undefined) {
+function adminResultsTeamCondition(teamId: string | undefined) {
+  if (!teamId) return undefined;
+  return or(eq(fixtures.homeTeamId, teamId), eq(fixtures.awayTeamId, teamId))!;
+}
+
+function adminResultsWhere(
+  search: string | undefined,
+  scopeSchoolIds: string[] | undefined,
+  teamId?: string | undefined,
+) {
   const cond = adminResultsSearchCondition(search);
   const schoolCond = adminResultsSchoolScopeCondition(scopeSchoolIds);
-  if (cond && schoolCond) return and(cond, schoolCond);
-  return cond ?? schoolCond;
+  const teamCond = adminResultsTeamCondition(teamId);
+  const parts = [cond, schoolCond, teamCond].filter((c): c is NonNullable<typeof c> => c != null);
+  if (parts.length === 0) return undefined;
+  return parts.length === 1 ? parts[0] : and(...parts)!;
 }
 
 export async function adminCountAllResults(
   search?: string,
   scopeSchoolIds?: string[],
+  teamId?: string,
 ): Promise<number> {
-  const whereClause = adminResultsWhere(search, scopeSchoolIds);
+  const whereClause = adminResultsWhere(search, scopeSchoolIds, teamId);
   const base = db
     .select({ n: count() })
     .from(results)
@@ -203,11 +215,13 @@ export async function adminListAllResults(options: {
   search?: string;
   /** Limit to fixtures where the home or away school is one of these ids. */
   scopeSchoolIds?: string[];
+  /** Limit to fixtures where the home or away team is this id. */
+  teamId?: string;
 }): Promise<{ rows: AdminResultRow[]; total: number; page: number; pageSize: number }> {
   const page = Math.max(1, options.page);
   const pageSize = Math.min(100, Math.max(10, options.pageSize));
   const offset = (page - 1) * pageSize;
-  const whereClause = adminResultsWhere(options.search, options.scopeSchoolIds);
+  const whereClause = adminResultsWhere(options.search, options.scopeSchoolIds, options.teamId);
 
   const listBase = db
     .select({
@@ -244,6 +258,6 @@ export async function adminListAllResults(options: {
     .limit(pageSize)
     .offset(offset);
 
-  const total = await adminCountAllResults(options.search, options.scopeSchoolIds);
+  const total = await adminCountAllResults(options.search, options.scopeSchoolIds, options.teamId);
   return { rows, total, page, pageSize };
 }
