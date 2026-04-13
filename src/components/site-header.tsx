@@ -78,6 +78,15 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
             <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
               |
             </span>
+            <Link
+              href="/about"
+              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              About
+            </Link>
+            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+              |
+            </span>
             <GlobalSearchOpenButton className="inline-flex" title="Search (⌘K)" />
           </nav>
           <SiteHeaderMobileNav profile={profile} />

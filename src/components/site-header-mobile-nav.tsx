@@ -92,6 +92,9 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             <Link href="/find-school" className={navLinkClass} onClick={() => setOpen(false)}>
               Schools
             </Link>
+            <Link href="/about" className={navLinkClass} onClick={() => setOpen(false)}>
+              About
+            </Link>
             {profile ? (
               <Link href="/my-favourites" className={navLinkClass} onClick={() => setOpen(false)}>
                 My favourites
