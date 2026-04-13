@@ -45,11 +45,20 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
         >
           <MenuIcon className="h-5 w-5" />
         </SheetTrigger>
-        <SheetContent side="right" className="w-[min(100%,20rem)]">
-          <SheetHeader>
+        <SheetContent
+          side="right"
+          className={cn(
+            "w-[min(100%,20rem)] max-h-[100dvh] gap-0 overflow-hidden p-0",
+            "flex h-full flex-col"
+          )}
+        >
+          <SheetHeader className="shrink-0 border-b border-border/50 px-4 pb-3 pt-4">
             <SheetTitle>Menu</SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col gap-0.5 px-2 pb-4" aria-label="Main">
+          <nav
+            className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-y-contain px-2 py-2 pb-[max(1rem,env(safe-area-inset-bottom,0px))]"
+            aria-label="Main"
+          >
             <Link href="/live" className={navLinkClass} onClick={() => setOpen(false)}>
               Live Scores (all sports)
             </Link>

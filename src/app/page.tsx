@@ -76,6 +76,9 @@ export default async function HomePage() {
       ) : null}
 
       <section className="space-y-3">
+        <h1 className="text-center text-2xl font-semibold leading-snug tracking-tight text-blue-700 dark:text-blue-400 sm:text-3xl">
+          Schools Scores SA
+        </h1>
         <HomeSportPickTiles />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
         {favouriteTeams.length > 0 ? <HomeFavouriteTeamsPeek rows={favouriteTeams} /> : null}
