@@ -23,7 +23,6 @@ export default function AboutPage() {
       <Card>
         <CardHeader>
           <CardTitle>What this site is for</CardTitle>
-          <CardDescription>Mission in plain language</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
