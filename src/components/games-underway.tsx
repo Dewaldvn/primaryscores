@@ -102,9 +102,18 @@ export function GamesUnderway({
     return () => clearInterval(t);
   }, [refresh]);
 
+  const startLiveImageSrc =
+    sportFilter === "HOCKEY"
+      ? "/brand/start_live_game_hockey.png"
+      : sportFilter === "NETBALL"
+        ? "/brand/start_live_game_netball.png"
+        : sportFilter === "SOCCER"
+          ? "/brand/start_live_game_soccer.png"
+          : "/brand/start_live_game.png";
+
   const startLiveImage = (
     <Image
-      src="/brand/start_live_game.png"
+      src={startLiveImageSrc}
       alt="Start a live game"
       width={420}
       height={220}
