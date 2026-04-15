@@ -37,6 +37,7 @@ import {
 } from "@/actions/moderation";
 import {
   defaultTeamIdFromSubmission,
+  inferSportForModeration,
   pickModerationSportFilter,
 } from "@/lib/moderation-defaults";
 import type { ModerationTeamOption } from "@/lib/moderation-defaults";
@@ -93,6 +94,23 @@ export function ModeratorDashboard({
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const columnHelper = createColumnHelper<ModRow>();
+  const sportBySubmissionId = useMemo(() => {
+    const m = new Map<string, SchoolSport>();
+    for (const r of rows) {
+      m.set(
+        r.id,
+        inferSportForModeration(
+          {
+            notes: r.notes,
+            proposedHomeTeamId: r.proposedHomeTeamId,
+            proposedAwayTeamId: r.proposedAwayTeamId,
+          },
+          teamOptions
+        )
+      );
+    }
+    return m;
+  }, [rows, teamOptions]);
 
   const columns = useMemo(
     () => [
@@ -117,6 +135,14 @@ export function ModeratorDashboard({
           );
         },
       }),
+      columnHelper.display({
+        id: "sport",
+        header: "Sport",
+        cell: (ctx) => {
+          const s = sportBySubmissionId.get(ctx.row.original.id) ?? "RUGBY";
+          return schoolSportLabel(s);
+        },
+      }),
       columnHelper.accessor("moderationStatus", {
         header: "Status",
         cell: (i) => <ModerationStatusBadge status={i.getValue()} />,
@@ -137,7 +163,7 @@ export function ModeratorDashboard({
         ),
       }),
     ],
-    [columnHelper, teamOptions, seasonOptions, competitionOptions, pendingId, isAdmin]
+    [columnHelper, sportBySubmissionId, teamOptions, seasonOptions, competitionOptions, pendingId, isAdmin]
   );
 
   const table = useReactTable({
@@ -169,17 +195,29 @@ export function ModeratorDashboard({
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   Queue is empty.
                 </TableCell>
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
+                (() => {
+                  const sport = sportBySubmissionId.get(row.original.id) ?? "RUGBY";
+                  const hasDispute = (row.original.notes ?? "").startsWith("DISPUTE:");
+                  const sportRowClass =
+                    sport === "NETBALL"
+                      ? "bg-pink-500/10 hover:bg-pink-500/15"
+                      : sport === "HOCKEY"
+                        ? "bg-blue-500/10 hover:bg-blue-500/15"
+                        : sport === "SOCCER"
+                          ? "bg-green-500/10 hover:bg-green-500/15"
+                          : "";
+                  return (
                 <TableRow
                   key={row.id}
                   className={cn(
-                    (row.original.notes ?? "").startsWith("DISPUTE:") &&
-                      "bg-orange-500/10 hover:bg-orange-500/15"
+                    !hasDispute && sportRowClass,
+                    hasDispute && "bg-orange-500/10 hover:bg-orange-500/15"
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -188,6 +226,8 @@ export function ModeratorDashboard({
                     </TableCell>
                   ))}
                 </TableRow>
+                  );
+                })()
               ))
             )}
           </TableBody>
