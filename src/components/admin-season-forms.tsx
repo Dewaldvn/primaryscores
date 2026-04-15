@@ -8,18 +8,26 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 export type SeasonFormInitial = {
   id: string;
+  sport: SchoolSport;
+  provinceId: string | null;
   year: number;
   name: string;
-  startDate: string;
-  endDate: string;
 };
 
-export function AdminSeasonForm({ initial }: { initial?: SeasonFormInitial }) {
+export function AdminSeasonForm({
+  initial,
+  provinces,
+}: {
+  initial?: SeasonFormInitial;
+  provinces: { id: string; name: string }[];
+}) {
   const [pending, setPending] = useState(false);
   const editing = Boolean(initial);
+  const years = Array.from({ length: 2050 - 2020 + 1 }, (_, i) => 2020 + i);
 
   return (
     <form
@@ -30,10 +38,10 @@ export function AdminSeasonForm({ initial }: { initial?: SeasonFormInitial }) {
         setPending(true);
         void upsertSeasonAction({
           id: initial?.id,
+          sport: fd.get("sport") || "RUGBY",
+          provinceId: fd.get("provinceId") || null,
           year: fd.get("year"),
           name: fd.get("name"),
-          startDate: fd.get("startDate"),
-          endDate: fd.get("endDate"),
         }).then((res) => {
           setPending(false);
           if (!res.ok) {
@@ -48,14 +56,35 @@ export function AdminSeasonForm({ initial }: { initial?: SeasonFormInitial }) {
     >
       {initial?.id ? <input type="hidden" name="id" value={initial.id} /> : null}
       <div className="space-y-1">
+        <Label htmlFor="season-sport">Sport</Label>
+        <select
+          id="season-sport"
+          name="sport"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          defaultValue={initial?.sport ?? "RUGBY"}
+        >
+          {SCHOOL_SPORTS.map((s) => (
+            <option key={s} value={s}>
+              {schoolSportLabel(s)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
         <Label htmlFor="year">Year</Label>
-        <Input
+        <select
           id="year"
           name="year"
-          type="number"
           required
-          defaultValue={initial?.year}
-        />
+          defaultValue={String(initial?.year ?? new Date().getFullYear())}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="name">Name</Label>
@@ -68,24 +97,20 @@ export function AdminSeasonForm({ initial }: { initial?: SeasonFormInitial }) {
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor="startDate">Start</Label>
-        <Input
-          id="startDate"
-          name="startDate"
-          type="date"
-          required
-          defaultValue={initial?.startDate}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="endDate">End</Label>
-        <Input
-          id="endDate"
-          name="endDate"
-          type="date"
-          required
-          defaultValue={initial?.endDate}
-        />
+        <Label htmlFor="season-province">Province (optional)</Label>
+        <select
+          id="season-province"
+          name="provinceId"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          defaultValue={initial?.provinceId ?? ""}
+        >
+          <option value="">All / national</option>
+          {provinces.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="flex flex-wrap gap-2 sm:col-span-2">
         <Button type="submit" disabled={pending}>
@@ -107,6 +132,8 @@ export function AdminSeasonForm({ initial }: { initial?: SeasonFormInitial }) {
 export type CompetitionFormInitial = {
   id: string;
   name: string;
+  sport: SchoolSport;
+  year: number | null;
   provinceId: string | null;
   organiser: string | null;
   level: string | null;
@@ -122,6 +149,7 @@ export function AdminCompetitionForm({
 }) {
   const [pending, setPending] = useState(false);
   const editing = Boolean(initial);
+  const years = Array.from({ length: 2050 - 2020 + 1 }, (_, i) => 2020 + i);
 
   return (
     <form
@@ -133,6 +161,8 @@ export function AdminCompetitionForm({
         void upsertCompetitionAction({
           id: initial?.id,
           name: fd.get("name"),
+          sport: fd.get("sport") || "RUGBY",
+          year: fd.get("year") || null,
           provinceId: fd.get("provinceId") || null,
           organiser: fd.get("organiser") || null,
           level: fd.get("level") || null,
@@ -153,6 +183,37 @@ export function AdminCompetitionForm({
       <div className="space-y-1 sm:col-span-2">
         <Label htmlFor="cname">Name</Label>
         <Input id="cname" name="name" required defaultValue={initial?.name} />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="competition-sport">Sport</Label>
+        <select
+          id="competition-sport"
+          name="sport"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          defaultValue={initial?.sport ?? "RUGBY"}
+        >
+          {SCHOOL_SPORTS.map((s) => (
+            <option key={s} value={s}>
+              {schoolSportLabel(s)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="competition-year">Year (optional)</Label>
+        <select
+          id="competition-year"
+          name="year"
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          defaultValue={initial?.year != null ? String(initial.year) : ""}
+        >
+          <option value="">Not set</option>
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-1">
         <Label>Province (optional)</Label>

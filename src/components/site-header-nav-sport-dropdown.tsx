@@ -53,11 +53,6 @@ export function SiteHeaderNavSportDropdown({
           align="start"
           collisionPadding={12}
         >
-          <DropdownMenu.Item asChild>
-            <Link href={basePath} className={itemClass}>
-              All sports
-            </Link>
-          </DropdownMenu.Item>
           {SCHOOL_SPORTS.map((sport) => (
             <DropdownMenu.Item key={sport} asChild>
               <Link href={sportQueryHref(basePath, sport)} className={itemClass}>

@@ -73,15 +73,29 @@ export const contributorTeamBodySchema = teamUpsertObjectSchema
 
 export const seasonUpsertSchema = z.object({
   id: z.string().uuid().optional(),
-  year: z.coerce.number().int().min(1990).max(2100),
+  sport: z.preprocess(
+    (v) => (v === "" || v == null ? "RUGBY" : String(v).trim().toUpperCase()),
+    schoolSportEnum
+  ),
+  provinceId: z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.string().uuid().nullable()
+  ),
+  year: z.coerce.number().int().min(2020).max(2050),
   name: z.string().min(2),
-  startDate: z.string().min(1),
-  endDate: z.string().min(1),
 });
 
 export const competitionUpsertSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(2),
+  sport: z.preprocess(
+    (v) => (v === "" || v == null ? "RUGBY" : String(v).trim().toUpperCase()),
+    schoolSportEnum
+  ),
+  year: z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.coerce.number().int().min(2020).max(2050).nullable()
+  ),
   provinceId: z.preprocess(
     (v) => (v === "" || v == null ? null : v),
     z.string().uuid().nullable()

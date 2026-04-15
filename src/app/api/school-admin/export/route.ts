@@ -6,13 +6,7 @@ import { getProfile } from "@/lib/auth";
 import { listResultsForSchoolAdminExport } from "@/lib/data/school-admin-export";
 import { getActiveManagedSchoolIds } from "@/lib/school-admin-access";
 import { parseSportQueryParam } from "@/lib/sports";
-
-function csvCell(v: string | number | boolean | null | undefined): string {
-  if (v == null) return "";
-  const s = String(v);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
+import { parseTabularFormat, rowsToCsv, rowsToXlsxBuffer } from "@/lib/tabular";
 
 export async function GET(req: NextRequest) {
   const profile = await getProfile();
@@ -33,6 +27,7 @@ export async function GET(req: NextRequest) {
   const dateFrom = sp.get("dateFrom")?.trim() || null;
   const dateTo = sp.get("dateTo")?.trim() || null;
   const verifiedOnly = sp.get("verifiedOnly") === "1" || sp.get("verifiedOnly") === "true";
+  const format = parseTabularFormat(sp.get("format"));
 
   if (schoolId && !managed.includes(schoolId)) {
     return NextResponse.json({ error: "Invalid school selection." }, { status: 400 });
@@ -64,7 +59,7 @@ export async function GET(req: NextRequest) {
     limit: 5000,
   });
 
-  const header = [
+  const headers = [
     "match_date",
     "sport",
     "home_school",
@@ -78,28 +73,35 @@ export async function GET(req: NextRequest) {
     "verified",
     "verification_level",
     "published_at",
-  ].join(",");
+  ];
+  const data = rows.map((r) => ({
+    match_date: r.matchDate,
+    sport: r.sport,
+    home_school: r.homeSchoolName,
+    away_school: r.awaySchoolName,
+    home_score: r.homeScore,
+    away_score: r.awayScore,
+    competition: r.competitionName,
+    season: r.seasonName,
+    province: r.provinceName,
+    venue: r.venue,
+    verified: r.isVerified,
+    verification_level: r.verificationLevel,
+    published_at: r.publishedAt instanceof Date ? r.publishedAt.toISOString() : r.publishedAt,
+  }));
 
-  const lines = rows.map((r) =>
-    [
-      csvCell(r.matchDate),
-      csvCell(r.sport),
-      csvCell(r.homeSchoolName),
-      csvCell(r.awaySchoolName),
-      csvCell(r.homeScore),
-      csvCell(r.awayScore),
-      csvCell(r.competitionName),
-      csvCell(r.seasonName),
-      csvCell(r.provinceName),
-      csvCell(r.venue),
-      csvCell(r.isVerified),
-      csvCell(r.verificationLevel),
-      csvCell(r.publishedAt instanceof Date ? r.publishedAt.toISOString() : r.publishedAt),
-    ].join(",")
-  );
+  if (format === "xlsx") {
+    const body = rowsToXlsxBuffer(headers, data, "results");
+    return new NextResponse(new Uint8Array(body), {
+      headers: {
+        "content-type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content-disposition": 'attachment; filename="school-results-export.xlsx"',
+      },
+    });
+  }
 
-  const body = `\uFEFF${[header, ...lines].join("\r\n")}`;
-  return new NextResponse(body, {
+  return new NextResponse(rowsToCsv(headers, data), {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": 'attachment; filename="school-results-export.csv"',

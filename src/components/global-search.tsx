@@ -272,7 +272,7 @@ function GlobalSearchFloating({
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Province, school, competition, season…"
+                placeholder="Click to search..."
                 className="h-10 border-0 bg-transparent pl-9 pr-10 shadow-none focus-visible:ring-0"
                 autoComplete="off"
                 aria-autocomplete="list"
@@ -281,9 +281,6 @@ function GlobalSearchFloating({
                 <Loader2 className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
               ) : null}
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Type at least 2 characters. Press Esc to close.
-            </p>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-2">

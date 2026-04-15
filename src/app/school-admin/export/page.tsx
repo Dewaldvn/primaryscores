@@ -42,8 +42,8 @@ export default async function SchoolAdminExportPage() {
       <div>
         <h1 className="text-2xl font-bold">Export results</h1>
         <p className="text-sm text-muted-foreground">
-          Download a UTF-8 CSV file (opens in Microsoft Excel) of fixtures and scores for your linked school(s). Use
-          the filters below, then click <strong>Download CSV</strong>.
+          Download CSV or Excel of fixtures and scores for your linked school(s). Use the filters below, then choose
+          your format.
         </p>
       </div>
 
@@ -57,6 +57,18 @@ export default async function SchoolAdminExportPage() {
         </CardHeader>
         <CardContent>
           <form className="grid max-w-xl gap-4" action="/api/school-admin/export" method="get" target="_blank">
+            <div className="space-y-1">
+              <Label htmlFor="format">Format</Label>
+              <select
+                id="format"
+                name="format"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                defaultValue="csv"
+              >
+                <option value="csv">CSV (.csv)</option>
+                <option value="xlsx">Excel (.xlsx)</option>
+              </select>
+            </div>
             <div className="space-y-1">
               <Label htmlFor="schoolId">School (optional)</Label>
               <select
@@ -142,7 +154,7 @@ export default async function SchoolAdminExportPage() {
               </Label>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit">Download CSV</Button>
+              <Button type="submit">Download export</Button>
               <Button type="reset" variant="outline">
                 Clear fields
               </Button>

@@ -96,7 +96,14 @@ export async function adminGetTeamById(id: string) {
 }
 
 export async function adminListSeasons() {
-  return db.select().from(seasons).orderBy(desc(seasons.year));
+  return db
+    .select({
+      season: seasons,
+      provinceName: provinces.name,
+    })
+    .from(seasons)
+    .leftJoin(provinces, eq(seasons.provinceId, provinces.id))
+    .orderBy(desc(seasons.year), asc(seasons.name));
 }
 
 export async function adminListCompetitions() {
@@ -107,7 +114,7 @@ export async function adminListCompetitions() {
     })
     .from(competitions)
     .leftJoin(provinces, eq(competitions.provinceId, provinces.id))
-    .orderBy(asc(competitions.name));
+    .orderBy(desc(competitions.year), asc(competitions.name));
 }
 
 export async function adminListProfiles() {

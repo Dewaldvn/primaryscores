@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
-import Papa from "papaparse";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fixtures, results, schools, teams } from "@/db/schema";
+import { parseUploadedTable } from "@/lib/tabular";
 
 const verificationLevelSchema = z.enum([
   "SUBMITTED",
@@ -68,23 +68,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const text = await file.text();
-  const parsed = Papa.parse<Record<string, unknown>>(text, {
-    header: true,
-    skipEmptyLines: "greedy",
-  });
-
-  if (parsed.errors?.length) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: `CSV parse error: ${parsed.errors[0]?.message ?? "unknown"}`,
-      },
-      { status: 400 }
-    );
+  const parsed = await parseUploadedTable(file);
+  if (!parsed.ok) {
+    return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
   }
-
-  const rawRows = (parsed.data ?? []).filter((r) =>
+  const rawRows = (parsed.rows ?? []).filter((r) =>
     Object.values(r ?? {}).some((v) => String(v ?? "").trim().length > 0)
   );
 

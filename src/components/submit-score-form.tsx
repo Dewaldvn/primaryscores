@@ -30,8 +30,9 @@ type SchoolHit = {
   town: string | null;
   provinceName: string;
   logoPath: string | null;
-  u13TeamId: string | null;
 };
+
+type TeamOption = { id: string; label: string };
 
 export function SubmitScoreForm({
   seasons: seasonRows,
@@ -55,6 +56,10 @@ export function SubmitScoreForm({
   const [awayTeamName, setAwayTeamName] = useState("");
   const [homeHits, setHomeHits] = useState<SchoolHit[]>([]);
   const [awayHits, setAwayHits] = useState<SchoolHit[]>([]);
+  const [homeSchool, setHomeSchool] = useState<SchoolHit | null>(null);
+  const [awaySchool, setAwaySchool] = useState<SchoolHit | null>(null);
+  const [homeTeams, setHomeTeams] = useState<TeamOption[]>([]);
+  const [awayTeams, setAwayTeams] = useState<TeamOption[]>([]);
   const [homeTeamId, setHomeTeamId] = useState("");
   const [awayTeamId, setAwayTeamId] = useState("");
 
@@ -71,6 +76,16 @@ export function SubmitScoreForm({
     const data = (await res.json()) as SchoolHit[];
     if (side === "home") setHomeHits(data);
     else setAwayHits(data);
+  }
+
+  async function loadSchoolTeams(schoolId: string, side: "home" | "away") {
+    const res = await fetch(`/api/teams/by-school?schoolId=${encodeURIComponent(schoolId)}`, {
+      cache: "no-store",
+    });
+    const data = (await res.json()) as TeamOption[];
+    const rows = Array.isArray(data) ? data : [];
+    if (side === "home") setHomeTeams(rows);
+    else setAwayTeams(rows);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -206,14 +221,16 @@ export function SubmitScoreForm({
           <Input id="proposedMatchDate" name="proposedMatchDate" type="date" required />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="homeSearch">Home school search</Label>
+          <Label htmlFor="homeSearch">School 1 search</Label>
           <Input
             id="homeSearch"
             value={homeQ}
             onChange={(e) => {
               const v = e.target.value;
               setHomeQ(v);
-              setHomeTeamName(v);
+              setHomeSchool(null);
+              setHomeTeams([]);
+              setHomeTeamId("");
               void searchSchools(v, "home");
             }}
             placeholder="Type to search or enter the name as it should appear…"
@@ -228,9 +245,11 @@ export function SubmitScoreForm({
                     className="block w-full px-3 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       setHomeQ(h.displayName);
+                      setHomeSchool(h);
+                      setHomeTeamId("");
                       setHomeTeamName(h.displayName);
-                      setHomeTeamId(h.u13TeamId ?? "");
                       setHomeHits([]);
+                      void loadSchoolTeams(h.id, "home");
                     }}
                   >
                     <span className="flex items-center gap-2">
@@ -239,32 +258,76 @@ export function SubmitScoreForm({
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       {h.town} · {h.provinceName}
-                      {!h.u13TeamId ? " · no U13 team id" : ""}
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
           )}
-          <Label htmlFor="proposedHomeTeamName">Home team / school name *</Label>
+          {!homeSchool && homeQ.trim().length >= 2 && homeHits.length === 0 ? (
+            <div className="text-xs">
+              <span className="text-muted-foreground">School not found. </span>
+              <Link
+                href={`/add-team?q=${encodeURIComponent(homeQ.trim())}&prefillName=${encodeURIComponent(homeQ.trim())}`}
+                className="text-primary underline"
+              >
+                Add a school or team
+              </Link>
+            </div>
+          ) : null}
+          {homeSchool ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="homeTeamPick">Team 1 (from selected school)</Label>
+              <select
+                id="homeTeamPick"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={homeTeamId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setHomeTeamId(id);
+                  const picked = homeTeams.find((t) => t.id === id);
+                  setHomeTeamName(picked ? `${homeSchool.displayName} · ${picked.label}` : homeSchool.displayName);
+                }}
+              >
+                <option value="">Choose team…</option>
+                {homeTeams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs">
+                <span className="text-muted-foreground">Missing team? </span>
+                <Link href={`/add-team?q=${encodeURIComponent(homeSchool.displayName)}`} className="text-primary underline">
+                  Add a school or team
+                </Link>
+              </div>
+            </div>
+          ) : null}
+          <Label htmlFor="proposedHomeTeamName">Team 1 / school name *</Label>
           <Input
             id="proposedHomeTeamName"
             name="proposedHomeTeamName"
             required
             value={homeTeamName}
-            onChange={(e) => setHomeTeamName(e.target.value)}
+            onChange={(e) => {
+              setHomeTeamName(e.target.value);
+              setHomeTeamId("");
+            }}
             placeholder="Same as search above, or edit after picking from the list"
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="awaySearch">Away school search</Label>
+          <Label htmlFor="awaySearch">School 2 search</Label>
           <Input
             id="awaySearch"
             value={awayQ}
             onChange={(e) => {
               const v = e.target.value;
               setAwayQ(v);
-              setAwayTeamName(v);
+              setAwaySchool(null);
+              setAwayTeams([]);
+              setAwayTeamId("");
               void searchSchools(v, "away");
             }}
             placeholder="Type to search or enter the name as it should appear…"
@@ -279,9 +342,11 @@ export function SubmitScoreForm({
                     className="block w-full px-3 py-2 text-left hover:bg-muted"
                     onClick={() => {
                       setAwayQ(h.displayName);
+                      setAwaySchool(h);
+                      setAwayTeamId("");
                       setAwayTeamName(h.displayName);
-                      setAwayTeamId(h.u13TeamId ?? "");
                       setAwayHits([]);
+                      void loadSchoolTeams(h.id, "away");
                     }}
                   >
                     <span className="flex items-center gap-2">
@@ -296,18 +361,61 @@ export function SubmitScoreForm({
               ))}
             </ul>
           )}
-          <Label htmlFor="proposedAwayTeamName">Away team / school name *</Label>
+          {!awaySchool && awayQ.trim().length >= 2 && awayHits.length === 0 ? (
+            <div className="text-xs">
+              <span className="text-muted-foreground">School not found. </span>
+              <Link
+                href={`/add-team?q=${encodeURIComponent(awayQ.trim())}&prefillName=${encodeURIComponent(awayQ.trim())}`}
+                className="text-primary underline"
+              >
+                Add a school or team
+              </Link>
+            </div>
+          ) : null}
+          {awaySchool ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="awayTeamPick">Team 2 (from selected school)</Label>
+              <select
+                id="awayTeamPick"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={awayTeamId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setAwayTeamId(id);
+                  const picked = awayTeams.find((t) => t.id === id);
+                  setAwayTeamName(picked ? `${awaySchool.displayName} · ${picked.label}` : awaySchool.displayName);
+                }}
+              >
+                <option value="">Choose team…</option>
+                {awayTeams.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <div className="text-xs">
+                <span className="text-muted-foreground">Missing team? </span>
+                <Link href={`/add-team?q=${encodeURIComponent(awaySchool.displayName)}`} className="text-primary underline">
+                  Add a school or team
+                </Link>
+              </div>
+            </div>
+          ) : null}
+          <Label htmlFor="proposedAwayTeamName">Team 2 / school name *</Label>
           <Input
             id="proposedAwayTeamName"
             name="proposedAwayTeamName"
             required
             value={awayTeamName}
-            onChange={(e) => setAwayTeamName(e.target.value)}
+            onChange={(e) => {
+              setAwayTeamName(e.target.value);
+              setAwayTeamId("");
+            }}
             placeholder="Same as search above, or edit after picking from the list"
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="proposedHomeScore">Home score *</Label>
+          <Label htmlFor="proposedHomeScore">Score Team 1 *</Label>
           <Input
             id="proposedHomeScore"
             name="proposedHomeScore"
@@ -318,7 +426,7 @@ export function SubmitScoreForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="proposedAwayScore">Away score *</Label>
+          <Label htmlFor="proposedAwayScore">Score Team 2 *</Label>
           <Input
             id="proposedAwayScore"
             name="proposedAwayScore"

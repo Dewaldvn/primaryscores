@@ -32,11 +32,14 @@ const POLL_MS = 15_000;
 const LIST_LIMIT = 10;
 const SEARCH_DEBOUNCE_MS = 350;
 
-type TeamHit = {
+type SchoolHit = {
   id: string;
-  schoolId?: string;
-  schoolName?: string;
-  schoolLogoPath?: string | null;
+  displayName: string;
+  logoPath: string | null;
+};
+
+type TeamOption = {
+  id: string;
   label: string;
 };
 
@@ -300,39 +303,31 @@ function CompactLiveSessionCard({
   );
 }
 
-/** For hockey, pass the chosen side so school search can match the correct team row. */
-function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGender) {
-  const [name, setName] = useState("");
-  const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [lockedPickName, setLockedPickName] = useState<string | null>(null);
-  const [hits, setHits] = useState<TeamHit[]>([]);
+/** Two-step live picker: select school first, then select a team linked to that school. */
+function useLiveSchoolTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGender) {
+  const [schoolQuery, setSchoolQuery] = useState("");
+  const [schoolHits, setSchoolHits] = useState<SchoolHit[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolHit | null>(null);
+  const [teamOptions, setTeamOptions] = useState<TeamOption[]>([]);
+  const [teamId, setTeamId] = useState("");
+  const [teamLabel, setTeamLabel] = useState("");
 
   useEffect(() => {
-    setHits([]);
+    setSchoolHits([]);
+    setSelectedSchool(null);
+    setTeamOptions([]);
+    setTeamId("");
+    setTeamLabel("");
+    setSchoolQuery("");
   }, [schoolSport, hockeySearchGender]);
 
-  const onInputChange = (v: string) => {
-    setName(v);
-    if (lockedPickName !== null && v !== lockedPickName) {
-      setLogoPath(null);
-      setLockedPickName(null);
-    }
-  };
-
-  const pickHit = (h: TeamHit) => {
-    setName(h.label);
-    setLogoPath(h.schoolLogoPath ?? null);
-    setLockedPickName(h.label);
-    setHits([]);
-  };
-
-  const fetchHits = async (q: string) => {
+  async function fetchSchoolHits(q: string) {
     if (q.trim().length < 2) {
-      setHits([]);
+      setSchoolHits([]);
       return;
     }
     if (schoolSport === "HOCKEY" && hockeySearchGender === undefined) {
-      setHits([]);
+      setSchoolHits([]);
       return;
     }
     const genderQ =
@@ -340,111 +335,156 @@ function useLiveTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGen
         ? `&gender=${encodeURIComponent(hockeySearchGender)}`
         : "";
     const res = await fetch(
-      `/api/teams/search?q=${encodeURIComponent(q)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`
+      `/api/schools/search?q=${encodeURIComponent(q)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`,
+      { cache: "no-store" }
     );
     const data = (await res.json()) as unknown;
-    setHits(Array.isArray(data) ? (data as TeamHit[]) : []);
-  };
+    const rows = Array.isArray(data) ? (data as SchoolHit[]) : [];
+    setSchoolHits(rows);
+  }
 
-  return { name, logoPath, hits, isLockedPick: lockedPickName !== null, onInputChange, pickHit, fetchHits };
+  async function loadTeamsForSchool(school: SchoolHit) {
+    const genderQ =
+      schoolSport === "HOCKEY" && hockeySearchGender
+        ? `&gender=${encodeURIComponent(hockeySearchGender)}`
+        : "";
+    const res = await fetch(
+      `/api/teams/by-school?schoolId=${encodeURIComponent(school.id)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`,
+      { cache: "no-store" }
+    );
+    const data = (await res.json()) as unknown;
+    const rows = Array.isArray(data) ? (data as TeamOption[]) : [];
+    setTeamOptions(rows);
+    setTeamId("");
+    setTeamLabel("");
+  }
+
+  function onSchoolInputChange(v: string) {
+    setSchoolQuery(v);
+    setSelectedSchool(null);
+    setTeamOptions([]);
+    setTeamId("");
+    setTeamLabel("");
+  }
+
+  function chooseSchool(school: SchoolHit) {
+    setSchoolQuery(school.displayName);
+    setSelectedSchool(school);
+    setSchoolHits([]);
+    void loadTeamsForSchool(school);
+  }
+
+  function chooseTeam(nextTeamId: string) {
+    setTeamId(nextTeamId);
+    const team = teamOptions.find((t) => t.id === nextTeamId);
+    setTeamLabel(team ? `${selectedSchool?.displayName ?? ""} · ${team.label}` : "");
+  }
+
+  return {
+    schoolQuery,
+    schoolHits,
+    selectedSchool,
+    teamOptions,
+    teamId,
+    teamLabel,
+    onSchoolInputChange,
+    fetchSchoolHits,
+    chooseSchool,
+    chooseTeam,
+  };
 }
 
-function LiveTeamSchoolField({
-  id,
-  label,
+function LiveSchoolTeamField({
+  idPrefix,
+  schoolLabel,
+  teamLabelText,
   field,
 }: {
-  id: string;
-  label: string;
-  field: ReturnType<typeof useLiveTeamField>;
+  idPrefix: string;
+  schoolLabel: string;
+  teamLabelText: string;
+  field: ReturnType<typeof useLiveSchoolTeamField>;
 }) {
-  const [matchPickSeq, setMatchPickSeq] = useState(0);
-  const teamHint = field.name.trim();
-  const addTeamHref = teamHint
-    ? `/add-team?q=${encodeURIComponent(teamHint)}&prefillName=${encodeURIComponent(teamHint)}`
+  const addSchoolHref = field.schoolQuery.trim()
+    ? `/add-team?q=${encodeURIComponent(field.schoolQuery)}&prefillName=${encodeURIComponent(field.schoolQuery)}`
     : "/add-team";
+  const addTeamHref = field.selectedSchool
+    ? `/add-team?q=${encodeURIComponent(field.selectedSchool.displayName)}`
+    : addSchoolHref;
+
   return (
-    <div className="space-y-1.5 text-left">
-      <Label htmlFor={id}>{label}</Label>
-      <p className="text-xs text-muted-foreground">
-        Search teams linked to schools, tap a result below, or use the dropdown when matches appear.
-      </p>
+    <div className="space-y-2 text-left">
+      <Label htmlFor={`${idPrefix}-school`}>{schoolLabel}</Label>
       <Input
-        id={id}
-        value={field.name}
+        id={`${idPrefix}-school`}
+        value={field.schoolQuery}
         onChange={(e) => {
           const v = e.target.value;
-          field.onInputChange(v);
-          void field.fetchHits(v);
+          field.onSchoolInputChange(v);
+          void field.fetchSchoolHits(v);
         }}
-        placeholder="Search teams or schools…"
+        placeholder="Search schools..."
         autoComplete="off"
         required
         minLength={2}
       />
-      {field.hits.length > 0 ? (
-        <>
-          <div className="space-y-1">
-            <Label htmlFor={`${id}-pick`} className="text-xs font-normal text-muted-foreground">
-              Pick from matches (optional)
-            </Label>
-            <select
-              key={matchPickSeq}
-              id={`${id}-pick`}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
-              defaultValue=""
-              onChange={(e) => {
-                const schoolId = e.target.value;
-                if (!schoolId) return;
-                const h = field.hits.find((x) => x.id === schoolId);
-                if (h) field.pickHit(h);
-                setMatchPickSeq((n) => n + 1);
-              }}
-            >
-              <option value="">— Choose a school —</option>
-              {field.hits.map((h) => (
-                <option key={h.id} value={h.id}>
-                  {h.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <ul className="max-h-40 overflow-auto rounded border bg-popover text-sm shadow-md">
-            {field.hits.map((h) => (
-              <li key={h.id}>
-                <button
-                  type="button"
-                  className="block w-full px-3 py-2 text-left hover:bg-muted"
-                  onClick={() => field.pickHit(h)}
-                >
-                  <span className="flex items-center gap-2">
-                    <SchoolLogo logoPath={h.schoolLogoPath ?? null} alt="" size="xs" />
-                    {h.label}
-                  </span>
-                </button>
-              </li>
-            ))}
-            <li className="border-t">
-              <Link
-                href={addTeamHref}
-                className="block px-3 py-2 text-sm text-primary underline hover:bg-muted"
+      {field.schoolHits.length > 0 ? (
+        <ul className="max-h-40 overflow-auto rounded border bg-popover text-sm shadow-md">
+          {field.schoolHits.map((h) => (
+            <li key={h.id}>
+              <button
+                type="button"
+                className="block w-full px-3 py-2 text-left hover:bg-muted"
+                onClick={() => field.chooseSchool(h)}
               >
-                Add a school or team
-              </Link>
+                <span className="flex items-center gap-2">
+                  <SchoolLogo logoPath={h.logoPath ?? null} alt="" size="xs" />
+                  {h.displayName}
+                </span>
+              </button>
             </li>
-          </ul>
+          ))}
+        </ul>
+      ) : null}
+
+      {!field.selectedSchool && field.schoolQuery.trim().length >= 2 && field.schoolHits.length === 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="text-muted-foreground">School not found yet.</span>
+          <Link href={addSchoolHref} className="text-primary underline">
+            Add a school or team
+          </Link>
+        </div>
+      ) : null}
+
+      {field.selectedSchool ? (
+        <>
+          <Label htmlFor={`${idPrefix}-team`}>{teamLabelText}</Label>
+          <select
+            id={`${idPrefix}-team`}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm"
+            value={field.teamId}
+            onChange={(e) => field.chooseTeam(e.target.value)}
+            required
+          >
+            <option value="">Choose team...</option>
+            {field.teamOptions.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            {field.teamOptions.length === 0 ? (
+              <span className="text-muted-foreground">No teams linked to this school yet.</span>
+            ) : (
+              <span className="text-muted-foreground">Missing team?</span>
+            )}
+            <Link href={addTeamHref} className="text-primary underline">
+              Add a school or team
+            </Link>
+          </div>
         </>
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        {field.name.trim().length >= 2 && field.hits.length === 0 && !field.isLockedPick ? (
-          <p className="text-muted-foreground">No team match found yet.</p>
-        ) : (
-          <span className="text-muted-foreground">Missing team?</span>
-        )}
-        <Link href={addTeamHref} className="text-primary underline">
-          Add a school or team
-        </Link>
-      </div>
     </div>
   );
 }
@@ -467,8 +507,8 @@ function NewLiveGameForm({
   const [hockeyGender, setHockeyGender] = useState<TeamGender | "">("");
   const effectiveSport = hubSport ?? pickSport;
   const hockeySearchGender = effectiveSport === "HOCKEY" ? hockeyGender || undefined : undefined;
-  const homeField = useLiveTeamField(effectiveSport, hockeySearchGender);
-  const awayField = useLiveTeamField(effectiveSport, hockeySearchGender);
+  const school1Field = useLiveSchoolTeamField(effectiveSport, hockeySearchGender);
+  const school2Field = useLiveSchoolTeamField(effectiveSport, hockeySearchGender);
 
   useEffect(() => {
     if (effectiveSport !== "HOCKEY") setHockeyGender("");
@@ -486,11 +526,15 @@ function NewLiveGameForm({
               toast.error("Choose boys or girls for hockey before starting a live game.");
               return;
             }
+            if (!school1Field.teamId || !school2Field.teamId) {
+              toast.error("Choose School 1/Team 1 and School 2/Team 2 before starting.");
+              return;
+            }
             const res = await createLiveSessionAction({
-              homeTeamName: homeField.name.trim(),
-              awayTeamName: awayField.name.trim(),
-              homeLogoPath: homeField.logoPath,
-              awayLogoPath: awayField.logoPath,
+              homeTeamName: school1Field.teamLabel.trim(),
+              awayTeamName: school2Field.teamLabel.trim(),
+              homeLogoPath: school1Field.selectedSchool?.logoPath ?? null,
+              awayLogoPath: school2Field.selectedSchool?.logoPath ?? null,
               venue: fd.get("venue") ? String(fd.get("venue")) : null,
               sport: effectiveSport,
               teamGender: effectiveSport === "HOCKEY" ? (hockeyGender as TeamGender) : null,
@@ -567,8 +611,18 @@ function NewLiveGameForm({
           </p>
         </div>
       ) : null}
-      <LiveTeamSchoolField id="nl-home-team" label="Home team / school *" field={homeField} />
-      <LiveTeamSchoolField id="nl-away-team" label="Away team / school *" field={awayField} />
+      <LiveSchoolTeamField
+        idPrefix="nl-school-1"
+        schoolLabel="School 1 *"
+        teamLabelText="Team 1 *"
+        field={school1Field}
+      />
+      <LiveSchoolTeamField
+        idPrefix="nl-school-2"
+        schoolLabel="School 2 *"
+        teamLabelText="Team 2 *"
+        field={school2Field}
+      />
       <div className="space-y-1 text-left">
         <Label htmlFor="nl-venue">Venue (optional)</Label>
         <Input id="nl-venue" name="venue" />

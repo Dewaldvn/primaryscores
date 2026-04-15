@@ -10,7 +10,8 @@ import { schoolAdminScheduleLiveSessionAction } from "@/actions/school-admin-liv
 
 type TeamOpt = { id: string; label: string; schoolId: string; schoolName: string };
 
-type AwayHit = { id: string; label: string };
+type SchoolHit = { id: string; displayName: string };
+type TeamHit = { id: string; label: string };
 
 export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptions: TeamOpt[] }) {
   const router = useRouter();
@@ -19,9 +20,11 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   const [homeQ, setHomeQ] = useState("");
   const [awayTeamId, setAwayTeamId] = useState("");
   const [awayLabel, setAwayLabel] = useState("");
-  const [awayHits, setAwayHits] = useState<AwayHit[]>([]);
-  const [awayQ, setAwayQ] = useState("");
-  const [debouncedAway, setDebouncedAway] = useState("");
+  const [awaySchoolQ, setAwaySchoolQ] = useState("");
+  const [awaySchoolHits, setAwaySchoolHits] = useState<SchoolHit[]>([]);
+  const [awaySchool, setAwaySchool] = useState<SchoolHit | null>(null);
+  const [awayTeamHits, setAwayTeamHits] = useState<TeamHit[]>([]);
+  const [awayTeamPick, setAwayTeamPick] = useState("");
   const [venue, setVenue] = useState("");
   const [goesLocal, setGoesLocal] = useState("");
 
@@ -34,28 +37,50 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   );
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedAway(awayQ.trim()), 300);
-    return () => clearTimeout(t);
-  }, [awayQ]);
-
-  useEffect(() => {
-    if (debouncedAway.length < 2) {
-      setAwayHits([]);
+    if (awaySchoolQ.trim().length < 2) {
+      setAwaySchoolHits([]);
       return;
     }
     let cancelled = false;
-    void fetch(`/api/teams/search?q=${encodeURIComponent(debouncedAway)}`)
-      .then((r) => r.json() as Promise<AwayHit[]>)
-      .then((rows) => {
-        if (!cancelled) setAwayHits(Array.isArray(rows) ? rows : []);
-      })
-      .catch(() => {
-        if (!cancelled) setAwayHits([]);
-      });
+    const t = setTimeout(() => {
+      void fetch(`/api/schools/search?q=${encodeURIComponent(awaySchoolQ.trim())}`)
+        .then((r) => r.json() as Promise<SchoolHit[]>)
+        .then((rows) => {
+          if (!cancelled) setAwaySchoolHits(Array.isArray(rows) ? rows : []);
+        })
+        .catch(() => {
+          if (!cancelled) setAwaySchoolHits([]);
+        });
+    }, 300);
     return () => {
       cancelled = true;
+      clearTimeout(t);
     };
-  }, [debouncedAway]);
+  }, [awaySchoolQ]);
+
+  async function loadAwayTeamsForSchool(schoolId: string) {
+    const res = await fetch(`/api/teams/by-school?schoolId=${encodeURIComponent(schoolId)}`, {
+      cache: "no-store",
+    });
+    const rows = (await res.json()) as TeamHit[];
+    setAwayTeamHits(Array.isArray(rows) ? rows : []);
+    setAwayTeamId("");
+    setAwayLabel("");
+    setAwayTeamPick("");
+  }
+
+  useEffect(() => {
+    if (!awaySchool) return;
+    void loadAwayTeamsForSchool(awaySchool.id);
+  }, [awaySchool]);
+
+  useEffect(() => {
+    if (!awayTeamPick) return;
+    const hit = awayTeamHits.find((h) => h.id === awayTeamPick);
+    if (!hit) return;
+    setAwayTeamId(hit.id);
+    setAwayLabel(awaySchool ? `${awaySchool.displayName} · ${hit.label}` : hit.label);
+  }, [awayTeamPick, awayTeamHits, awaySchool]);
 
   useEffect(() => {
     if (goesLocal) return;
@@ -147,33 +172,77 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
         ) : null}
       </div>
       <div className="space-y-1">
-        <Label htmlFor="away-search">Away team (search)</Label>
+        <Label htmlFor="away-school-search">Away school (search)</Label>
         <Input
-          id="away-search"
-          value={awayQ}
-          onChange={(e) => setAwayQ(e.target.value)}
-          placeholder="Type school or team name…"
+          id="away-school-search"
+          value={awaySchoolQ}
+          onChange={(e) => {
+            setAwaySchoolQ(e.target.value);
+            setAwaySchool(null);
+            setAwaySchoolHits([]);
+            setAwayTeamHits([]);
+            setAwayTeamPick("");
+            setAwayTeamId("");
+            setAwayLabel("");
+          }}
+          placeholder="Type school name…"
           autoComplete="off"
         />
-        {awayHits.length > 0 ? (
-          <ul className="max-h-48 overflow-y-auto rounded-md border bg-popover p-1">
-            {awayHits.map((h) => (
+        {awaySchoolHits.length > 0 ? (
+          <ul className="max-h-40 overflow-y-auto rounded-md border bg-popover p-1">
+            {awaySchoolHits.map((h) => (
               <li key={h.id}>
                 <button
                   type="button"
                   className="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
                   onClick={() => {
-                    setAwayTeamId(h.id);
-                    setAwayLabel(h.label);
-                    setAwayQ(h.label);
-                    setAwayHits([]);
+                    setAwaySchool(h);
+                    setAwaySchoolQ(h.displayName);
+                    setAwaySchoolHits([]);
                   }}
                 >
-                  {h.label}
+                  {h.displayName}
                 </button>
               </li>
             ))}
           </ul>
+        ) : null}
+        {!awaySchool && awaySchoolQ.trim().length >= 2 && awaySchoolHits.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            School not found.{" "}
+            <a
+              href={`/add-team?q=${encodeURIComponent(awaySchoolQ.trim())}&prefillName=${encodeURIComponent(awaySchoolQ.trim())}`}
+              className="text-primary underline"
+            >
+              Add a school or team
+            </a>
+          </p>
+        ) : null}
+
+        {awaySchool ? (
+          <>
+            <Label htmlFor="away-team-pick">Away team</Label>
+            <select
+              id="away-team-pick"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+              value={awayTeamPick}
+              onChange={(e) => setAwayTeamPick(e.target.value)}
+              required
+            >
+              <option value="">Choose team…</option>
+              {awayTeamHits.map((h) => (
+                <option key={h.id} value={h.id}>
+                  {h.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Missing team?{" "}
+              <a href={`/add-team?q=${encodeURIComponent(awaySchool.displayName)}`} className="text-primary underline">
+                Add a school or team
+              </a>
+            </p>
+          </>
         ) : null}
         {awayTeamId && awayLabel ? (
           <p className="text-xs text-muted-foreground">Away: {awayLabel}</p>

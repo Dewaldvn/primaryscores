@@ -20,6 +20,13 @@ import {
   teamUpsertSchema,
 } from "@/lib/validators/admin";
 
+function seasonBoundsFromYear(year: number): { startDate: string; endDate: string } {
+  return {
+    startDate: `${year}-01-01`,
+    endDate: `${year}-12-31`,
+  };
+}
+
 export async function upsertSchoolAction(input: unknown) {
   const { profile } = await requireRole(["ADMIN", "SCHOOL_ADMIN"]);
   const parsed = schoolUpsertSchema.safeParse(input);
@@ -236,15 +243,18 @@ export async function upsertSeasonAction(input: unknown) {
     return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const v = parsed.data;
+  const bounds = seasonBoundsFromYear(v.year);
 
   if (v.id) {
     await db
       .update(seasons)
       .set({
+        sport: v.sport,
+        provinceId: v.provinceId,
         year: v.year,
         name: v.name,
-        startDate: v.startDate,
-        endDate: v.endDate,
+        startDate: bounds.startDate,
+        endDate: bounds.endDate,
       })
       .where(eq(seasons.id, v.id));
     return { ok: true as const, id: v.id };
@@ -253,10 +263,12 @@ export async function upsertSeasonAction(input: unknown) {
   const [inserted] = await db
     .insert(seasons)
     .values({
+      sport: v.sport,
+      provinceId: v.provinceId,
       year: v.year,
       name: v.name,
-      startDate: v.startDate,
-      endDate: v.endDate,
+      startDate: bounds.startDate,
+      endDate: bounds.endDate,
     })
     .returning({ id: seasons.id });
 
@@ -276,6 +288,8 @@ export async function upsertCompetitionAction(input: unknown) {
       .update(competitions)
       .set({
         name: v.name,
+        sport: v.sport,
+        year: v.year,
         provinceId: v.provinceId,
         organiser: v.organiser ?? null,
         level: v.level ?? null,
@@ -289,6 +303,8 @@ export async function upsertCompetitionAction(input: unknown) {
     .insert(competitions)
     .values({
       name: v.name,
+      sport: v.sport,
+      year: v.year,
       provinceId: v.provinceId,
       organiser: v.organiser ?? null,
       level: v.level ?? null,

@@ -17,6 +17,7 @@ import {
 import { adminListSeasons, adminListCompetitions } from "@/lib/data/admin";
 import { listProvinces } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { schoolSportLabel } from "@/lib/sports";
 
 type Props = { searchParams: Record<string, string | string[] | undefined> };
 
@@ -38,18 +39,18 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
   const editSeasonId = qp(searchParams, "season");
   const editCompetitionId = qp(searchParams, "competition");
 
-  const editingSeason = editSeasonId ? seasonRows.find((s) => s.id === editSeasonId) : undefined;
+  const editingSeason = editSeasonId ? seasonRows.find((s) => s.season.id === editSeasonId) : undefined;
   const editingComp = editCompetitionId
     ? compRows.find((r) => r.competition.id === editCompetitionId)
     : undefined;
 
   const seasonInitial: SeasonFormInitial | undefined = editingSeason
     ? {
-        id: editingSeason.id,
-        year: editingSeason.year,
-        name: editingSeason.name,
-        startDate: String(editingSeason.startDate),
-        endDate: String(editingSeason.endDate),
+        id: editingSeason.season.id,
+        sport: editingSeason.season.sport ?? "RUGBY",
+        provinceId: editingSeason.season.provinceId,
+        year: editingSeason.season.year,
+        name: editingSeason.season.name,
       }
     : undefined;
 
@@ -57,6 +58,8 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
     ? {
         id: editingComp.competition.id,
         name: editingComp.competition.name,
+        sport: editingComp.competition.sport ?? "RUGBY",
+        year: editingComp.competition.year,
         provinceId: editingComp.competition.provinceId,
         organiser: editingComp.competition.organiser,
         level: editingComp.competition.level,
@@ -79,29 +82,29 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
           {seasonInitial ? (
             <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
               <h3 className="mb-3 text-sm font-medium">Edit season</h3>
-              <AdminSeasonForm initial={seasonInitial} />
+              <AdminSeasonForm initial={seasonInitial} provinces={provinces} />
             </div>
           ) : null}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Sport</TableHead>
+                <TableHead>Province</TableHead>
                 <TableHead>Year</TableHead>
-                <TableHead>Start</TableHead>
-                <TableHead>End</TableHead>
                 <TableHead className="w-[100px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {seasonRows.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>{s.name}</TableCell>
-                  <TableCell>{s.year}</TableCell>
-                  <TableCell>{s.startDate}</TableCell>
-                  <TableCell>{s.endDate}</TableCell>
+                <TableRow key={s.season.id}>
+                  <TableCell>{s.season.name}</TableCell>
+                  <TableCell>{schoolSportLabel(s.season.sport ?? "RUGBY")}</TableCell>
+                  <TableCell>{s.provinceName ?? "—"}</TableCell>
+                  <TableCell>{s.season.year}</TableCell>
                   <TableCell>
                     <Link
-                      href={`/admin/seasons?season=${s.id}#admin-seasons-section`}
+                      href={`/admin/seasons?season=${s.season.id}#admin-seasons-section`}
                       className="text-sm text-primary hover:underline"
                     >
                       Edit
@@ -113,7 +116,7 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
           </Table>
           <div>
             <h3 className="mb-3 text-sm font-medium text-muted-foreground">Add season</h3>
-            <AdminSeasonForm />
+            <AdminSeasonForm provinces={provinces} />
           </div>
         </CardContent>
       </Card>
@@ -133,6 +136,8 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Sport</TableHead>
+                <TableHead>Year</TableHead>
                 <TableHead>Province</TableHead>
                 <TableHead>Level</TableHead>
                 <TableHead>Active</TableHead>
@@ -143,6 +148,8 @@ export default async function AdminSeasonsPage({ searchParams }: Props) {
               {compRows.map((r) => (
                 <TableRow key={r.competition.id}>
                   <TableCell>{r.competition.name}</TableCell>
+                  <TableCell>{schoolSportLabel(r.competition.sport ?? "RUGBY")}</TableCell>
+                  <TableCell>{r.competition.year ?? "—"}</TableCell>
                   <TableCell>{r.provinceName ?? "—"}</TableCell>
                   <TableCell>{r.competition.level}</TableCell>
                   <TableCell>{r.competition.active ? "Yes" : "No"}</TableCell>

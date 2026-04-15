@@ -12,4 +12,5 @@ export const ADMIN_NAV_LINKS: readonly AdminNavLink[] = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/merge", label: "Merge (placeholder)" },
   { href: "/api/admin/export/schools", label: "Export schools CSV" },
+  { href: "/api/admin/export/schools?format=xlsx", label: "Export schools Excel" },
 ];

@@ -240,6 +240,8 @@ export const profileTeamLinks = pgTable(
 
 export const seasons = pgTable("seasons", {
   id: uuid("id").defaultRandom().primaryKey(),
+  sport: schoolSportEnum("sport").notNull().default("RUGBY"),
+  provinceId: uuid("province_id").references(() => provinces.id),
   year: integer("year").notNull(),
   name: text("name").notNull(),
   startDate: date("start_date").notNull(),
@@ -251,6 +253,8 @@ export const competitions = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
+    sport: schoolSportEnum("sport").notNull().default("RUGBY"),
+    year: integer("year"),
     provinceId: uuid("province_id").references(() => provinces.id),
     organiser: text("organiser"),
     level: text("level"),
