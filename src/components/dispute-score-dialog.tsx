@@ -24,6 +24,8 @@ export function DisputeScoreDialog({
   resultId,
   homeSchoolName,
   awaySchoolName,
+  homeTeamLabel,
+  awayTeamLabel,
   homeScore,
   awayScore,
   signedIn,
@@ -33,6 +35,8 @@ export function DisputeScoreDialog({
   resultId: string;
   homeSchoolName: string;
   awaySchoolName: string;
+  homeTeamLabel: string;
+  awayTeamLabel: string;
   homeScore: number;
   awayScore: number;
   signedIn: boolean;
@@ -172,7 +176,9 @@ export function DisputeScoreDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor={`dispute-home-${fixtureId}`}>Correct home score</Label>
+                <Label htmlFor={`dispute-home-${fixtureId}`}>
+                  {homeSchoolName} — {homeTeamLabel}
+                </Label>
                 <Input
                   id={`dispute-home-${fixtureId}`}
                   type="number"
@@ -183,7 +189,9 @@ export function DisputeScoreDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`dispute-away-${fixtureId}`}>Correct away score</Label>
+                <Label htmlFor={`dispute-away-${fixtureId}`}>
+                  {awaySchoolName} — {awayTeamLabel}
+                </Label>
                 <Input
                   id={`dispute-away-${fixtureId}`}
                   type="number"

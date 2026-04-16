@@ -81,6 +81,8 @@ export default async function MatchPage({ params }: Props) {
               resultId={row.resultId}
               homeSchoolName={row.homeSchoolName}
               awaySchoolName={row.awaySchoolName}
+              homeTeamLabel={row.homeTeamLabel ?? "Team 1"}
+              awayTeamLabel={row.awayTeamLabel ?? "Team 2"}
               homeScore={row.homeScore ?? 0}
               awayScore={row.awayScore ?? 0}
               signedIn={signedIn}
