@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { SchoolLogo } from "@/components/school-logo";
-import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/verification-badge";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
@@ -31,57 +30,116 @@ export type RecentVerifiedRow = {
   teamGender: TeamGender | null;
 };
 
-export function RecentVerifiedScoreCards({ rows }: { rows: RecentVerifiedRow[] }) {
+export function RecentVerifiedScoreCards({
+  rows,
+  variant = "default",
+}: {
+  rows: RecentVerifiedRow[];
+  variant?: "default" | "compact";
+}) {
   if (rows.length === 0) return null;
+  const compact = variant === "compact";
   return (
-    <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
+    <div
+      className={cn(
+        "mx-auto grid w-full gap-3",
+        compact
+          ? "max-w-6xl grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2"
+          : "max-w-4xl grid-cols-1 sm:grid-cols-2 gap-3"
+      )}
+    >
       {rows.map((r) => (
         <Card
           key={r.resultId}
-          className={cn(SCORE_RESULT_FRAME_CLASS, "relative overflow-hidden")}
+          className={cn(
+            SCORE_RESULT_FRAME_CLASS,
+            "relative overflow-hidden transition-colors hover:bg-muted/20",
+            compact && "shadow-sm"
+          )}
         >
           <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
-          <CardHeader className="relative border-b bg-muted/30 px-4 py-4">
-            <div className="absolute right-3 top-3 z-10">
+          <Link
+            href={`/matches/${r.fixtureId}`}
+            className="absolute inset-0 z-[1] rounded-lg ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label={`Open match: ${r.homeSchoolName} vs ${r.awaySchoolName}`}
+          />
+          <CardHeader
+            className={cn(
+              "relative z-[2] border-b bg-muted/30 pointer-events-none",
+              compact ? "px-2.5 py-2.5" : "px-4 py-4"
+            )}
+          >
+            <div className={cn("absolute z-[3]", compact ? "right-2 top-2" : "right-3 top-3")}>
               <VerificationBadge level={r.verificationLevel} compact />
             </div>
-            <CardTitle className="pr-10 text-center text-base font-medium leading-snug">
-              <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                <span className="inline-flex items-center gap-2">
-                  <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
-                  <Link href={`/schools/${r.homeSchoolSlug}`} className="hover:underline">
+            <CardTitle
+              className={cn(
+                "text-center font-medium leading-snug",
+                compact ? "pr-8 text-xs" : "pr-10 text-base"
+              )}
+            >
+              <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size={compact ? "sm" : "md"} />
+                  <Link
+                    href={`/schools/${r.homeSchoolSlug}`}
+                    className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
+                  >
                     {r.homeSchoolName}
                   </Link>
                 </span>
                 <span className="shrink-0 text-muted-foreground">vs</span>
-                <span className="inline-flex items-center gap-2">
-                  <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
-                  <Link href={`/schools/${r.awaySchoolSlug}`} className="hover:underline">
+                <span className="inline-flex items-center gap-1.5">
+                  <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size={compact ? "sm" : "md"} />
+                  <Link
+                    href={`/schools/${r.awaySchoolSlug}`}
+                    className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
+                  >
                     {r.awaySchoolName}
                   </Link>
                 </span>
               </span>
             </CardTitle>
             {r.recordingUrl ? (
-              <p className="mt-3 text-center text-xs">
+              <p
+                className={cn(
+                  "relative z-[2] text-center pointer-events-auto",
+                  compact ? "mt-1.5 text-[10px]" : "mt-3 text-xs"
+                )}
+              >
                 <SuperSportsRecordingLink href={r.recordingUrl} />
               </p>
             ) : null}
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-2 px-4 pb-8 pt-4 text-center text-sm">
-            <span className="font-mono text-lg font-semibold tabular-nums">
+          <CardContent
+            className={cn(
+              "relative z-[2] flex flex-col items-center gap-1.5 text-center pointer-events-none",
+              compact ? "px-2.5 pb-4 pt-2 text-[11px]" : "gap-2 px-4 pb-8 pt-4 text-sm"
+            )}
+          >
+            <span
+              className={cn(
+                "font-mono font-semibold tabular-nums",
+                compact ? "text-3xl" : "text-4xl"
+              )}
+            >
               {r.homeScore} – {r.awayScore}
             </span>
-            <div className="text-muted-foreground">
+            <div className={cn("text-muted-foreground", compact ? "space-y-0 text-[11px]" : "")}>
               <div>{r.competitionName ?? "—"}</div>
               <div>{r.seasonName ?? "—"}</div>
               <div>
                 {r.matchDate ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy") : ""}
               </div>
             </div>
-            <LinkButton variant="link" size="sm" className="mt-1 h-auto p-0" href={`/matches/${r.fixtureId}`}>
+            <span
+              className={cn(
+                "text-primary underline-offset-4",
+                compact ? "mt-0 text-[11px]" : "mt-1 text-sm"
+              )}
+            >
               Match details
-            </LinkButton>
+            </span>
           </CardContent>
         </Card>
       ))}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminScoresTable } from "@/components/admin-scores-table";
 import { z } from "zod";
@@ -72,6 +73,11 @@ export default async function AdminScoresPage({ searchParams }: Props) {
         <h1 className="text-2xl font-bold">Scores & results</h1>
         <p className="text-sm text-muted-foreground">
           Every stored result (verified or not). Edit scores, date, venue, and whether a result is public.
+        </p>
+        <p className="pt-2 text-sm">
+          <Link href="/admin/schedule-live" className="text-primary underline">
+            Schedule a live crowd scoreboard
+          </Link>
         </p>
       </div>
 

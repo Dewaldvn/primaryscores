@@ -7,11 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { schoolAdminScheduleLiveSessionAction } from "@/actions/school-admin-live";
+import type { SchoolSport } from "@/lib/sports";
 
-type TeamOpt = { id: string; label: string; schoolId: string; schoolName: string };
+type TeamOpt = {
+  id: string;
+  label: string;
+  schoolId: string;
+  schoolName: string;
+  sport: SchoolSport;
+  gender: string | null;
+};
 
 type SchoolHit = { id: string; displayName: string };
-type TeamHit = { id: string; label: string };
+type TeamHit = { id: string; label: string; sport: SchoolSport; gender: string | null };
 
 export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptions: TeamOpt[] }) {
   const router = useRouter();
@@ -58,8 +66,16 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
     };
   }, [awaySchoolQ]);
 
-  async function loadAwayTeamsForSchool(schoolId: string) {
-    const res = await fetch(`/api/teams/by-school?schoolId=${encodeURIComponent(schoolId)}`, {
+  async function loadAwayTeamsForSchool(
+    schoolId: string,
+    sport: SchoolSport,
+    hockeyGender: string | null | undefined
+  ) {
+    const params = new URLSearchParams({ schoolId, sport });
+    if (sport === "HOCKEY" && hockeyGender) {
+      params.set("gender", hockeyGender);
+    }
+    const res = await fetch(`/api/teams/by-school?${params.toString()}`, {
       cache: "no-store",
     });
     const rows = (await res.json()) as TeamHit[];
@@ -70,9 +86,15 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   }
 
   useEffect(() => {
-    if (!awaySchool) return;
-    void loadAwayTeamsForSchool(awaySchool.id);
-  }, [awaySchool]);
+    if (!awaySchool || !homeTeamId) return;
+    const home = homeTeamOptions.find((o) => o.id === homeTeamId);
+    if (!home) return;
+    void loadAwayTeamsForSchool(
+      awaySchool.id,
+      home.sport,
+      home.sport === "HOCKEY" ? home.gender : null
+    );
+  }, [awaySchool, homeTeamId, homeTeamOptions]);
 
   useEffect(() => {
     if (!awayTeamPick) return;

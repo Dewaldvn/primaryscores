@@ -130,7 +130,7 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             ) : null}
             {showAdmin ? (
               <Link
-                href="/admin"
+                href="/admin/scores"
                 className={cn(
                   navLinkClass,
                   "font-medium text-amber-700 dark:text-amber-400"

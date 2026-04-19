@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { GamesUnderway } from "@/components/games-underway";
+import { UpcomingScheduledSection } from "@/components/upcoming-scheduled-section";
+import { listScheduledLiveSessions } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { parseSportQueryParam, schoolSportLabel } from "@/lib/sports";
 
@@ -19,6 +21,10 @@ function qp(searchParams: Props["searchParams"], key: string): string | undefine
 export default async function LiveHubPage({ searchParams }: Props) {
   const signedIn = isDatabaseConfigured() ? Boolean(await getSessionUser()) : false;
   const sportFilter = parseSportQueryParam(qp(searchParams, "sport"));
+  const scheduledSessions = isDatabaseConfigured()
+    ? await listScheduledLiveSessions({ limit: 40, sport: sportFilter })
+    : [];
+
   return (
     <div className="space-y-8">
       <div>
@@ -39,7 +45,10 @@ export default async function LiveHubPage({ searchParams }: Props) {
         </p>
       </div>
       {isDatabaseConfigured() ? (
-        <GamesUnderway signedIn={signedIn} startImageAbove sportFilter={sportFilter} />
+        <>
+          <UpcomingScheduledSection sessions={scheduledSessions} variant="live" />
+          <GamesUnderway signedIn={signedIn} startImageAbove sportFilter={sportFilter} />
+        </>
       ) : null}
     </div>
   );

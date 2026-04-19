@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolAdminScheduleLiveForm } from "@/components/school-admin-schedule-live-form";
+import type { SchoolSport } from "@/lib/sports";
 import { getProfile } from "@/lib/auth";
 import { adminListTeamsForSchoolIds } from "@/lib/data/admin";
 import { listLiveSessionsByCreator } from "@/lib/data/live-sessions";
@@ -33,6 +34,8 @@ export default async function SchoolAdminScheduleLivePage() {
     id: r.team.id,
     schoolId: r.schoolId,
     schoolName: r.schoolName,
+    sport: r.team.sport as SchoolSport,
+    gender: r.team.gender,
     label: `${r.schoolName} · ${r.team.sport} ${r.team.ageGroup} ${r.team.teamLabel}${r.team.gender ? ` ${r.team.gender}` : ""}`,
   }));
 

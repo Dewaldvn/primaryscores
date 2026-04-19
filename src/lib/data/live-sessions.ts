@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 import { db } from "@/lib/db";
@@ -316,6 +316,42 @@ export async function listUnderwayLiveSessions(opts?: ListUnderwayLiveSessionsOp
     out.push(await rowToLiveSessionPublic(s, now, schoolLogoByNorm));
   }
   return out;
+}
+
+/** Scheduled scoreboards with a future go-live time, soonest first. */
+export async function listScheduledLiveSessions(
+  opts?: { limit?: number; offset?: number; sport?: SchoolSport }
+): Promise<LiveSessionClientRow[]> {
+  await processLiveSessionDeadlines();
+  const limitN = Math.min(Math.max(1, opts?.limit ?? 15), 50);
+  const offsetN = Math.min(Math.max(0, opts?.offset ?? 0), 500);
+  const now = new Date();
+  const includeTg = await liveSessionsHasTeamGenderColumn();
+  const sportClause = opts?.sport ? eq(liveSessions.sport, opts.sport) : undefined;
+  const base = and(
+    eq(liveSessions.status, "SCHEDULED"),
+    sql`${liveSessions.goesLiveAt} is not null`,
+    gte(liveSessions.goesLiveAt, now)
+  );
+  const whereClause = sportClause ? and(base, sportClause) : base;
+  const rows = await db
+    .select(liveSessionsSelectColumns(includeTg))
+    .from(liveSessions)
+    .where(whereClause)
+    .orderBy(asc(liveSessions.goesLiveAt))
+    .offset(offsetN)
+    .limit(limitN);
+
+  const namesForLogoLookup: string[] = [];
+  for (const s of rows) {
+    if (!s.homeLogoPath?.trim()) namesForLogoLookup.push(s.homeTeamName);
+    if (!s.awayLogoPath?.trim()) namesForLogoLookup.push(s.awayTeamName);
+  }
+  const schoolLogoByNorm = await batchResolveSchoolLogosByTeamNames(namesForLogoLookup);
+
+  return rows.map((s) =>
+    scheduledSessionToClientRow(s as LiveSessionRowForPublic, schoolLogoByNorm, undefined)
+  );
 }
 
 export async function getUnderwayLiveSessionById(sessionId: string): Promise<LiveSessionPublic | null> {

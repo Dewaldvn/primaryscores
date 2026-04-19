@@ -5,6 +5,7 @@ export type AdminNavLink = { readonly href: string; readonly label: string };
 export const ADMIN_NAV_LINKS: readonly AdminNavLink[] = [
   { href: "/moderator", label: "Moderation" },
   { href: "/admin/scores", label: "Scores" },
+  { href: "/admin/schedule-live", label: "Schedule a match" },
   { href: "/admin/import", label: "Import" },
   { href: "/admin/schools", label: "Schools" },
   { href: "/admin/teams", label: "Teams" },

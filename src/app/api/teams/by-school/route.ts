@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
       rows.map((r) => ({
         id: r.id,
         label: `${r.sport} ${r.ageGroup} ${r.teamLabel}${r.gender ? ` ${r.gender}` : ""}`,
+        sport: r.sport,
+        gender: r.gender,
       }))
     );
   } catch {

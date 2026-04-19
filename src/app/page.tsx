@@ -2,44 +2,58 @@ import Link from "next/link";
 import { LinkButton } from "@/components/link-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSessionUser } from "@/lib/auth";
-import { getRecentVerifiedResults } from "@/lib/data/results";
-import { listUnderwayLiveSessions, type LiveSessionPublic } from "@/lib/data/live-sessions";
+import { listRecentVerifiedResultsPaged } from "@/lib/data/results";
+import {
+  listScheduledLiveSessions,
+  listUnderwayLiveSessions,
+  type LiveSessionPublic,
+} from "@/lib/data/live-sessions";
 import { listFavouriteTeamsForProfile, type FavouriteTeamRow } from "@/lib/data/favourite-teams";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import { HomeHeroSection } from "@/components/home-hero-section";
 import { HomeSportPickTiles } from "@/components/home-sport-pick-tiles";
 import { HomeLiveScoresPeek } from "@/components/home-live-scores-peek";
+import { HomeUpcomingScheduledLoadMore } from "@/components/home-upcoming-scheduled-load-more";
 import { HomeFavouriteTeamsPeek } from "@/components/home-favourite-teams";
-import { RecentVerifiedScoreCards } from "@/components/recent-verified-score-cards";
+import { HomeRecentVerifiedLoadMore } from "@/components/home-recent-verified-load-more";
 import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
+import { getHomePageStats, type HomePageStats } from "@/lib/data/home-stats";
+import type { LiveSessionClientRow } from "@/lib/live-session-types";
 
 function isStatementTimeoutMessage(msg: string): boolean {
   return /statement timeout|57014|canceling statement/i.test(msg);
 }
 
 export default async function HomePage() {
-  let recent: Awaited<ReturnType<typeof getRecentVerifiedResults>> = [];
+  let recent: Awaited<ReturnType<typeof listRecentVerifiedResultsPaged>> = [];
   let livePeek: LiveSessionPublic[] = [];
   let databaseLoadError: string | null = null;
   let recentLoadError: string | null = null;
   let livePeekError: string | null = null;
   let favouriteTeams: FavouriteTeamRow[] = [];
+  let homeStats: HomePageStats | null = null;
+  let upcomingScheduled: LiveSessionClientRow[] = [];
 
   if (isDatabaseConfigured()) {
     try {
       const sessionUser = await getSessionUser();
       const settled = await withTimeout(
         Promise.allSettled([
-          getRecentVerifiedResults(8),
+          listRecentVerifiedResultsPaged(0, 8),
           listUnderwayLiveSessions({ limit: 5 }),
           sessionUser ? listFavouriteTeamsForProfile(sessionUser.id, 8) : Promise.resolve([] as FavouriteTeamRow[]),
+          getHomePageStats(),
+          listScheduledLiveSessions({ limit: 5, offset: 0 }),
         ]),
         PUBLIC_DB_QUERY_MS
       );
-      const [rr, rl, ft] = settled;
+      const [rr, rl, ft, hs, up] = settled;
       recent = rr.status === "fulfilled" ? rr.value : [];
       livePeek = rl.status === "fulfilled" ? rl.value : [];
       favouriteTeams = ft.status === "fulfilled" ? ft.value : [];
+      homeStats = hs.status === "fulfilled" ? hs.value : null;
+      upcomingScheduled = up.status === "fulfilled" ? up.value : [];
       if (rr.status === "rejected") {
         recentLoadError = rr.reason instanceof Error ? rr.reason.message : String(rr.reason);
       }
@@ -55,7 +69,7 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {databaseLoadError ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardHeader className="pb-2">
@@ -75,12 +89,14 @@ export default async function HomePage() {
         </Card>
       ) : null}
 
-      <section className="space-y-3">
-        <h1 className="text-center text-2xl font-semibold leading-snug tracking-tight text-blue-700 dark:text-blue-400 sm:text-3xl">
-          Schools Scores SA
-        </h1>
-        <HomeSportPickTiles />
+      <section className="space-y-5 sm:space-y-6">
+        <HomeHeroSection stats={homeStats} />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
+        <div className="space-y-3">
+          <h2 className="text-left text-lg font-semibold">Browse by sport</h2>
+          <HomeSportPickTiles />
+        </div>
+        {isDatabaseConfigured() ? <HomeUpcomingScheduledLoadMore initialSessions={upcomingScheduled} /> : null}
         {favouriteTeams.length > 0 ? <HomeFavouriteTeamsPeek rows={favouriteTeams} /> : null}
       </section>
 
@@ -127,7 +143,7 @@ export default async function HomePage() {
             </CardContent>
           </Card>
         ) : (
-          <RecentVerifiedScoreCards rows={recent} />
+          <HomeRecentVerifiedLoadMore initialRows={recent} />
         )}
       </section>
 

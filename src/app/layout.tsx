@@ -42,7 +42,7 @@ export default function RootLayout({
           <Suspense fallback={<SiteHeaderSkeleton />}>
             <SiteHeaderAsync />
           </Suspense>
-          <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
+          <div className="mx-auto max-w-6xl space-y-4 px-4 py-4 sm:py-5">
             <Suspense fallback={null}>
               <AdminBar />
             </Suspense>
