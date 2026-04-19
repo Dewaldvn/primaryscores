@@ -134,7 +134,11 @@ export async function listRecentVerifiedResultsPaged(
     .orderBy(desc(results.publishedAt))
     .offset(off)
     .limit(lim);
-  return rows.map(({ publishedAt: _p, ...rest }) => rest);
+  return rows.map((row) => {
+    const { publishedAt, ...rest } = row;
+    void publishedAt;
+    return rest;
+  });
 }
 
 /** Verified published results where both fixture teams are this sport (same shape as {@link getRecentVerifiedResults}). */

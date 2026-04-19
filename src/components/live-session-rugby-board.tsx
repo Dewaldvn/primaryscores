@@ -19,7 +19,6 @@ import {
 } from "@/actions/live-scores";
 import { schoolAdminCancelScheduledLiveSessionAction } from "@/actions/school-admin-live";
 import { cn } from "@/lib/utils";
-import { LIVE_AUTO_SUBMIT_AFTER_MIN } from "@/lib/live-constants";
 import { schoolSportLabel } from "@/lib/sports";
 import { SCORE_RESULT_FRAME_CLASS, SCORE_RESULT_FRAME_DASHED_CLASS } from "@/lib/score-result-frame";
 import { LiveSessionShareBar } from "@/components/live-session-share-bar";
