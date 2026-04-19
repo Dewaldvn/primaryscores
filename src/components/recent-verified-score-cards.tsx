@@ -8,6 +8,8 @@ import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 export type RecentVerifiedRow = {
   resultId: string;
@@ -34,7 +36,10 @@ export function RecentVerifiedScoreCards({ rows }: { rows: RecentVerifiedRow[] }
   return (
     <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2">
       {rows.map((r) => (
-        <Card key={r.resultId} className="relative overflow-hidden">
+        <Card
+          key={r.resultId}
+          className={cn(SCORE_RESULT_FRAME_CLASS, "relative overflow-hidden")}
+        >
           <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
           <CardHeader className="relative border-b bg-muted/30 px-4 py-4">
             <div className="absolute right-3 top-3 z-10">

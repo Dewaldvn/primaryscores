@@ -1,0 +1,40 @@
+---
+description: Schools Scores SA OKLCH color tokens and Tailwind usage — always follow when adding colors.
+globs:
+  - src/**/*.tsx
+  - src/**/*.css
+alwaysApply: false
+---
+
+## Source of truth
+
+Semantic colors live in `src/app/globals.css` (`:root` and `.dark`) as **OKLCH** CSS variables. Tailwind maps them in `tailwind.config.ts` (`bg-primary`, `border-border`, `text-accent`, etc.).
+
+## Rules
+
+1. **No raw hex or HSL** in new code. Use Tailwind tokens (`bg-primary`, `text-muted-foreground`) or arbitrary **OKLCH** only when listed in `globals.css` or the semantic table below.
+2. **Card chrome:** warm gold frame — `border-[1.28px] border-accent-border` (uses `--accent-border` in `globals.css`; tuned for contrast). Live/result emphasis uses the same via `SCORE_RESULT_FRAME_CLASS` in `src/lib/score-result-frame.ts`.
+3. **Dividers / inputs / list rows:** `border-border` — not on outer `Card` shells.
+4. **Do not add** `* { border-color: … }` in base layer; it overrides `border-accent/*`.
+5. **Dark mode:** rely on CSS vars (they switch under `.dark`) or add explicit `dark:` variants.
+6. **Tailwind palette classes** (`green-*`, `emerald-*`, …) — avoid except existing moderation badges in `verification-badge.tsx` and related.
+
+## Semantic one-offs (OKLCH in className when needed)
+
+| Purpose | Example |
+|--------|---------|
+| Moderator verified text | `text-[oklch(0.58_0.12_155)]` |
+| Moderator verified bg | `bg-[oklch(0.58_0.12_155/0.15)]` |
+| Source verified | `text-[oklch(0.54_0.10_180)]`, `bg-[oklch(0.54_0.10_180/0.15)]` |
+| Live / urgent | `text-destructive` or `--destructive` |
+| Wrap-up warning | `text-[oklch(0.55_0.14_70)]`, bg `bg-[oklch(0.90_0.08_85/0.3)]` |
+| Scheduled | sky tokens or OKLCH from live session components |
+
+## Examples
+
+```tsx
+<div className="bg-primary text-primary-foreground" />
+<div className="border-[1.28px] border-accent-border bg-card" />
+<div className="bg-muted/15 text-muted-foreground" />
+<div className="bg-destructive/10 text-destructive" />
+```

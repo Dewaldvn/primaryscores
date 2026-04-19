@@ -3,19 +3,26 @@
 import { format } from "date-fns";
 import { ProfileAvatar } from "@/components/profile-avatar";
 import type { LiveScoreFeedItem } from "@/lib/live-session-types";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 export function LiveScoreFeedAside({ items }: { items: LiveScoreFeedItem[] }) {
   if (items.length === 0) {
     return (
-      <aside className="rounded-lg border bg-muted/20 p-4 text-center text-xs text-muted-foreground">
+      <aside className={cn(SCORE_RESULT_FRAME_CLASS, "rounded-lg bg-muted/20 p-4 text-center text-xs text-muted-foreground")}>
         No score updates yet. Updates appear here when people submit their view.
       </aside>
     );
   }
 
   return (
-    <aside className="flex max-h-[min(70vh,560px)] flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
-      <div className="shrink-0 border-b bg-muted/30 px-3 py-2">
+    <aside
+      className={cn(
+        SCORE_RESULT_FRAME_CLASS,
+        "flex max-h-[min(70vh,560px)] flex-col overflow-hidden rounded-lg bg-card shadow-sm"
+      )}
+    >
+      <div className="shrink-0 border-b border-border bg-muted/30 px-3 py-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Score activity</h2>
         <p className="text-[11px] text-muted-foreground">Newest first</p>
       </div>

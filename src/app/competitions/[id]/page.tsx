@@ -9,6 +9,8 @@ import { listVerifiedResults } from "@/lib/data/results";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 type Props = { params: { id: string } };
 
@@ -29,7 +31,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
         </p>
       </div>
       {rows.length === 0 ? (
-        <Card>
+        <Card className={SCORE_RESULT_FRAME_CLASS}>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             No verified results linked to this competition.
           </CardContent>
@@ -38,7 +40,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.resultId}>
-              <Card className="relative">
+              <Card className={cn(SCORE_RESULT_FRAME_CLASS, "relative")}>
                 <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
                 <CardContent className="flex flex-col gap-2 pb-8 pt-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm">

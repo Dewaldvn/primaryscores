@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LiveSessionDetailClient } from "@/components/live-session-detail-client";
 import { getProfile, getSessionUser } from "@/lib/auth";
@@ -20,16 +19,7 @@ export default async function LiveGamePage({ params }: Props) {
   const isAdmin = profile?.role === "ADMIN";
 
   return (
-    <main className="container max-w-5xl space-y-6 py-8">
-      <div>
-        <Link href="/" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-          ← Games underway
-        </Link>
-        <h1 className="mt-2 text-xl font-semibold">Live score</h1>
-        <p className="text-sm text-muted-foreground">
-          Crowd majority score · refreshes every few seconds. Sign in to add your view.
-        </p>
-      </div>
+    <main className="container max-w-5xl px-4 py-6 sm:py-8">
       <LiveSessionDetailClient sessionId={id} signedIn={Boolean(sessionUser)} isAdmin={isAdmin} />
     </main>
   );

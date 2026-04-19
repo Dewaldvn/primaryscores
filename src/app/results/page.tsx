@@ -16,6 +16,8 @@ import { withTimeout } from "@/lib/with-timeout";
 import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
 import { parseSportQueryParam } from "@/lib/sports";
 import { parseTeamGenderQueryParam } from "@/lib/team-gender";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 type Props = { searchParams: Record<string, string | string[] | undefined> };
 
@@ -133,7 +135,7 @@ export default async function ResultsPage({ searchParams }: Props) {
       />
 
       {rows.length === 0 ? (
-        <Card>
+        <Card className={SCORE_RESULT_FRAME_CLASS}>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             No results match these filters, or the database is empty. Try clearing filters or seeding demo
             data.
@@ -143,7 +145,12 @@ export default async function ResultsPage({ searchParams }: Props) {
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.resultId}>
-              <Card className="relative transition-colors hover:bg-muted/30">
+              <Card
+                className={cn(
+                  SCORE_RESULT_FRAME_CLASS,
+                  "relative transition-colors hover:bg-muted/30"
+                )}
+              >
                 <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
                 <Link
                   href={`/matches/${r.fixtureId}`}

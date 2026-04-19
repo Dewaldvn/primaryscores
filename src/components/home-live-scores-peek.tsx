@@ -4,6 +4,8 @@ import { SchoolLogo } from "@/components/school-logo";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import type { LiveSessionPublic } from "@/lib/data/live-sessions";
 import { schoolSportLabel, type SchoolSport } from "@/lib/sports";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 export function HomeLiveScoresPeek({
   sessions,
@@ -17,7 +19,7 @@ export function HomeLiveScoresPeek({
 }) {
   const liveHref = sportFilter ? `/live?sport=${sportFilter}` : "/live";
   return (
-    <div className="rounded-lg border bg-muted/15 px-3 py-3 sm:px-4">
+    <div className={cn(SCORE_RESULT_FRAME_CLASS, "rounded-lg bg-muted/15 px-3 py-3 sm:px-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">
           {sportFilter ? `${schoolSportLabel(sportFilter)} live scores` : "Live scores"}
@@ -47,7 +49,7 @@ export function HomeLiveScoresPeek({
           .
         </p>
       ) : (
-        <ul className="mt-2 divide-y rounded-md border bg-background/80 text-sm">
+        <ul className="mt-2 divide-y rounded-md bg-background/80 text-sm">
           {sessions.map((s) => (
             <li key={s.id} className="relative">
               <ScoreCardSportIcons sport={s.sport} teamGender={s.teamGender} className="bottom-2 left-2 z-[2]" />

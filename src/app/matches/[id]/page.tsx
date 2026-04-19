@@ -9,6 +9,8 @@ import { isDatabaseConfigured } from "@/lib/db-safe";
 import { getSessionUser } from "@/lib/auth";
 import { DisputeScoreDialog } from "@/components/dispute-score-dialog";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { id: string } };
@@ -58,7 +60,7 @@ export default async function MatchPage({ params }: Props) {
         </p>
       </div>
 
-      <Card className="relative">
+      <Card className={cn(SCORE_RESULT_FRAME_CLASS, "relative")}>
         <ScoreCardSportIcons sport={row.sport} teamGender={row.teamGender} />
         <CardHeader className="justify-items-center text-center">
           <CardTitle className="text-lg">Final score</CardTitle>

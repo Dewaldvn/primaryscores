@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { TurnstilePlaceholder } from "@/components/turnstile-placeholder";
 import { createLiveSessionAction } from "@/actions/live-scores";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import type { LiveSessionClientRow, LiveSessionMajority } from "@/lib/live-session-types";
@@ -233,7 +235,7 @@ export function GamesUnderway({
       {loadErr ? <p className="text-sm text-destructive">{loadErr}</p> : null}
 
       {sessions.length === 0 ? (
-        <Card>
+        <Card className={SCORE_RESULT_FRAME_CLASS}>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             {debouncedSearch
               ? "No live games match your search."
@@ -271,7 +273,12 @@ function CompactLiveSessionCard({
       href={`/live/${s.id}`}
       className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
-      <Card className="relative h-full overflow-hidden transition-colors hover:bg-muted/50">
+      <Card
+        className={cn(
+          SCORE_RESULT_FRAME_CLASS,
+          "relative h-full overflow-hidden transition-colors hover:bg-muted/50"
+        )}
+      >
         <ScoreCardSportIcons sport={s.sport} teamGender={s.teamGender} />
         <CardHeader className="pb-2 pt-4 text-center">
           {showSportBadge ? (

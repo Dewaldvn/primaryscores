@@ -1,5 +1,8 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_DASHED_CLASS } from "@/lib/score-result-frame";
+
 /**
  * Client hook for Cloudflare Turnstile. When site key is unset, no token is produced
  * and server-side verification is skipped (development-friendly).
@@ -13,7 +16,7 @@ export function TurnstilePlaceholder({
 
   if (!siteKey || siteKey === "placeholder") {
     return (
-      <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+      <div className={cn(SCORE_RESULT_FRAME_DASHED_CLASS, "rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground")}>
         Turnstile not configured (set{" "}
         <code className="text-xs">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code>). Submissions still work in dev.
       </div>
@@ -22,7 +25,7 @@ export function TurnstilePlaceholder({
 
   return (
     <div
-      className="cf-turnstile min-h-[65px] rounded-md border bg-muted/30"
+      className="cf-turnstile min-h-[65px] rounded-md border border-border bg-muted/30"
       data-sitekey={siteKey}
       ref={(el) => {
         if (!el || typeof window === "undefined") return;

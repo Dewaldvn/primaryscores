@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { LiveSessionActiveCard } from "@/components/live-session-active-card";
 import { LiveScoreFeedAside } from "@/components/live-score-feed-aside";
 import { LiveSessionShareBar } from "@/components/live-session-share-bar";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 import type { LiveScoreFeedItem, LiveSessionClientRow, LiveSessionViewer } from "@/lib/live-session-types";
 
 const POLL_MS = 15_000;
@@ -116,14 +118,27 @@ export function LiveSessionDetailClient({
   }
 
   const { session, scoreFeed, viewer } = payload;
+  /** Rugby / Netball / Hockey / Soccer use the tap-vote board (share strip inside the board). */
+  const tapVoteBoardLayout =
+    session.sport === "RUGBY" ||
+    session.sport === "NETBALL" ||
+    session.sport === "HOCKEY" ||
+    session.sport === "SOCCER";
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-      <div className="rounded-lg border bg-card p-3 text-center text-sm">
-        <p className="mb-2 text-muted-foreground">Share this score</p>
-        <LiveSessionShareBar session={session} />
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr),minmax(200px,260px)] lg:items-start">
+    <div className={cn("mx-auto flex w-full flex-col gap-4", tapVoteBoardLayout ? "max-w-3xl" : "max-w-5xl")}>
+      {!tapVoteBoardLayout ? (
+        <div className={cn(SCORE_RESULT_FRAME_CLASS, "rounded-lg bg-card p-3 text-center text-sm")}>
+          <p className="mb-2 text-muted-foreground">Share this score</p>
+          <LiveSessionShareBar session={session} />
+        </div>
+      ) : null}
+      <div
+        className={cn(
+          "grid gap-4",
+          !tapVoteBoardLayout && "lg:grid-cols-[minmax(0,1fr),minmax(200px,260px)] lg:items-start"
+        )}
+      >
         <div className="min-w-0 space-y-4">
           <LiveSessionActiveCard
             session={session}

@@ -21,6 +21,8 @@ import { TeamFavouriteButton } from "@/components/team-favourite-button";
 import { formatTeamListingSubtitle } from "@/lib/format-team";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
+import { cn } from "@/lib/utils";
+import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 
 type Props = { params: { slug: string } };
 
@@ -181,7 +183,7 @@ export default async function SchoolPage({ params }: Props) {
           <ul className="space-y-3">
             {results.map((r) => (
               <li key={r.resultId}>
-                <Card className="relative">
+                <Card className={cn(SCORE_RESULT_FRAME_CLASS, "relative")}>
                   <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
                   <CardContent className="flex flex-col gap-2 pb-8 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
