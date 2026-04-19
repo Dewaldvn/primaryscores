@@ -17,7 +17,7 @@ export type HeaderProfile = {
 export function SiteHeader({ profile }: { profile: HeaderProfile }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-start justify-between gap-2 px-4 py-3 sm:items-center sm:gap-4 sm:py-4">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4 sm:py-4">
         <Link
           href="/"
           className="group flex shrink-0 items-center rounded-md py-0.5 pr-1 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:pr-2"
@@ -34,58 +34,58 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
             />
           </span>
         </Link>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <nav
-            className="hidden items-center gap-x-0.5 text-sm lg:flex"
-            aria-label="Main"
+        <nav
+          className="hidden min-w-0 flex-1 items-center justify-center gap-x-0.5 text-sm lg:flex"
+          aria-label="Main"
+        >
+          <SiteHeaderNavSportDropdown
+            label="Live Scores"
+            basePath="/live"
+            variant="muted"
+            ariaLabel="Live scores by sport"
+          />
+          <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+            |
+          </span>
+          <SiteHeaderNavSportDropdown
+            label="Results"
+            basePath="/results"
+            variant="muted"
+            ariaLabel="Results by sport"
+          />
+          <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+            |
+          </span>
+          <SiteHeaderNavSportDropdown
+            label="Submit"
+            basePath="/submit"
+            variant="primary"
+            ariaLabel="Submit a score by sport"
+          />
+          <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+            |
+          </span>
+          <Link
+            href="/find-school"
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <SiteHeaderNavSportDropdown
-              label="Live Scores"
-              basePath="/live"
-              variant="muted"
-              ariaLabel="Live scores by sport"
-            />
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <SiteHeaderNavSportDropdown
-              label="Results"
-              basePath="/results"
-              variant="muted"
-              ariaLabel="Results by sport"
-            />
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <SiteHeaderNavSportDropdown
-              label="Submit"
-              basePath="/submit"
-              variant="primary"
-              ariaLabel="Submit a score by sport"
-            />
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <Link
-              href="/find-school"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Schools
-            </Link>
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <Link
-              href="/about"
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              About
-            </Link>
-            <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
-              |
-            </span>
-            <GlobalSearchOpenButton className="inline-flex" title="Search (⌘K)" />
-          </nav>
+            Schools
+          </Link>
+        </nav>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <Link
+            href="/about"
+            className="hidden rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground lg:inline-flex"
+          >
+            About
+          </Link>
+          <span
+            className="hidden select-none px-1 text-muted-foreground/60 lg:inline"
+            aria-hidden="true"
+          >
+            |
+          </span>
+          <GlobalSearchOpenButton className="hidden lg:inline-flex" title="Search (⌘K)" />
           <SiteHeaderMobileNav profile={profile} />
           <GlobalSearchOpenButton className="inline-flex lg:hidden" title="Search" />
           {profile ? (

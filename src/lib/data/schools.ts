@@ -19,12 +19,73 @@ const awayTeam = alias(teams, "away_team_m");
 const homeSchool = alias(schools, "home_school_m");
 const awaySchool = alias(schools, "away_school_m");
 
+/** Schools must have at least one active team in this sport (and optional gender for hockey-style splits). */
+function schoolHasActiveTeamInSport(sport: SchoolSport, gender?: TeamGender) {
+  if (gender != null) {
+    return sql`exists (
+      select 1 from ${teams}
+      where ${teams.schoolId} = ${schools.id}
+        and ${teams.active} = true
+        and ${teams.sport} = ${sport}
+        and ${teams.gender} = ${gender}
+    )`;
+  }
+  return sql`exists (
+    select 1 from ${teams}
+    where ${teams.schoolId} = ${schools.id}
+      and ${teams.active} = true
+      and ${teams.sport} = ${sport}
+  )`;
+}
+
+function representativeTeamIdSql(opts?: { sport?: SchoolSport; gender?: TeamGender }) {
+  return opts?.sport != null && opts?.gender != null
+    ? sql<string | null>`(
+        select ${teams.id}
+        from ${teams}
+        where ${teams.schoolId} = ${schools.id}
+          and ${teams.active} = true
+          and ${teams.sport} = ${opts.sport}
+          and ${teams.gender} = ${opts.gender}
+        order by ${teams.ageGroup}, ${teams.teamLabel}
+        limit 1
+      )`.as("rep_team_id")
+    : opts?.sport != null
+      ? sql<string | null>`(
+          select ${teams.id}
+          from ${teams}
+          where ${teams.schoolId} = ${schools.id}
+            and ${teams.active} = true
+            and ${teams.sport} = ${opts.sport}
+          order by ${teams.ageGroup}, ${teams.teamLabel}
+          limit 1
+        )`.as("rep_team_id")
+      : sql<string | null>`(
+          select ${teams.id}
+          from ${teams}
+          where ${teams.schoolId} = ${schools.id}
+            and ${teams.active} = true
+            and ${teams.ageGroup} = 'U13'
+            and ${teams.sport} = 'RUGBY'
+          order by ${teams.teamLabel}
+          limit 1
+        )`.as("rep_team_id");
+}
+
 export const listProvinces = cache(async function listProvinces() {
   return db.select().from(provinces).orderBy(provinces.name);
 });
 
-export const listSchoolsByProvince = cache(async function listSchoolsByProvince(provinceId: string, limit = 250) {
+export const listSchoolsByProvince = cache(async function listSchoolsByProvince(
+  provinceId: string,
+  limit = 250,
+  opts?: { sport?: SchoolSport; gender?: TeamGender }
+) {
   const cap = Math.min(Math.max(1, limit), 500);
+  const u13TeamId = representativeTeamIdSql(opts);
+  const sportFilter =
+    opts?.sport != null ? schoolHasActiveTeamInSport(opts.sport, opts.gender) : undefined;
+
   return db
     .select({
       id: schools.id,
@@ -33,20 +94,17 @@ export const listSchoolsByProvince = cache(async function listSchoolsByProvince(
       town: schools.town,
       provinceName: provinces.name,
       logoPath: schools.logoPath,
-      u13TeamId: teams.id,
+      u13TeamId,
     })
     .from(schools)
     .innerJoin(provinces, eq(schools.provinceId, provinces.id))
-    .leftJoin(
-      teams,
+    .where(
       and(
-        eq(teams.schoolId, schools.id),
-        eq(teams.ageGroup, "U13"),
-        eq(teams.sport, "RUGBY"),
-        eq(teams.active, true)
+        eq(schools.active, true),
+        eq(schools.provinceId, provinceId),
+        ...(sportFilter ? [sportFilter] : [])
       )
     )
-    .where(and(eq(schools.active, true), eq(schools.provinceId, provinceId)))
     .orderBy(schools.displayName)
     .limit(cap);
 });
@@ -59,38 +117,10 @@ export async function searchSchools(
   const term = `%${q.trim()}%`;
   if (q.trim().length < 2) return [];
 
-  const u13TeamId =
-    opts?.sport != null && opts?.gender != null
-      ? sql<string | null>`(
-          select ${teams.id}
-          from ${teams}
-          where ${teams.schoolId} = ${schools.id}
-            and ${teams.active} = true
-            and ${teams.sport} = ${opts.sport}
-            and ${teams.gender} = ${opts.gender}
-          order by ${teams.ageGroup}, ${teams.teamLabel}
-          limit 1
-        )`.as("u13_team_id")
-      : opts?.sport != null
-        ? sql<string | null>`(
-            select ${teams.id}
-            from ${teams}
-            where ${teams.schoolId} = ${schools.id}
-              and ${teams.active} = true
-              and ${teams.sport} = ${opts.sport}
-            order by ${teams.ageGroup}, ${teams.teamLabel}
-            limit 1
-          )`.as("u13_team_id")
-        : sql<string | null>`(
-          select ${teams.id}
-          from ${teams}
-          where ${teams.schoolId} = ${schools.id}
-            and ${teams.active} = true
-            and ${teams.ageGroup} = 'U13'
-            and ${teams.sport} = 'RUGBY'
-          order by ${teams.teamLabel}
-          limit 1
-        )`.as("u13_team_id");
+  const u13TeamId = representativeTeamIdSql(opts);
+
+  const sportFilter =
+    opts?.sport != null ? schoolHasActiveTeamInSport(opts.sport, opts.gender) : undefined;
 
   const includeNickname = await schoolsHasNicknameColumn();
   const schoolNameMatch = includeNickname
@@ -116,7 +146,8 @@ export async function searchSchools(
     .where(
       and(
         eq(schools.active, true),
-        schoolNameMatch!
+        schoolNameMatch!,
+        ...(sportFilter ? [sportFilter] : [])
       )
     )
     .orderBy(schools.displayName)

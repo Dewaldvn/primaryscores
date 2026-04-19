@@ -40,7 +40,13 @@ export default async function FindSchoolPage({ searchParams }: Props) {
   const searchGender = parseTeamGenderQueryParam(qp(searchParams, "gender"));
 
   const [provinces, user] = await Promise.all([listProvinces(), getSessionUser()]);
-  const rawSchools = provinceId ? await listSchoolsByProvince(provinceId) : [];
+  const rawSchools = provinceId
+    ? await listSchoolsByProvince(
+        provinceId,
+        250,
+        searchSport ? { sport: searchSport, gender: searchGender } : undefined
+      )
+    : [];
   const schoolsInProvince = dedupeSchoolsById(rawSchools);
   const selectedProvinceName = provinceId ? provinces.find((p) => p.id === provinceId)?.name ?? null : null;
 
@@ -54,12 +60,15 @@ export default async function FindSchoolPage({ searchParams }: Props) {
           <Link href="/add-team" className="text-primary underline-offset-4 hover:underline">
             Missing a school or team?
           </Link>
-          {searchSport
-            ? ` Name search is filtered to schools with an active ${schoolSportLabel(searchSport)} team in the database.`
-            : null}
-          {searchSport === "HOCKEY" && searchGender
-            ? ` Showing ${teamGenderLabel(searchGender).toLowerCase()} teams only.`
-            : null}
+          {searchSport ? (
+            <>
+              {" "}
+              Search and province lists only include schools that have at least one active{" "}
+              {schoolSportLabel(searchSport)}
+              {searchSport === "HOCKEY" && searchGender ? ` (${teamGenderLabel(searchGender)})` : ""} team in the
+              database.
+            </>
+          ) : null}
         </p>
         {searchSport === "HOCKEY" && !searchGender ? (
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">

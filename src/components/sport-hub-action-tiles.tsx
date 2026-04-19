@@ -1,6 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { SchoolSport } from "@/lib/sports";
+import {
+  contributeToLiveScoringTileImage,
+  submitPreviousScoreTileImage,
+  type SchoolSport,
+} from "@/lib/sports";
 
 const tileClass =
   "block min-h-0 min-w-0 w-full p-0 transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
@@ -17,15 +21,18 @@ function withSport(base: string, sport: SchoolSport) {
 }
 
 export function SportHubActionTiles({ sport }: { sport: SchoolSport }) {
+  const liveTile = contributeToLiveScoringTileImage(sport);
+  const submitTile = submitPreviousScoreTileImage(sport);
+
   return (
     <section className="mx-auto grid w-full max-w-5xl grid-cols-2 items-center justify-items-stretch gap-2 sm:grid-cols-4 sm:gap-3 md:gap-4">
       <Link href={withSport("/live", sport)} className={tileClass}>
         <div className={frameClass}>
           <Image
-            src="/brand/contribute_to_live_scoring.png"
+            src={liveTile.src}
             alt="Contribute to live scoring — open live games"
-            width={800}
-            height={500}
+            width={liveTile.width}
+            height={liveTile.height}
             className={imgClass}
             sizes="(max-width: 640px) 50vw, 25vw"
             priority
@@ -35,10 +42,10 @@ export function SportHubActionTiles({ sport }: { sport: SchoolSport }) {
       <Link href={withSport("/submit", sport)} className={tileClass}>
         <div className={frameClass}>
           <Image
-            src="/brand/submit_a_score.png"
+            src={submitTile.src}
             alt="Submit a previous score"
-            width={729}
-            height={675}
+            width={submitTile.width}
+            height={submitTile.height}
             className={imgClass}
             sizes="(max-width: 640px) 50vw, 25vw"
             priority

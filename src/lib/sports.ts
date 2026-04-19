@@ -46,3 +46,39 @@ export function sportFromRouteSlug(slug: string): SchoolSport | undefined {
 export function sportToRouteSlug(s: SchoolSport): SportRouteSlug {
   return SPORT_TO_SLUG[s];
 }
+
+/** Brand tile on sport hub: “Contribute to live scoring”. */
+export function contributeToLiveScoringTileImage(sport: SchoolSport): {
+  src: string;
+  width: number;
+  height: number;
+} {
+  switch (sport) {
+    case "SOCCER":
+      return { src: "/brand/contribute_to_live_scoring_soccer.png", width: 489, height: 514 };
+    case "HOCKEY":
+      return { src: "/brand/contribute_to_live_scoring_hockey.png", width: 486, height: 482 };
+    case "NETBALL":
+      return { src: "/brand/contribute_to_live_scoring_netball.png", width: 493, height: 513 };
+    case "RUGBY":
+      return { src: "/brand/contribute_to_live_scoring.png", width: 800, height: 500 };
+  }
+}
+
+/** Brand tile on sport hub: “Submit a previous score”. */
+export function submitPreviousScoreTileImage(sport: SchoolSport): {
+  src: string;
+  width: number;
+  height: number;
+} {
+  switch (sport) {
+    case "SOCCER":
+      return { src: "/brand/submit_previous_soccer.png", width: 500, height: 491 };
+    case "HOCKEY":
+      return { src: "/brand/submit_previous_hockey.png", width: 483, height: 494 };
+    case "NETBALL":
+      return { src: "/brand/submit_previous_netball.png", width: 500, height: 491 };
+    case "RUGBY":
+      return { src: "/brand/submit_a_score.png", width: 729, height: 675 };
+  }
+}
