@@ -63,6 +63,8 @@ export async function createLiveSessionAction(input: unknown) {
     homeLogoPath: parsed.data.homeLogoPath?.trim() || null,
     awayLogoPath: parsed.data.awayLogoPath?.trim() || null,
     venue: parsed.data.venue ?? null,
+    seasonId: null,
+    competitionId: null,
     createdByUserId: user.id,
   });
   return { ok: true as const, sessionId: row.id };

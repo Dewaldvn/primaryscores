@@ -28,11 +28,8 @@ type ImportResponse =
 
 export function AdminSchoolsImportPanel() {
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<"csv" | "xlsx">("csv");
   const [resp, setResp] = useState<ImportResponse | null>(null);
   const [pending, start] = useTransition();
-
-  const templateHref = `/api/admin/import/schools-template?format=${format}`;
 
   const summary = useMemo(() => {
     if (!resp || !resp.ok) return null;
@@ -79,32 +76,12 @@ export function AdminSchoolsImportPanel() {
           For logos in bulk, provide <span className="font-medium text-foreground">logo_url</span> (public image URL).
           If omitted, you can still upload logos per school later.
         </p>
-        <a
-          href={templateHref}
-          className="inline-flex text-primary underline-offset-4 hover:underline"
-        >
-          Download schools import template
-        </a>
-      </div>
-
-      <div className="max-w-xs space-y-1">
-        <Label htmlFor="schools-import-format">Template and file format</Label>
-        <select
-          id="schools-import-format"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-          value={format}
-          onChange={(e) => setFormat((e.target.value as "csv" | "xlsx") || "csv")}
-          disabled={pending}
-        >
-          <option value="csv">CSV (.csv)</option>
-          <option value="xlsx">Excel (.xlsx)</option>
-        </select>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-1">
           <label className="text-sm font-medium" htmlFor="schools-import-file">
-            CSV file
+            Upload and Import
           </label>
           <Input
             id="schools-import-file"
@@ -115,7 +92,7 @@ export function AdminSchoolsImportPanel() {
           />
         </div>
         <Button type="button" onClick={upload} disabled={pending || !file}>
-          {pending ? "Importing..." : "Upload & import"}
+          {pending ? "Importing..." : "Upload and Import"}
         </Button>
       </div>
 

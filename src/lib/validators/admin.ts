@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { normalizeAgeGroupInput } from "@/lib/age-group";
+import { ALL_DEFAULT_TEAM_CODES } from "@/lib/school-default-teams";
 
 const schoolSportEnum = z.enum(["RUGBY", "NETBALL", "HOCKEY", "SOCCER"]);
+const schoolTypeEnum = z.enum(["PRIMARY", "SECONDARY", "COMBINED"]);
+const defaultSchoolTeamCodeEnum = z.enum(ALL_DEFAULT_TEAM_CODES as unknown as [string, ...string[]]);
 const teamGenderEnum = z.enum(["MALE", "FEMALE"]);
 
 export const schoolUpsertSchema = z.object({
@@ -13,6 +16,18 @@ export const schoolUpsertSchema = z.object({
     z.string().max(120).nullable().optional()
   ),
   slug: z.string().min(2).optional(),
+  schoolType: z.preprocess(
+    (v) => (v == null || String(v).trim() === "" ? "PRIMARY" : String(v).trim().toUpperCase()),
+    schoolTypeEnum
+  ),
+  defaultTeamCodes: z.preprocess(
+    (v) => {
+      if (v == null) return undefined;
+      if (Array.isArray(v)) return v;
+      return [v];
+    },
+    z.array(defaultSchoolTeamCodeEnum).optional()
+  ),
   provinceId: z.string().uuid(),
   town: z.string().optional().nullable(),
   website: z.preprocess(

@@ -8,8 +8,11 @@ declare global {
   var __prssa_postgres: ReturnType<typeof postgres> | undefined;
 }
 
-/** Raise Postgres session statement_timeout so simple queries are not killed by aggressive pool defaults. */
-const SESSION_STATEMENT_TIMEOUT_MS = 120_000;
+/**
+ * Keep DB statement timeout below public page timeout to avoid zombie queries occupying the pool
+ * after UI-level timeouts (e.g. home page uses 20s guard).
+ */
+const SESSION_STATEMENT_TIMEOUT_MS = 15_000;
 
 function mergeStatementTimeout(urlString: string): string {
   if (/statement_timeout/i.test(urlString)) return urlString;

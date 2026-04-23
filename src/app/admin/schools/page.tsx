@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSchoolForm } from "@/components/admin-school-form";
+import { AdminSchoolsDirectorySearch } from "@/components/admin-schools-directory-search";
 import { SchoolLogo } from "@/components/school-logo";
 import { adminListSchools } from "@/lib/data/admin";
 import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
@@ -27,7 +28,15 @@ export default async function AdminSchoolsPage({ searchParams }: PageProps) {
     return <p className="text-sm text-muted-foreground">Configure DATABASE_URL first.</p>;
   }
   await ensureU13TeamsForSchoolsMissingThem();
-  const [rows, provinces] = await Promise.all([adminListSchools(), listProvinces()]);
+  const schoolSearch = qp(searchParams, "q");
+  const [rows, provinces] = await Promise.all([
+    adminListSchools({
+      search: schoolSearch || undefined,
+      latestFirst: true,
+      limit: 15,
+    }),
+    listProvinces(),
+  ]);
   const newSchoolDisplay = qp(searchParams, "newSchoolDisplay");
   const prefillNew =
     newSchoolDisplay.length > 0
@@ -38,14 +47,17 @@ export default async function AdminSchoolsPage({ searchParams }: PageProps) {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Schools</h1>
-        <p className="text-sm text-muted-foreground">Create and edit primary schools.</p>
+        <p className="text-sm text-muted-foreground">
+          Create and edit schools. Directory shows the latest 15 added schools{schoolSearch ? " matching search" : ""}.
+        </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Directory</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="space-y-4 overflow-x-auto">
+          <AdminSchoolsDirectorySearch initialValue={schoolSearch} />
           <Table>
             <TableHeader>
               <TableRow>
@@ -83,6 +95,13 @@ export default async function AdminSchoolsPage({ searchParams }: PageProps) {
                   </TableCell>
                 </TableRow>
               ))}
+              {rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
+                    No schools found.
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </CardContent>

@@ -5,10 +5,13 @@ import { schools, teams } from "@/db/schema";
 import { findOpenLiveSessionDuplicate, insertLiveSessionRow } from "@/lib/data/live-sessions";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 
 export const liveScheduleInputSchema = z.object({
   homeTeamId: z.string().uuid(),
   awayTeamId: z.string().uuid(),
+  seasonId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
+  competitionId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
   venue: z.string().max(300).optional().nullable(),
   goesLiveAtIso: z.string().min(8),
 });
@@ -73,6 +76,9 @@ export async function runLiveSessionSchedule(
   if (awayRow.team.sport !== sport) {
     return { ok: false, error: "Both teams must be the same sport." };
   }
+  if (!sameAgeGroupBand(awayRow.team.ageGroup, homeRow.team.ageGroup)) {
+    return { ok: false, error: "Both teams must be in the same age group (e.g. U13 vs U13)." };
+  }
 
   const homeName = teamLiveLabel(homeRow.schoolName, homeRow.team);
   const awayName = teamLiveLabel(awayRow.schoolName, awayRow.team);
@@ -110,6 +116,8 @@ export async function runLiveSessionSchedule(
     homeLogoPath: homeRow.schoolLogo?.trim() || null,
     awayLogoPath: awayRow.schoolLogo?.trim() || null,
     venue: parsed.venue?.trim() || null,
+    seasonId: parsed.seasonId ?? null,
+    competitionId: parsed.competitionId ?? null,
     createdByUserId,
     status: isFuture ? "SCHEDULED" : "ACTIVE",
     goesLiveAt: isFuture ? goesLive : null,

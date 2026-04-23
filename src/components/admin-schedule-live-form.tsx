@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,15 @@ import { adminScheduleLiveSessionAction } from "@/actions/admin-schedule-live";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 type SchoolHit = { id: string; displayName: string };
-type TeamHit = { id: string; label: string; sport: SchoolSport; gender: string | null };
+type TeamHit = { id: string; label: string; sport: SchoolSport; ageGroup: string; gender: string | null };
 
-export function AdminScheduleLiveForm() {
+export function AdminScheduleLiveForm({
+  seasonOptions,
+  competitionOptions,
+}: {
+  seasonOptions: { id: string; label: string }[];
+  competitionOptions: { id: string; label: string }[];
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -33,6 +39,8 @@ export function AdminScheduleLiveForm() {
   const [awayTeamId, setAwayTeamId] = useState("");
 
   const [venue, setVenue] = useState("");
+  const [seasonId, setSeasonId] = useState("");
+  const [competitionId, setCompetitionId] = useState("");
   const [goesLocal, setGoesLocal] = useState("");
 
   const homeTeamMeta = homeTeamHits.find((h) => h.id === homeTeamPick) ?? null;
@@ -81,34 +89,40 @@ export function AdminScheduleLiveForm() {
     };
   }, [awaySchoolQ]);
 
-  async function fetchTeamsForSchool(schoolId: string, role: "home" | "away") {
-    const params = new URLSearchParams({ schoolId, sport });
-    if (role === "away" && sport === "HOCKEY" && homeTeamMeta?.gender) {
-      params.set("gender", homeTeamMeta.gender);
-    }
-    const res = await fetch(`/api/teams/by-school?${params.toString()}`, { cache: "no-store" });
-    const rows = (await res.json()) as TeamHit[];
-    const list = Array.isArray(rows) ? rows : [];
-    if (role === "home") {
-      setHomeTeamHits(list);
-      setHomeTeamPick("");
-      setHomeTeamId("");
-    } else {
-      setAwayTeamHits(list);
-      setAwayTeamPick("");
-      setAwayTeamId("");
-    }
-  }
+  const fetchTeamsForSchool = useCallback(
+    async (schoolId: string, role: "home" | "away") => {
+      const params = new URLSearchParams({ schoolId, sport });
+      if (role === "away" && sport === "HOCKEY" && homeTeamMeta?.gender) {
+        params.set("gender", homeTeamMeta.gender);
+      }
+      if (role === "away" && homeTeamMeta?.ageGroup) {
+        params.set("ageGroup", homeTeamMeta.ageGroup);
+      }
+      const res = await fetch(`/api/teams/by-school?${params.toString()}`, { cache: "no-store" });
+      const rows = (await res.json()) as TeamHit[];
+      const list = Array.isArray(rows) ? rows : [];
+      if (role === "home") {
+        setHomeTeamHits(list);
+        setHomeTeamPick("");
+        setHomeTeamId("");
+      } else {
+        setAwayTeamHits(list);
+        setAwayTeamPick("");
+        setAwayTeamId("");
+      }
+    },
+    [homeTeamMeta?.ageGroup, homeTeamMeta?.gender, sport]
+  );
 
   useEffect(() => {
     if (!homeSchool) return;
     void fetchTeamsForSchool(homeSchool.id, "home");
-  }, [homeSchool, sport]);
+  }, [fetchTeamsForSchool, homeSchool]);
 
   useEffect(() => {
     if (!awaySchool || !homeTeamPick) return;
     void fetchTeamsForSchool(awaySchool.id, "away");
-  }, [awaySchool, sport, homeTeamPick, homeTeamMeta?.gender]);
+  }, [awaySchool, fetchTeamsForSchool, homeTeamPick]);
 
   useEffect(() => {
     setHomeSchool(null);
@@ -167,6 +181,8 @@ export function AdminScheduleLiveForm() {
           const res = await adminScheduleLiveSessionAction({
             homeTeamId,
             awayTeamId,
+            seasonId: seasonId || null,
+            competitionId: competitionId || null,
             venue: venue.trim() || null,
             goesLiveAtIso,
           });
@@ -198,7 +214,7 @@ export function AdminScheduleLiveForm() {
           ))}
         </select>
         <p className="text-xs text-muted-foreground">
-          Teams are filtered to this sport only (and matching hockey side when applicable).
+          Teams are filtered to this sport and same age group (plus matching hockey side when applicable).
         </p>
       </div>
 
@@ -321,6 +337,40 @@ export function AdminScheduleLiveForm() {
             </select>
           </>
         ) : null}
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="admin-season">Season (optional)</Label>
+        <select
+          id="admin-season"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+          value={seasonId}
+          onChange={(e) => setSeasonId(e.target.value)}
+        >
+          <option value="">Not set</option>
+          {seasonOptions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="admin-competition">Competition (optional)</Label>
+        <select
+          id="admin-competition"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+          value={competitionId}
+          onChange={(e) => setCompetitionId(e.target.value)}
+        >
+          <option value="">Not set</option>
+          {competitionOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="space-y-1">

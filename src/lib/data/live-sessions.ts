@@ -502,6 +502,8 @@ export async function insertLiveSessionRow(input: {
   homeLogoPath: string | null;
   awayLogoPath: string | null;
   venue: string | null;
+  seasonId: string | null;
+  competitionId: string | null;
   createdByUserId: string | null;
   status?: "ACTIVE" | "SCHEDULED";
   goesLiveAt?: Date | null;
@@ -519,6 +521,8 @@ export async function insertLiveSessionRow(input: {
       homeLogoPath: input.homeLogoPath,
       awayLogoPath: input.awayLogoPath,
       venue: input.venue?.trim() || null,
+      seasonId: input.seasonId,
+      competitionId: input.competitionId,
       createdByUserId: input.createdByUserId,
       status,
       goesLiveAt: status === "SCHEDULED" ? (input.goesLiveAt ?? null) : null,

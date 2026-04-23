@@ -5,6 +5,7 @@ import { teams } from "@/db/schema";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { parseSportQueryParam } from "@/lib/sports";
 import { parseTeamGenderQueryParam } from "@/lib/team-gender";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
 
   const sport = parseSportQueryParam(req.nextUrl.searchParams.get("sport"));
   const gender = parseTeamGenderQueryParam(req.nextUrl.searchParams.get("gender"));
+  const ageGroup = req.nextUrl.searchParams.get("ageGroup")?.trim() ?? "";
   try {
     const rows = await db
       .select({
@@ -34,17 +36,20 @@ export async function GET(req: NextRequest) {
           eq(teams.schoolId, schoolId),
           eq(teams.active, true),
           ...(sport ? [eq(teams.sport, sport)] : []),
-          ...(sport === "HOCKEY" && gender ? [eq(teams.gender, gender)] : [])
+          ...(sport === "HOCKEY" && gender ? [eq(teams.gender, gender)] : []),
         )
       )
       .orderBy(asc(teams.sport), asc(teams.ageGroup), asc(teams.gender), asc(teams.teamLabel))
       .limit(200);
 
+    const filtered = ageGroup ? rows.filter((r) => sameAgeGroupBand(r.ageGroup, ageGroup)) : rows;
+
     return NextResponse.json(
-      rows.map((r) => ({
+      filtered.map((r) => ({
         id: r.id,
         label: `${r.sport} ${r.ageGroup} ${r.teamLabel}${r.gender ? ` ${r.gender}` : ""}`,
         sport: r.sport,
+        ageGroup: r.ageGroup,
         gender: r.gender,
       }))
     );

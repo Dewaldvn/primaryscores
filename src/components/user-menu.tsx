@@ -82,28 +82,32 @@ export function UserMenu({
           <DropdownMenu.Separator className={separatorClass} />
 
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/account")}>
-            Profile & picture
+            Profile
           </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-favourites")}>
             My favourites
           </DropdownMenu.Item>
-          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/add-team")}>
-            Add a school or team
-          </DropdownMenu.Item>
           <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/my-submissions")}>
             My submissions
           </DropdownMenu.Item>
-          <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/apply-school-admin")}>
-            Apply for school admin privileges
-          </DropdownMenu.Item>
-          {(role === "MODERATOR" || role === "ADMIN") && (
-            <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/moderator")}>
-              Moderation
-            </DropdownMenu.Item>
-          )}
           {role === "SCHOOL_ADMIN" && (
             <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/school-admin")}>
               School admin
+            </DropdownMenu.Item>
+          )}
+          {role !== "ADMIN" && (
+            <>
+              <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/add-team")}>
+                Add a school or team
+              </DropdownMenu.Item>
+              <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/apply-school-admin")}>
+                Apply for school admin privileges
+              </DropdownMenu.Item>
+            </>
+          )}
+          {(role === "MODERATOR" || role === "ADMIN") && (
+            <DropdownMenu.Item className={menuItemClass} onSelect={() => router.push("/moderator")}>
+              Moderation
             </DropdownMenu.Item>
           )}
           {role === "ADMIN" && (

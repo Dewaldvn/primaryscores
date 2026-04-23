@@ -32,7 +32,7 @@ type SchoolHit = {
   logoPath: string | null;
 };
 
-type TeamOption = { id: string; label: string };
+type TeamOption = { id: string; label: string; sport: string; ageGroup: string; gender: string | null };
 
 export function SubmitScoreForm({
   seasons: seasonRows,
@@ -78,8 +78,16 @@ export function SubmitScoreForm({
     else setAwayHits(data);
   }
 
-  async function loadSchoolTeams(schoolId: string, side: "home" | "away") {
-    const res = await fetch(`/api/teams/by-school?schoolId=${encodeURIComponent(schoolId)}`, {
+  async function loadSchoolTeams(
+    schoolId: string,
+    side: "home" | "away",
+    filters?: { sport?: string; ageGroup?: string; gender?: string | null },
+  ) {
+    const params = new URLSearchParams({ schoolId });
+    if (filters?.sport) params.set("sport", filters.sport);
+    if (filters?.ageGroup) params.set("ageGroup", filters.ageGroup);
+    if (filters?.sport === "HOCKEY" && filters.gender) params.set("gender", filters.gender);
+    const res = await fetch(`/api/teams/by-school?${params.toString()}`, {
       cache: "no-store",
     });
     const data = (await res.json()) as TeamOption[];
@@ -87,6 +95,8 @@ export function SubmitScoreForm({
     if (side === "home") setHomeTeams(rows);
     else setAwayTeams(rows);
   }
+
+  const selectedHomeTeam = homeTeams.find((t) => t.id === homeTeamId) ?? null;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -287,6 +297,13 @@ export function SubmitScoreForm({
                   setHomeTeamId(id);
                   const picked = homeTeams.find((t) => t.id === id);
                   setHomeTeamName(picked ? `${homeSchool.displayName} · ${picked.label}` : homeSchool.displayName);
+                      if (awaySchool && picked) {
+                        void loadSchoolTeams(awaySchool.id, "away", {
+                          sport: picked.sport,
+                          ageGroup: picked.ageGroup,
+                          gender: picked.gender,
+                        });
+                      }
                 }}
               >
                 <option value="">Choose team…</option>
@@ -346,7 +363,11 @@ export function SubmitScoreForm({
                       setAwayTeamId("");
                       setAwayTeamName(h.displayName);
                       setAwayHits([]);
-                      void loadSchoolTeams(h.id, "away");
+                      void loadSchoolTeams(h.id, "away", {
+                        sport: selectedHomeTeam?.sport,
+                        ageGroup: selectedHomeTeam?.ageGroup,
+                        gender: selectedHomeTeam?.gender,
+                      });
                     }}
                   >
                     <span className="flex items-center gap-2">
@@ -375,6 +396,9 @@ export function SubmitScoreForm({
           {awaySchool ? (
             <div className="space-y-1.5">
               <Label htmlFor="awayTeamPick">Team 2 (from selected school)</Label>
+              <p className="text-xs text-muted-foreground">
+                Away teams are filtered to the same age group as Team 1 when Team 1 is selected.
+              </p>
               <select
                 id="awayTeamPick"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"

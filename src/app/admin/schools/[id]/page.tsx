@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSchoolForm } from "@/components/admin-school-form";
 import { AdminSchoolLogoPanel } from "@/components/admin-school-logo-panel";
+import { SchoolDeleteButton } from "@/components/school-delete-button";
 import { adminGetSchoolById } from "@/lib/data/admin";
 import { listProvinces } from "@/lib/data/schools";
 import { isDatabaseConfigured } from "@/lib/db-safe";
@@ -53,12 +54,25 @@ export default async function AdminEditSchoolPage({ params }: Props) {
               displayName: s.displayName,
               nickname: s.nickname ?? null,
               slug: s.slug,
+              schoolType: s.schoolType,
               provinceId: s.provinceId,
               town: s.town,
               website: s.website,
               active: s.active,
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Danger zone</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Delete this school only if it was added in error. This will also attempt to delete its teams.
+          </p>
+          <SchoolDeleteButton schoolId={s.id} returnHref="/admin/schools" />
         </CardContent>
       </Card>
     </div>

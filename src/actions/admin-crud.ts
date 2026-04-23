@@ -8,6 +8,8 @@ import { competitions, schools, seasons, teams } from "@/db/schema";
 import { schoolsHasNicknameColumn, schoolsSelectColumns } from "@/lib/school-db-support";
 import { requireRole } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
+import { SCHOOL_SPORTS } from "@/lib/sports";
+import { DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE } from "@/lib/school-default-teams";
 import {
   getActiveManagedSchoolIds,
   profileManagesSchool,
@@ -25,6 +27,33 @@ function seasonBoundsFromYear(year: number): { startDate: string; endDate: strin
     startDate: `${year}-01-01`,
     endDate: `${year}-12-31`,
   };
+}
+
+function teamPartsFromCode(code: string): { ageGroup: string; teamLabel: string } {
+  const m = /^([A-Z0-9]+?)([A-Z])$/.exec(code);
+  if (!m) return { ageGroup: code, teamLabel: "A" };
+  return { ageGroup: m[1], teamLabel: m[2] };
+}
+
+function buildDefaultTeamsForSchool(
+  schoolId: string,
+  schoolType: keyof typeof DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE,
+  selectedCodes?: string[],
+) {
+  const codes = selectedCodes?.length ? selectedCodes : DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType];
+  return SCHOOL_SPORTS.flatMap((sport) =>
+    codes.map((code) => {
+      const { ageGroup, teamLabel } = teamPartsFromCode(code);
+      return {
+        schoolId,
+        sport,
+        ageGroup,
+        teamLabel,
+        isFirstTeam: teamLabel === "A",
+        active: true,
+      };
+    }),
+  );
 }
 
 export async function upsertSchoolAction(input: unknown) {
@@ -58,6 +87,7 @@ export async function upsertSchoolAction(input: unknown) {
           officialName: v.officialName,
           displayName: v.displayName,
           ...(includeNick ? { nickname: v.nickname ?? null } : {}),
+          schoolType: sch.schoolType,
           slug: sch.slug,
           provinceId: v.provinceId,
           town: v.town ?? null,
@@ -76,6 +106,7 @@ export async function upsertSchoolAction(input: unknown) {
         officialName: v.officialName,
         displayName: v.displayName,
         ...(includeNickAdmin ? { nickname: v.nickname ?? null } : {}),
+        schoolType: v.schoolType,
         slug,
         provinceId: v.provinceId,
         town: v.town ?? null,
@@ -98,6 +129,7 @@ export async function upsertSchoolAction(input: unknown) {
       officialName: v.officialName,
       displayName: v.displayName,
       ...(includeNickCreate ? { nickname: v.nickname ?? null } : {}),
+      schoolType: v.schoolType,
       slug,
       provinceId: v.provinceId,
       town: v.town ?? null,
@@ -106,13 +138,13 @@ export async function upsertSchoolAction(input: unknown) {
     })
     .returning({ id: schools.id });
 
-  await db.insert(teams).values({
-    schoolId: inserted.id,
-    ageGroup: "U13",
-    teamLabel: "A",
-    isFirstTeam: true,
-    active: true,
-  });
+  const allowedCodes = new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]);
+  const selectedCodes = (v.defaultTeamCodes ?? DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]).filter((code) =>
+    allowedCodes.has(code),
+  );
+  if (selectedCodes.length > 0) {
+    await db.insert(teams).values(buildDefaultTeamsForSchool(inserted.id, v.schoolType, selectedCodes));
+  }
 
   return { ok: true as const, id: inserted.id };
 }
@@ -233,6 +265,42 @@ export async function deleteTeamAction(input: unknown) {
 
   revalidatePath("/admin/teams");
   revalidatePath("/school-admin/teams");
+  return { ok: true as const };
+}
+
+export async function deleteSchoolAction(input: unknown) {
+  await requireRole(["ADMIN"]);
+  const parsed = z.object({ id: z.string().uuid() }).safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  const schoolId = parsed.data.id;
+  const [existing] = await db
+    .select({ id: schools.id })
+    .from(schools)
+    .where(eq(schools.id, schoolId))
+    .limit(1);
+  if (!existing) {
+    return { ok: false as const, error: "School not found." };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.delete(teams).where(eq(teams.schoolId, schoolId));
+      await tx.delete(schools).where(eq(schools.id, schoolId));
+    });
+  } catch {
+    return {
+      ok: false as const,
+      error:
+        "This school has teams linked to fixtures/results and cannot be deleted. Merge it or remove linked records first.",
+    };
+  }
+
+  revalidatePath("/admin/schools");
+  revalidatePath("/admin/teams");
+  revalidatePath("/admin/scores");
   return { ok: true as const };
 }
 

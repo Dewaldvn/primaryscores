@@ -26,6 +26,7 @@ export function AdminTeamForm({
   initial,
   lockSchoolSelect = false,
   fixedSchoolId,
+  defaultSchoolId,
 }: {
   schools: { id: string; label: string }[];
   initial?: AdminTeamFormInitial;
@@ -33,6 +34,8 @@ export function AdminTeamForm({
   lockSchoolSelect?: boolean;
   /** When creating a team for a single known school (with lockSchoolSelect). */
   fixedSchoolId?: string;
+  /** Prefill school on create/edit screens with contextual selection. */
+  defaultSchoolId?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -93,7 +96,7 @@ export function AdminTeamForm({
           <select
             name="schoolId"
             required
-            defaultValue={initial?.schoolId}
+            defaultValue={initial?.schoolId ?? defaultSchoolId}
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             {schools.map((s) => (

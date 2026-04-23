@@ -15,13 +15,22 @@ type TeamOpt = {
   schoolId: string;
   schoolName: string;
   sport: SchoolSport;
+  ageGroup: string;
   gender: string | null;
 };
 
 type SchoolHit = { id: string; displayName: string };
-type TeamHit = { id: string; label: string; sport: SchoolSport; gender: string | null };
+type TeamHit = { id: string; label: string; sport: SchoolSport; ageGroup: string; gender: string | null };
 
-export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptions: TeamOpt[] }) {
+export function SchoolAdminScheduleLiveForm({
+  homeTeamOptions,
+  seasonOptions,
+  competitionOptions,
+}: {
+  homeTeamOptions: TeamOpt[];
+  seasonOptions: { id: string; label: string }[];
+  competitionOptions: { id: string; label: string }[];
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [homeTeamId, setHomeTeamId] = useState(homeTeamOptions[0]?.id ?? "");
@@ -34,6 +43,8 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   const [awayTeamHits, setAwayTeamHits] = useState<TeamHit[]>([]);
   const [awayTeamPick, setAwayTeamPick] = useState("");
   const [venue, setVenue] = useState("");
+  const [seasonId, setSeasonId] = useState("");
+  const [competitionId, setCompetitionId] = useState("");
   const [goesLocal, setGoesLocal] = useState("");
 
   const selectedHome = homeTeamOptions.find((o) => o.id === homeTeamId) ?? null;
@@ -69,9 +80,10 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
   async function loadAwayTeamsForSchool(
     schoolId: string,
     sport: SchoolSport,
+    ageGroup: string,
     hockeyGender: string | null | undefined
   ) {
-    const params = new URLSearchParams({ schoolId, sport });
+    const params = new URLSearchParams({ schoolId, sport, ageGroup });
     if (sport === "HOCKEY" && hockeyGender) {
       params.set("gender", hockeyGender);
     }
@@ -92,6 +104,7 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
     void loadAwayTeamsForSchool(
       awaySchool.id,
       home.sport,
+      home.ageGroup,
       home.sport === "HOCKEY" ? home.gender : null
     );
   }, [awaySchool, homeTeamId, homeTeamOptions]);
@@ -128,6 +141,8 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
           const res = await schoolAdminScheduleLiveSessionAction({
             homeTeamId,
             awayTeamId,
+            seasonId: seasonId || null,
+            competitionId: competitionId || null,
             venue: venue.trim() || null,
             goesLiveAtIso,
           });
@@ -269,6 +284,38 @@ export function SchoolAdminScheduleLiveForm({ homeTeamOptions }: { homeTeamOptio
         {awayTeamId && awayLabel ? (
           <p className="text-xs text-muted-foreground">Away: {awayLabel}</p>
         ) : null}
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="school-admin-season">Season (optional)</Label>
+        <select
+          id="school-admin-season"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+          value={seasonId}
+          onChange={(e) => setSeasonId(e.target.value)}
+        >
+          <option value="">Not set</option>
+          {seasonOptions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="school-admin-competition">Competition (optional)</Label>
+        <select
+          id="school-admin-competition"
+          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
+          value={competitionId}
+          onChange={(e) => setCompetitionId(e.target.value)}
+        >
+          <option value="">Not set</option>
+          {competitionOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="goes">Goes live (your local date &amp; time)</Label>

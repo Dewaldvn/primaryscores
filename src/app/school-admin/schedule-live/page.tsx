@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolAdminScheduleLiveForm } from "@/components/school-admin-schedule-live-form";
 import type { SchoolSport } from "@/lib/sports";
 import { getProfile } from "@/lib/auth";
-import { adminListTeamsForSchoolIds } from "@/lib/data/admin";
+import { adminListCompetitions, adminListSeasons, adminListTeamsForSchoolIds } from "@/lib/data/admin";
 import { listLiveSessionsByCreator } from "@/lib/data/live-sessions";
 import { getActiveManagedSchoolIds } from "@/lib/school-admin-access";
 import { isDatabaseConfigured } from "@/lib/db-safe";
@@ -35,11 +35,24 @@ export default async function SchoolAdminScheduleLivePage() {
     schoolId: r.schoolId,
     schoolName: r.schoolName,
     sport: r.team.sport as SchoolSport,
+    ageGroup: r.team.ageGroup,
     gender: r.team.gender,
     label: `${r.schoolName} · ${r.team.sport} ${r.team.ageGroup} ${r.team.teamLabel}${r.team.gender ? ` ${r.team.gender}` : ""}`,
   }));
 
-  const recent = await listLiveSessionsByCreator(profile.id, 15);
+  const [recent, seasons, competitions] = await Promise.all([
+    listLiveSessionsByCreator(profile.id, 15),
+    adminListSeasons(),
+    adminListCompetitions(),
+  ]);
+  const seasonOptions = seasons.map((r) => ({
+    id: r.season.id,
+    label: `${r.season.name} (${r.season.year})`,
+  }));
+  const competitionOptions = competitions.map((r) => ({
+    id: r.competition.id,
+    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}`,
+  }));
 
   return (
     <div className="space-y-8">
@@ -47,7 +60,8 @@ export default async function SchoolAdminScheduleLivePage() {
         <h1 className="text-2xl font-bold">Schedule live game</h1>
         <p className="text-sm text-muted-foreground">
           Pick your home team, search for the opponent, and set when the crowd scoreboard should open. Same sport
-          required; hockey away side must match boys or girls.
+          and age group required; hockey away side must match boys or girls. You can optionally set season and
+          competition.
         </p>
       </div>
 
@@ -61,7 +75,11 @@ export default async function SchoolAdminScheduleLivePage() {
             <CardTitle>New scoreboard</CardTitle>
           </CardHeader>
           <CardContent>
-            <SchoolAdminScheduleLiveForm homeTeamOptions={homeTeamOptions} />
+            <SchoolAdminScheduleLiveForm
+              homeTeamOptions={homeTeamOptions}
+              seasonOptions={seasonOptions}
+              competitionOptions={competitionOptions}
+            />
           </CardContent>
         </Card>
       )}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminScheduleLiveForm } from "@/components/admin-schedule-live-form";
 import { getProfile } from "@/lib/auth";
+import { adminListCompetitions, adminListSeasons } from "@/lib/data/admin";
 import { listLiveSessionsByCreator } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { format } from "date-fns";
@@ -17,7 +18,19 @@ export default async function AdminScheduleLivePage() {
     redirect("/login");
   }
 
-  const recent = await listLiveSessionsByCreator(profile.id, 15);
+  const [recent, seasons, competitions] = await Promise.all([
+    listLiveSessionsByCreator(profile.id, 15),
+    adminListSeasons(),
+    adminListCompetitions(),
+  ]);
+  const seasonOptions = seasons.map((r) => ({
+    id: r.season.id,
+    label: `${r.season.name} (${r.season.year})`,
+  }));
+  const competitionOptions = competitions.map((r) => ({
+    id: r.competition.id,
+    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}`,
+  }));
 
   return (
     <div className="space-y-8">
@@ -25,7 +38,7 @@ export default async function AdminScheduleLivePage() {
         <h1 className="text-2xl font-bold">Schedule live game</h1>
         <p className="text-sm text-muted-foreground">
           Choose the sport first, then search schools and pick teams. Only teams for that sport are listed; hockey away
-          teams match the home side (boys or girls).
+          teams match the home side (boys or girls). You can optionally set season and competition.
         </p>
         <p className="pt-2 text-sm text-muted-foreground">
           <Link href="/admin/scores" className="text-primary underline">
@@ -39,7 +52,7 @@ export default async function AdminScheduleLivePage() {
           <CardTitle>New scoreboard</CardTitle>
         </CardHeader>
         <CardContent>
-          <AdminScheduleLiveForm />
+          <AdminScheduleLiveForm seasonOptions={seasonOptions} competitionOptions={competitionOptions} />
         </CardContent>
       </Card>
 

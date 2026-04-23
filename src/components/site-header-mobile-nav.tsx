@@ -101,6 +101,9 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
             <Link href="/find-school" className={navLinkClass} onClick={() => setOpen(false)}>
               Schools
             </Link>
+            <Link href="/feedback" className={navLinkClass} onClick={() => setOpen(false)}>
+              Feedback
+            </Link>
             <Link href="/about" className={navLinkClass} onClick={() => setOpen(false)}>
               About
             </Link>
@@ -109,12 +112,12 @@ export function SiteHeaderMobileNav({ profile }: { profile: HeaderProfile }) {
                 My favourites
               </Link>
             ) : null}
-            {profile ? (
+            {profile && profile.role !== "ADMIN" ? (
               <Link href="/add-team" className={navLinkClass} onClick={() => setOpen(false)}>
                 Add school or team
               </Link>
             ) : null}
-            {showModeration && !showAdmin ? (
+            {showModeration ? (
               <Link
                 href="/moderator"
                 className={navLinkClass}

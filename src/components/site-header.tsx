@@ -71,6 +71,15 @@ export function SiteHeader({ profile }: { profile: HeaderProfile }) {
           >
             Schools
           </Link>
+          <span className="select-none px-1 text-muted-foreground/60" aria-hidden="true">
+            |
+          </span>
+          <Link
+            href="/feedback"
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Feedback
+          </Link>
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Link

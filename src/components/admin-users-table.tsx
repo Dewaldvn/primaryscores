@@ -72,13 +72,7 @@ export function AdminUsersTable({
                     }}
                   >
                     {(
-                      [
-                        "PUBLIC",
-                        "CONTRIBUTOR",
-                        "MODERATOR",
-                        "ADMIN",
-                        "SCHOOL_ADMIN",
-                      ] as const satisfies readonly ProfileRole[]
+                      ["CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"] as const satisfies readonly ProfileRole[]
                     ).map((role) => (
                       <option key={role} value={role}>
                         {role}

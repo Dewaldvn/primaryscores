@@ -7,7 +7,7 @@ import type { ProfileRole } from "@/lib/auth";
 
 const updateRoleSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(["PUBLIC", "CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"]),
+  role: z.enum(["CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"]),
 });
 
 const deleteUserSchema = z.object({

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { TEAM_GENDERS, teamGenderLabel } from "@/lib/team-gender";
+import { DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE } from "@/lib/school-default-teams";
 
 export type ContributorReturnTo = "find-school" | "add-team";
 
@@ -101,6 +102,10 @@ export function ContributorNewSchoolForm({
   const [pending, setPending] = useState(false);
   const [crestFile, setCrestFile] = useState<File | null>(null);
   const [crestPreviewUrl, setCrestPreviewUrl] = useState<string | null>(null);
+  const [schoolType, setSchoolType] = useState<"PRIMARY" | "SECONDARY" | "COMBINED">("PRIMARY");
+  const [selectedDefaultTeamCodes, setSelectedDefaultTeamCodes] = useState<Set<string>>(
+    new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.PRIMARY),
+  );
   const baseId = useId();
 
   useEffect(() => {
@@ -129,6 +134,8 @@ export function ContributorNewSchoolForm({
                 const res = await contributorCreateSchoolAction({
                   officialName: fd.get("officialName"),
                   displayName: fd.get("displayName"),
+                  schoolType,
+                  defaultTeamCodes: Array.from(selectedDefaultTeamCodes),
                   provinceId: fd.get("provinceId"),
                   town: fd.get("town") || null,
                   website: fd.get("website") || null,
@@ -165,11 +172,11 @@ export function ContributorNewSchoolForm({
                 }
 
                 if (!crestFile) {
-                  toast.success("School added. Now add the team.");
+                  toast.success("School added with default teams. Add any extra team below if needed.");
                 } else if (logoUploaded) {
-                  toast.success("School added with crest. Now add the team.");
+                  toast.success("School added with crest and default teams. Add any extra team below if needed.");
                 } else {
-                  toast.success("School added. Now add the team.");
+                  toast.success("School added with default teams. Add any extra team below if needed.");
                   toast.error("Crest did not upload — you can try again on the next step.");
                 }
 
@@ -199,6 +206,76 @@ export function ContributorNewSchoolForm({
               placeholder="Registered name if different"
               defaultValue={defaultOfficialName}
             />
+          </div>
+          <div className="space-y-2 sm:col-span-2">
+            <Label>School type</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={`${baseId}-schoolType`}
+                  value="PRIMARY"
+                  checked={schoolType === "PRIMARY"}
+                  onChange={() => {
+                    setSchoolType("PRIMARY");
+                    setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.PRIMARY));
+                  }}
+                />
+                Primary School
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={`${baseId}-schoolType`}
+                  value="SECONDARY"
+                  checked={schoolType === "SECONDARY"}
+                  onChange={() => {
+                    setSchoolType("SECONDARY");
+                    setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.SECONDARY));
+                  }}
+                />
+                Secondary School
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name={`${baseId}-schoolType`}
+                  value="COMBINED"
+                  checked={schoolType === "COMBINED"}
+                  onChange={() => {
+                    setSchoolType("COMBINED");
+                    setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.COMBINED));
+                  }}
+                />
+                Combined School
+              </label>
+            </div>
+          </div>
+          <div className="space-y-2 rounded-lg border bg-muted/25 p-3 sm:col-span-2">
+            <Label>Default teams to add (all sports)</Label>
+            <p className="text-xs text-muted-foreground">
+              Deselect any defaults you do not want to create for this new school.
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType].map((code) => (
+                <label key={code} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedDefaultTeamCodes.has(code)}
+                    onChange={(e) => {
+                      const checked = e.currentTarget.checked;
+                      setSelectedDefaultTeamCodes((prev) => {
+                        const next = new Set(prev);
+                        if (checked) next.add(code);
+                        else next.delete(code);
+                        return next;
+                      });
+                    }}
+                  />
+                  {code}
+                </label>
+              ))}
+            </div>
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label htmlFor={`${baseId}-provinceId`}>Province *</Label>

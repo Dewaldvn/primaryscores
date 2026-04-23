@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { upsertSchoolAction } from "@/actions/admin-crud";
+import { DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE } from "@/lib/school-default-teams";
+
+type SchoolType = "PRIMARY" | "SECONDARY" | "COMBINED";
 
 export function AdminSchoolForm({
   provinces,
@@ -22,6 +25,7 @@ export function AdminSchoolForm({
     displayName: string;
     nickname: string | null;
     slug: string;
+    schoolType: "PRIMARY" | "SECONDARY" | "COMBINED";
     provinceId: string;
     town: string | null;
     website: string | null;
@@ -33,6 +37,24 @@ export function AdminSchoolForm({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [formFeedback, setFormFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [schoolType, setSchoolType] = useState<SchoolType>(initial?.schoolType ?? "PRIMARY");
+  const [selectedDefaultTeamCodes, setSelectedDefaultTeamCodes] = useState<Set<string>>(
+    new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[initial?.schoolType ?? "PRIMARY"])
+  );
+
+  function setSchoolTypeAndResetDefaults(nextType: SchoolType) {
+    setSchoolType(nextType);
+    setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[nextType]));
+  }
+
+  function toggleDefaultTeamCode(code: string, checked: boolean) {
+    setSelectedDefaultTeamCodes((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(code);
+      else next.delete(code);
+      return next;
+    });
+  }
 
   return (
     <form
@@ -48,6 +70,8 @@ export function AdminSchoolForm({
           displayName: fd.get("displayName"),
           nickname: fd.get("nickname") || null,
           slug: fd.get("slug") || undefined,
+          schoolType: fd.get("schoolType"),
+          defaultTeamCodes: !initial ? Array.from(selectedDefaultTeamCodes) : undefined,
           provinceId: fd.get("provinceId"),
           town: fd.get("town") || null,
           website: fd.get("website") || null,
@@ -64,6 +88,8 @@ export function AdminSchoolForm({
           toast.success(msg);
           if (!initial) {
             (e.target as HTMLFormElement).reset();
+            setSchoolType("PRIMARY");
+            setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.PRIMARY));
           } else {
             router.refresh();
           }
@@ -75,6 +101,7 @@ export function AdminSchoolForm({
         <>
           <input type="hidden" name="slug" value={initial.slug} />
           <input type="hidden" name="active" value={initial.active ? "on" : ""} />
+          <input type="hidden" name="schoolType" value={initial.schoolType} />
         </>
       ) : null}
       <div className="space-y-1 sm:col-span-2">
@@ -105,6 +132,63 @@ export function AdminSchoolForm({
           defaultValue={initial?.officialName ?? prefillNew?.officialName ?? prefillNew?.displayName}
         />
       </div>
+      {!schoolAdminMode ? (
+        <div className="space-y-2 sm:col-span-2">
+          <Label>School type</Label>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="schoolType"
+                value="PRIMARY"
+                checked={schoolType === "PRIMARY"}
+                onChange={() => setSchoolTypeAndResetDefaults("PRIMARY")}
+              />
+              Primary School
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="schoolType"
+                value="SECONDARY"
+                checked={schoolType === "SECONDARY"}
+                onChange={() => setSchoolTypeAndResetDefaults("SECONDARY")}
+              />
+              Secondary School
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="schoolType"
+                value="COMBINED"
+                checked={schoolType === "COMBINED"}
+                onChange={() => setSchoolTypeAndResetDefaults("COMBINED")}
+              />
+              Combined School
+            </label>
+          </div>
+        </div>
+      ) : null}
+      {!schoolAdminMode && !initial ? (
+        <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
+          <Label>Default teams to create (all sports)</Label>
+          <p className="text-xs text-muted-foreground">
+            These defaults are selected for a {schoolType.toLowerCase()} school. Deselect any teams you do not want.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType].map((code) => (
+              <label key={code} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={selectedDefaultTeamCodes.has(code)}
+                  onChange={(e) => toggleDefaultTeamCode(code, e.currentTarget.checked)}
+                />
+                {code}
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {!schoolAdminMode ? (
         <div className="space-y-1">
           <Label htmlFor="slug">Slug (URL)</Label>

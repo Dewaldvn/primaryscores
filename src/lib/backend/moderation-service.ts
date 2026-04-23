@@ -1,16 +1,18 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   fixtures,
   moderationLogs,
   results,
   submissions,
+  teams,
 } from "@/db/schema";
 import type { z } from "zod";
 import {
   moderationApproveSchema,
   moderationRejectSchema,
 } from "@/lib/validators/submission";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 
 export type ModerationActor = { profileId: string };
 
@@ -72,6 +74,20 @@ export async function approveSubmissionInDb(
     existingSub.moderationStatus !== "NEEDS_REVIEW"
   ) {
     return { ok: false, error: "Submission is already resolved." };
+  }
+
+  const selectedTeams = await db
+    .select({ id: teams.id, ageGroup: teams.ageGroup })
+    .from(teams)
+    .where(inArray(teams.id, [d.homeTeamId, d.awayTeamId]));
+  const byId = new Map(selectedTeams.map((t) => [t.id, t]));
+  const home = byId.get(d.homeTeamId);
+  const away = byId.get(d.awayTeamId);
+  if (!home || !away) {
+    return { ok: false, error: "Selected home/away teams could not be found." };
+  }
+  if (!sameAgeGroupBand(home.ageGroup, away.ageGroup)) {
+    return { ok: false, error: "Home and away teams must be in the same age group (e.g. U13 vs U13)." };
   }
 
   const now = new Date();

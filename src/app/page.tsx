@@ -25,6 +25,19 @@ function isStatementTimeoutMessage(msg: string): boolean {
   return /statement timeout|57014|canceling statement/i.test(msg);
 }
 
+type Settled<T> =
+  | { status: "fulfilled"; value: T }
+  | { status: "rejected"; reason: unknown };
+
+async function settleWithTimeout<T>(promise: Promise<T>, ms: number): Promise<Settled<T>> {
+  try {
+    const value = await withTimeout(promise, ms);
+    return { status: "fulfilled", value };
+  } catch (reason) {
+    return { status: "rejected", reason };
+  }
+}
+
 export default async function HomePage() {
   let recent: Awaited<ReturnType<typeof listRecentVerifiedResultsPaged>> = [];
   let livePeek: LiveSessionPublic[] = [];
@@ -38,20 +51,16 @@ export default async function HomePage() {
   if (isDatabaseConfigured()) {
     try {
       const sessionUser = await getSessionUser();
-      const settled = await withTimeout(
-        Promise.allSettled([
-          listRecentVerifiedResultsPaged(0, 8),
-          listUnderwayLiveSessions({ limit: 5 }),
-          sessionUser ? listFavouriteTeamsForProfile(sessionUser.id, 8) : Promise.resolve([] as FavouriteTeamRow[]),
-          getHomePageStats(),
-          listScheduledLiveSessions({ limit: 5, offset: 0 }),
-        ]),
-        PUBLIC_DB_QUERY_MS
-      );
-      const [rr, rl, ft, hs, up] = settled;
+      /** Favourite teams are loaded separately so an extra query when signed in cannot push the
+       *  batched home queries over {@link PUBLIC_DB_QUERY_MS} and trigger a false “database” error. */
+      const [rr, rl, hs, up] = await Promise.all([
+        settleWithTimeout(listRecentVerifiedResultsPaged(0, 8), PUBLIC_DB_QUERY_MS),
+        settleWithTimeout(listUnderwayLiveSessions({ limit: 5 }), PUBLIC_DB_QUERY_MS),
+        settleWithTimeout(getHomePageStats(), PUBLIC_DB_QUERY_MS),
+        settleWithTimeout(listScheduledLiveSessions({ limit: 5, offset: 0 }), PUBLIC_DB_QUERY_MS),
+      ]);
       recent = rr.status === "fulfilled" ? rr.value : [];
       livePeek = rl.status === "fulfilled" ? rl.value : [];
-      favouriteTeams = ft.status === "fulfilled" ? ft.value : [];
       homeStats = hs.status === "fulfilled" ? hs.value : null;
       upcomingScheduled = up.status === "fulfilled" ? up.value : [];
       if (rr.status === "rejected") {
@@ -59,6 +68,25 @@ export default async function HomePage() {
       }
       if (rl.status === "rejected") {
         livePeekError = rl.reason instanceof Error ? rl.reason.message : String(rl.reason);
+      }
+      if (
+        rr.status === "rejected" &&
+        rl.status === "rejected" &&
+        hs.status === "rejected" &&
+        up.status === "rejected"
+      ) {
+        databaseLoadError = rr.reason instanceof Error ? rr.reason.message : String(rr.reason);
+      }
+
+      if (sessionUser) {
+        try {
+          favouriteTeams = await withTimeout(
+            listFavouriteTeamsForProfile(sessionUser.id, 8),
+            15_000
+          );
+        } catch {
+          favouriteTeams = [];
+        }
       }
     } catch (e) {
       databaseLoadError = e instanceof Error ? e.message : "Database connection failed";
@@ -90,6 +118,13 @@ export default async function HomePage() {
       ) : null}
 
       <section className="space-y-5 sm:space-y-6">
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          NOTE: This is a BETA version. Expect errors and irritations. Please use the{" "}
+          <Link href="/feedback" className="underline underline-offset-2">
+            feedback section
+          </Link>{" "}
+          to help us improve.
+        </p>
         <HomeHeroSection stats={homeStats} />
         {isDatabaseConfigured() ? <HomeLiveScoresPeek sessions={livePeek} loadError={livePeekError} /> : null}
         <div className="space-y-3">

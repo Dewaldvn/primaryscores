@@ -8,6 +8,8 @@ import { schoolsHasNicknameColumn } from "@/lib/school-db-support";
 import { requireUser } from "@/lib/auth";
 import { slugify } from "@/lib/slug";
 import { contributorTeamBodySchema, schoolUpsertSchema } from "@/lib/validators/admin";
+import { SCHOOL_SPORTS } from "@/lib/sports";
+import { DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE } from "@/lib/school-default-teams";
 
 const contributorSchoolSchema = schoolUpsertSchema.omit({ id: true });
 
@@ -36,6 +38,33 @@ async function uniqueSlugForDisplayName(displayName: string): Promise<string> {
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+function teamPartsFromCode(code: string): { ageGroup: string; teamLabel: string } {
+  const m = /^([A-Z0-9]+?)([A-Z])$/.exec(code);
+  if (!m) return { ageGroup: code, teamLabel: "A" };
+  return { ageGroup: m[1], teamLabel: m[2] };
+}
+
+function buildDefaultTeamsForSchool(
+  schoolId: string,
+  schoolType: keyof typeof DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE,
+  selectedCodes?: string[],
+) {
+  const codes = selectedCodes?.length ? selectedCodes : DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType];
+  return SCHOOL_SPORTS.flatMap((sport) =>
+    codes.map((code) => {
+      const { ageGroup, teamLabel } = teamPartsFromCode(code);
+      return {
+        schoolId,
+        sport,
+        ageGroup,
+        teamLabel,
+        isFirstTeam: teamLabel === "A",
+        active: true,
+      };
+    }),
+  );
+}
+
 export async function contributorCreateSchoolAction(input: unknown) {
   const parsed = contributorCreateSchoolInputSchema.safeParse(input);
   if (!parsed.success) {
@@ -52,6 +81,7 @@ export async function contributorCreateSchoolAction(input: unknown) {
       officialName: v.officialName,
       displayName: v.displayName,
       ...(includeNickContributor ? { nickname: null } : {}),
+      schoolType: v.schoolType,
       slug,
       provinceId: v.provinceId,
       town: v.town ?? null,
@@ -59,6 +89,14 @@ export async function contributorCreateSchoolAction(input: unknown) {
       active: v.active ?? true,
     })
     .returning({ id: schools.id, slug: schools.slug, displayName: schools.displayName });
+
+  const allowedCodes = new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]);
+  const selectedCodes = (v.defaultTeamCodes ?? DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]).filter((code) =>
+    allowedCodes.has(code),
+  );
+  if (selectedCodes.length > 0) {
+    await db.insert(teams).values(buildDefaultTeamsForSchool(inserted.id, v.schoolType, selectedCodes));
+  }
 
   return { ok: true as const, schoolId: inserted.id, slug: inserted.slug, displayName: inserted.displayName };
 }

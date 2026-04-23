@@ -208,7 +208,7 @@ export function AdminScoresTable({
                       variant="secondary"
                       className="bg-emerald-700/15 text-emerald-800 dark:text-emerald-400"
                     >
-                      Live
+                      Full time
                     </Badge>
                   ) : (
                     <Badge

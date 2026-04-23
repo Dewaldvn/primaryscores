@@ -43,6 +43,9 @@ type SchoolHit = {
 type TeamOption = {
   id: string;
   label: string;
+  sport: SchoolSport;
+  ageGroup: string;
+  gender: TeamGender | null;
 };
 
 export function GamesUnderway({
@@ -320,7 +323,11 @@ function CompactLiveSessionCard({
 }
 
 /** Two-step live picker: select school first, then select a team linked to that school. */
-function useLiveSchoolTeamField(schoolSport: SchoolSport, hockeySearchGender?: TeamGender) {
+function useLiveSchoolTeamField(
+  schoolSport: SchoolSport,
+  hockeySearchGender?: TeamGender,
+  ageGroupFilter?: string,
+) {
   const [schoolQuery, setSchoolQuery] = useState("");
   const [schoolHits, setSchoolHits] = useState<SchoolHit[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<SchoolHit | null>(null);
@@ -335,7 +342,7 @@ function useLiveSchoolTeamField(schoolSport: SchoolSport, hockeySearchGender?: T
     setTeamId("");
     setTeamLabel("");
     setSchoolQuery("");
-  }, [schoolSport, hockeySearchGender]);
+  }, [schoolSport, hockeySearchGender, ageGroupFilter]);
 
   async function fetchSchoolHits(q: string) {
     if (q.trim().length < 2) {
@@ -360,12 +367,13 @@ function useLiveSchoolTeamField(schoolSport: SchoolSport, hockeySearchGender?: T
   }
 
   async function loadTeamsForSchool(school: SchoolHit) {
+    const ageQ = ageGroupFilter ? `&ageGroup=${encodeURIComponent(ageGroupFilter)}` : "";
     const genderQ =
       schoolSport === "HOCKEY" && hockeySearchGender
         ? `&gender=${encodeURIComponent(hockeySearchGender)}`
         : "";
     const res = await fetch(
-      `/api/teams/by-school?schoolId=${encodeURIComponent(school.id)}&sport=${encodeURIComponent(schoolSport)}${genderQ}`,
+      `/api/teams/by-school?schoolId=${encodeURIComponent(school.id)}&sport=${encodeURIComponent(schoolSport)}${genderQ}${ageQ}`,
       { cache: "no-store" }
     );
     const data = (await res.json()) as unknown;
@@ -403,6 +411,7 @@ function useLiveSchoolTeamField(schoolSport: SchoolSport, hockeySearchGender?: T
     teamOptions,
     teamId,
     teamLabel,
+    selectedTeam: teamOptions.find((t) => t.id === teamId) ?? null,
     onSchoolInputChange,
     fetchSchoolHits,
     chooseSchool,
@@ -524,7 +533,11 @@ function NewLiveGameForm({
   const effectiveSport = hubSport ?? pickSport;
   const hockeySearchGender = effectiveSport === "HOCKEY" ? hockeyGender || undefined : undefined;
   const school1Field = useLiveSchoolTeamField(effectiveSport, hockeySearchGender);
-  const school2Field = useLiveSchoolTeamField(effectiveSport, hockeySearchGender);
+  const school2Field = useLiveSchoolTeamField(
+    effectiveSport,
+    hockeySearchGender,
+    school1Field.selectedTeam?.ageGroup,
+  );
 
   useEffect(() => {
     if (effectiveSport !== "HOCKEY") setHockeyGender("");
@@ -544,6 +557,14 @@ function NewLiveGameForm({
             }
             if (!school1Field.teamId || !school2Field.teamId) {
               toast.error("Choose School 1/Team 1 and School 2/Team 2 before starting.");
+              return;
+            }
+            if (
+              school1Field.selectedTeam &&
+              school2Field.selectedTeam &&
+              school1Field.selectedTeam.ageGroup !== school2Field.selectedTeam.ageGroup
+            ) {
+              toast.error("Choose teams in the same age group (e.g. U13 vs U13).");
               return;
             }
             const res = await createLiveSessionAction({

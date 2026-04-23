@@ -22,11 +22,8 @@ type ImportResponse =
 
 export function AdminResultsImportPanel() {
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<"csv" | "xlsx">("csv");
   const [resp, setResp] = useState<ImportResponse | null>(null);
   const [pending, start] = useTransition();
-
-  const templateHref = `/api/admin/import/results-template?format=${format}`;
 
   const summary = useMemo(() => {
     if (!resp || !resp.ok) return null;
@@ -64,36 +61,16 @@ export function AdminResultsImportPanel() {
     <div className="space-y-4">
       <div className="space-y-1 text-sm">
         <p className="text-muted-foreground">
-          1) Download the template CSV, 2) fill it in, 3) upload it here. You can identify schools by
+          1) Download a template above, 2) fill it in, 3) upload it here. You can identify schools by
           <span className="font-medium text-foreground"> official_name</span> (preferred) or by
           <span className="font-medium text-foreground"> slug</span>.
         </p>
-        <a
-          href={templateHref}
-          className="inline-flex text-primary underline-offset-4 hover:underline"
-        >
-          Download results import template
-        </a>
-      </div>
-
-      <div className="max-w-xs space-y-1">
-        <Label htmlFor="results-import-format">Template and file format</Label>
-        <select
-          id="results-import-format"
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-          value={format}
-          onChange={(e) => setFormat((e.target.value as "csv" | "xlsx") || "csv")}
-          disabled={pending}
-        >
-          <option value="csv">CSV (.csv)</option>
-          <option value="xlsx">Excel (.xlsx)</option>
-        </select>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-1">
           <label className="text-sm font-medium" htmlFor="results-import-file">
-            CSV file
+            Upload and Import
           </label>
           <Input
             id="results-import-file"
@@ -104,7 +81,7 @@ export function AdminResultsImportPanel() {
           />
         </div>
         <Button type="button" onClick={upload} disabled={pending || !file}>
-          {pending ? "Importing…" : "Upload & import"}
+          {pending ? "Importing…" : "Upload and Import"}
         </Button>
       </div>
 

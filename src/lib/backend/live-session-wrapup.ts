@@ -89,6 +89,8 @@ export async function createLiveSubmissionFromSession(opts: {
           proposedMatchDate: matchDate,
           proposedHomeScore: maj.homeScore,
           proposedAwayScore: maj.awayScore,
+          proposedSeasonId: s.seasonId ?? null,
+          proposedCompetitionId: s.competitionId ?? null,
           proposedVenue: s.venue?.trim() || null,
           submittedByUserId,
           notes,

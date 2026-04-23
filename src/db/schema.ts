@@ -16,7 +16,6 @@ import { relations } from "drizzle-orm";
 
 /** Matches Supabase migration enums (uppercase labels). */
 export const profileRoleEnum = pgEnum("profile_role", [
-  "PUBLIC",
   "CONTRIBUTOR",
   "MODERATOR",
   "ADMIN",
@@ -67,7 +66,15 @@ export const schoolSportEnum = pgEnum("school_sport", [
   "SOCCER",
 ]);
 
+export const schoolTypeEnum = pgEnum("school_type", ["PRIMARY", "SECONDARY", "COMBINED"]);
+
 export const teamGenderEnum = pgEnum("team_gender", ["MALE", "FEMALE"]);
+export const feedbackIssueEnum = pgEnum("feedback_issue", ["BUG", "LOGIC", "SUGGESTION"]);
+export const feedbackDeliveryStatusEnum = pgEnum("feedback_delivery_status", [
+  "QUEUED",
+  "SENT",
+  "FAILED",
+]);
 
 export const provinces = pgTable("provinces", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -111,6 +118,7 @@ export const schools = pgTable(
     website: text("website"),
     /** Optional very short label (crest, app badges); listings still use display_name. */
     nickname: text("nickname"),
+    schoolType: schoolTypeEnum("school_type").notNull().default("PRIMARY"),
     /** Storage object path within bucket `school-logos` (public), e.g. `{schoolId}/logo.png`. */
     logoPath: text("logo_path"),
     active: boolean("active").notNull().default(true),
@@ -216,6 +224,12 @@ export const teams = pgTable(
     index("teams_school_idx").on(t.schoolId),
     index("teams_school_sport_idx").on(t.schoolId, t.sport),
     index("teams_school_sport_gender_idx").on(t.schoolId, t.sport, t.gender),
+    uniqueIndex("teams_school_sport_age_label_gender_notnull_uq")
+      .on(t.schoolId, t.sport, t.ageGroup, t.teamLabel, t.gender)
+      .where(sql`${t.gender} is not null`),
+    uniqueIndex("teams_school_sport_age_label_gender_null_uq")
+      .on(t.schoolId, t.sport, t.ageGroup, t.teamLabel)
+      .where(sql`${t.gender} is null`),
   ]
 );
 
@@ -381,6 +395,8 @@ export const liveSessions = pgTable(
     homeLogoPath: text("home_logo_path"),
     awayLogoPath: text("away_logo_path"),
     venue: text("venue"),
+    seasonId: uuid("season_id").references(() => seasons.id),
+    competitionId: uuid("competition_id").references(() => competitions.id),
     /** When status is SCHEDULED, voting opens at this instant (UTC). Null for immediate boards. */
     goesLiveAt: timestamp("goes_live_at", { withTimezone: true }),
     status: liveSessionStatusEnum("status").notNull().default("ACTIVE"),
@@ -453,6 +469,29 @@ export const moderationLogs = pgTable(
       .defaultNow(),
   },
   (t) => [index("moderation_logs_submission_idx").on(t.submissionId)]
+);
+
+export const feedbackSubmissions = pgTable(
+  "feedback_submissions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    cellNo: text("cell_no").notNull(),
+    email: text("email").notNull(),
+    issue: feedbackIssueEnum("issue").notNull(),
+    detail: text("detail").notNull(),
+    screenshotFileName: text("screenshot_file_name"),
+    screenshotMimeType: text("screenshot_mime_type"),
+    screenshotSizeBytes: integer("screenshot_size_bytes"),
+    screenshotBase64: text("screenshot_base64"),
+    emailDeliveryStatus: feedbackDeliveryStatusEnum("email_delivery_status").notNull().default("QUEUED"),
+    emailError: text("email_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("feedback_submissions_created_idx").on(t.createdAt),
+    index("feedback_submissions_email_delivery_idx").on(t.emailDeliveryStatus),
+  ]
 );
 
 /* —— relations (for nested queries when needed) —— */

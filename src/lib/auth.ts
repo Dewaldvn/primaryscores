@@ -10,12 +10,7 @@ const AUTH_GET_USER_MS = 8_000;
 const PROFILE_DB_MS = 8_000;
 const PROFILE_TOTAL_MS = 15_000;
 
-export type ProfileRole =
-  | "PUBLIC"
-  | "CONTRIBUTOR"
-  | "MODERATOR"
-  | "ADMIN"
-  | "SCHOOL_ADMIN";
+export type ProfileRole = "CONTRIBUTOR" | "MODERATOR" | "ADMIN" | "SCHOOL_ADMIN";
 
 export async function getSessionUser() {
   try {
