@@ -36,7 +36,7 @@ export async function mergeSchoolsAction(input: unknown) {
     return { ok: false as const, error: "Select two different schools." };
   }
 
-  const selectedTeamIds = [...new Set(v.selectedSourceTeamIds)];
+  const selectedTeamIds = Array.from(new Set(v.selectedSourceTeamIds));
   const chooseSource = new Set(v.chooseSourceFields);
   const now = new Date();
 

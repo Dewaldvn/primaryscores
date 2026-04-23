@@ -90,7 +90,7 @@ export async function contributorCreateSchoolAction(input: unknown) {
     })
     .returning({ id: schools.id, slug: schools.slug, displayName: schools.displayName });
 
-  const allowedCodes = new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]);
+  const allowedCodes = new Set<string>(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]);
   const selectedCodes = (v.defaultTeamCodes ?? DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]).filter((code) =>
     allowedCodes.has(code),
   );

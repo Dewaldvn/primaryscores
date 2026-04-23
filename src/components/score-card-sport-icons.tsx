@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 import { cn } from "@/lib/utils";
@@ -33,9 +34,15 @@ export function ScoreCardSportIcons({
       className={cn("pointer-events-none absolute bottom-2 left-2 z-[4] flex items-end gap-0.5", className)}
       aria-hidden
     >
-      <img src={src} alt="" width={18} height={18} className="h-[18px] w-[18px] object-contain drop-shadow" />
+      <Image
+        src={src}
+        alt=""
+        width={18}
+        height={18}
+        className="h-[18px] w-[18px] object-contain drop-shadow"
+      />
       {isHockey && g ? (
-        <img
+        <Image
           src={g === "MALE" ? "/icons/score-sport/male.png" : "/icons/score-sport/female.png"}
           alt=""
           width={18}

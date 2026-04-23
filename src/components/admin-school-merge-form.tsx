@@ -125,7 +125,7 @@ export function AdminSchoolMergeForm({
       const set = new Set(prev);
       if (checked) set.add(id);
       else set.delete(id);
-      return [...set];
+      return Array.from(set);
     });
   }
 
@@ -134,7 +134,7 @@ export function AdminSchoolMergeForm({
       const res = await mergeSchoolsAction({
         sourceSchoolId: source.id,
         targetSchoolId: target.id,
-        chooseSourceFields: [...chooseSourceFields],
+        chooseSourceFields: Array.from(chooseSourceFields),
         selectedSourceTeamIds: selectedTeamIds,
         deleteSourceWhenDone,
       });

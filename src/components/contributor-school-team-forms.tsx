@@ -305,6 +305,8 @@ export function ContributorNewSchoolForm({
             <Label htmlFor={`${baseId}-crest`}>School crest (optional)</Label>
             <div className="flex flex-wrap items-center gap-4">
               {crestPreviewUrl ? (
+                // Local preview uses blob: URLs from file input; next/image optimization is not needed here.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={crestPreviewUrl}
                   alt=""
