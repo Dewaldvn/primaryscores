@@ -118,7 +118,7 @@ export default async function HomePage() {
       ) : null}
 
       <section className="space-y-5 sm:space-y-6">
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-semibold text-red-700">
           NOTE: This is a BETA version. Expect errors and irritations. Please use the{" "}
           <Link href="/feedback" className="underline underline-offset-2">
             feedback section
