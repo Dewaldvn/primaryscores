@@ -14,9 +14,15 @@ export type ApiAuthResult =
 /** Session + profile for Route Handlers (JSON errors, no redirect). */
 export async function getSessionProfileForApi(): Promise<ApiAuthResult> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: User | null = null;
+  try {
+    const {
+      data: { user: fetched },
+    } = await supabase.auth.getUser();
+    user = fetched;
+  } catch {
+    return { ok: false, status: 401, error: "Unauthorized" };
+  }
   if (!user) {
     return { ok: false, status: 401, error: "Unauthorized" };
   }

@@ -38,9 +38,15 @@ export async function GET(request: Request) {
     );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      let user = null;
+      try {
+        const {
+          data: { user: fetched },
+        } = await supabase.auth.getUser();
+        user = fetched;
+      } catch {
+        user = null;
+      }
       if (user) {
         await ensureContributorProfile(user);
         const [profile] = await db

@@ -68,9 +68,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: friendlyError(error.message) }, { status: 401 });
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: fetched },
+    } = await supabase.auth.getUser();
+    user = fetched;
+  } catch {
+    user = null;
+  }
   if (user) {
     await ensureContributorProfile(user);
     const [profile] = await db
