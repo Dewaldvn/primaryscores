@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { adminListSchoolsForExport, adminListTeamsForExport } from "@/lib/data/admin";
-import { parseTabularFormat, rowsToCsv, rowsToXlsxBuffer } from "@/lib/tabular";
+import { parseTabularFormat, rowsToCsv } from "@/lib/tabular";
 import * as XLSX from "xlsx";
 
 function qps(req: NextRequest, key: string): string[] {
