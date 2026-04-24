@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { provinces, schools, teams } from "@/db/schema";
+import { provinces, schools } from "@/db/schema";
 import { slugify } from "@/lib/slug";
 import { schoolsHasNicknameColumn } from "@/lib/school-db-support";
 import { SCHOOL_LOGOS_BUCKET } from "@/lib/school-logo";
@@ -296,22 +296,6 @@ export async function POST(req: Request) {
           .returning({ id: schools.id, slug: schools.slug });
         schoolId = created.id;
         existingBySlug.set(created.slug, { id: created.id, slug: created.slug });
-      }
-
-      // Keep admin import behavior consistent: every school should have a default active U13 first team.
-      const [u13Team] = await tx
-        .select({ id: teams.id })
-        .from(teams)
-        .where(and(eq(teams.schoolId, schoolId), eq(teams.ageGroup, "U13"), eq(teams.isFirstTeam, true)))
-        .limit(1);
-      if (!u13Team) {
-        await tx.insert(teams).values({
-          schoolId,
-          ageGroup: "U13",
-          teamLabel: "A",
-          isFirstTeam: true,
-          active: true,
-        });
       }
 
       inserted.push({

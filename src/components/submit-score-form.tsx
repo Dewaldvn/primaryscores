@@ -118,6 +118,7 @@ export function SubmitScoreForm({
         recordingUrl: fd.get("recordingUrl") || undefined,
         sourceUrl: fd.get("sourceUrl") || undefined,
         notes: fd.get("notes") || undefined,
+        isDummy: fd.get("isDummy") === "on",
         turnstileToken: turnToken,
       };
 
@@ -226,6 +227,21 @@ export function SubmitScoreForm({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <div className="rounded-md border-2 border-destructive bg-destructive/25 px-3 py-2.5 dark:bg-destructive/30">
+            <div className="flex items-start gap-2.5">
+              <input
+                id="isDummy"
+                name="isDummy"
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 rounded border border-destructive/60 accent-destructive"
+              />
+              <Label htmlFor="isDummy" className="text-sm font-normal leading-snug text-destructive">
+                Tick here if this is a dummy score for testing (it will show with a distinct style when published).
+              </Label>
+            </div>
+          </div>
+        </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="proposedMatchDate">Match date *</Label>
           <Input id="proposedMatchDate" name="proposedMatchDate" type="date" required />
@@ -531,7 +547,9 @@ export function SubmitScoreForm({
           <Textarea id="notes" name="notes" rows={3} />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="evidence">Evidence file (optional)</Label>
+          <Label htmlFor="evidence">
+            Evidence file (optional, such as a picture of the scoreboard)
+          </Label>
           <Input id="evidence" name="evidence" type="file" accept="image/*,.pdf" />
         </div>
       </div>

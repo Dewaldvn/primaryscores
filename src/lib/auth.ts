@@ -55,6 +55,9 @@ export async function requireUser(redirectPath = "/login") {
 
 export async function requireRole(allowed: ProfileRole[], redirectTo = "/") {
   const user = await requireUser();
+  if (!isDatabaseConfigured()) {
+    redirect(redirectTo);
+  }
   let profile;
   try {
     const rows = await withTimeout(

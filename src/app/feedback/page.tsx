@@ -7,7 +7,8 @@ export default function FeedbackPage() {
       <div>
         <h1 className="text-2xl font-bold">Feedback</h1>
         <p className="text-sm text-muted-foreground">
-          Report bugs, logic issues, or suggestions for the beta release.
+          Report bugs, flow or logic issues, things you don't like, or suggestions for the beta
+          release.
         </p>
       </div>
 

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { schoolAdminScheduleLiveSessionAction } from "@/actions/school-admin-live";
-import type { SchoolSport } from "@/lib/sports";
+import { schoolSportLabel, type SchoolSport } from "@/lib/sports";
+import { cn } from "@/lib/utils";
 
 type TeamOpt = {
   id: string;
@@ -28,8 +29,8 @@ export function SchoolAdminScheduleLiveForm({
   competitionOptions,
 }: {
   homeTeamOptions: TeamOpt[];
-  seasonOptions: { id: string; label: string }[];
-  competitionOptions: { id: string; label: string }[];
+  seasonOptions: { id: string; sport: SchoolSport; label: string }[];
+  competitionOptions: { id: string; sport: SchoolSport; label: string }[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -54,6 +55,32 @@ export function SchoolAdminScheduleLiveForm({
   const schoolLinks = Array.from(
     new Map(homeTeamOptions.map((o) => [o.schoolId, { schoolId: o.schoolId, schoolName: o.schoolName }])).values()
   );
+
+  const homeSport: SchoolSport | null = selectedHome?.sport ?? null;
+  const seasonsForHomeSport = useMemo(
+    () => (homeSport ? seasonOptions.filter((o) => o.sport === homeSport) : []),
+    [homeSport, seasonOptions]
+  );
+  const competitionsForHomeSport = useMemo(
+    () => (homeSport ? competitionOptions.filter((o) => o.sport === homeSport) : []),
+    [homeSport, competitionOptions]
+  );
+
+  useEffect(() => {
+    if (!homeSport) {
+      setSeasonId("");
+      setCompetitionId("");
+      return;
+    }
+    setSeasonId((prev) => {
+      const sOpts = seasonOptions.filter((o) => o.sport === homeSport);
+      return prev && sOpts.some((s) => s.id === prev) ? prev : "";
+    });
+    setCompetitionId((prev) => {
+      const cOpts = competitionOptions.filter((o) => o.sport === homeSport);
+      return prev && cOpts.some((c) => c.id === prev) ? prev : "";
+    });
+  }, [homeSport, seasonOptions, competitionOptions]);
 
   useEffect(() => {
     if (awaySchoolQ.trim().length < 2) {
@@ -208,6 +235,77 @@ export function SchoolAdminScheduleLiveForm({
           </div>
         ) : null}
       </div>
+
+      <div className="space-y-3 rounded-lg border border-border/80 bg-muted/20 px-3 py-3">
+        <p className="text-sm font-medium text-foreground">Season OR competition (optional)</p>
+        {selectedHome ? (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Shown for <span className="text-foreground">{schoolSportLabel(selectedHome.sport)}</span> only. Pick a
+              season <span className="text-foreground">or</span> a competition (not both)—or leave both blank.
+            </p>
+            <div className="space-y-1">
+              <Label
+                htmlFor="school-admin-season"
+                className={cn(competitionId !== "" && "text-muted-foreground")}
+                title={competitionId ? "Clear competition to choose a season" : undefined}
+              >
+                Season
+              </Label>
+              <select
+                id="school-admin-season"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-45"
+                value={seasonId}
+                disabled={competitionId !== ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSeasonId(v);
+                  if (v) setCompetitionId("");
+                }}
+              >
+                <option value="">— None —</option>
+                {seasonsForHomeSport.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label
+                htmlFor="school-admin-competition"
+                className={cn(seasonId !== "" && "text-muted-foreground")}
+                title={seasonId ? "Clear season to choose a competition" : undefined}
+              >
+                Competition
+              </Label>
+              <select
+                id="school-admin-competition"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-45"
+                value={competitionId}
+                disabled={seasonId !== ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCompetitionId(v);
+                  if (v) setSeasonId("");
+                }}
+              >
+                <option value="">— None —</option>
+                {competitionsForHomeSport.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Select a home team above to optionally set a season or a competition.
+          </p>
+        )}
+      </div>
+
       <div className="space-y-1">
         <Label htmlFor="away-school-search">Away school (search)</Label>
         <Input
@@ -284,38 +382,6 @@ export function SchoolAdminScheduleLiveForm({
         {awayTeamId && awayLabel ? (
           <p className="text-xs text-muted-foreground">Away: {awayLabel}</p>
         ) : null}
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="school-admin-season">Season (optional)</Label>
-        <select
-          id="school-admin-season"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
-          value={seasonId}
-          onChange={(e) => setSeasonId(e.target.value)}
-        >
-          <option value="">Not set</option>
-          {seasonOptions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="school-admin-competition">Competition (optional)</Label>
-        <select
-          id="school-admin-competition"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-2 text-sm"
-          value={competitionId}
-          onChange={(e) => setCompetitionId(e.target.value)}
-        >
-          <option value="">Not set</option>
-          {competitionOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="goes">Goes live (your local date &amp; time)</Label>

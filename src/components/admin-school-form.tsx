@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { upsertSchoolAction } from "@/actions/admin-crud";
 import { DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE } from "@/lib/school-default-teams";
+import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 type SchoolType = "PRIMARY" | "SECONDARY" | "COMBINED";
 
@@ -26,6 +27,9 @@ export function AdminSchoolForm({
     nickname: string | null;
     slug: string;
     schoolType: "PRIMARY" | "SECONDARY" | "COMBINED";
+    existingDefaultTeamCodes?: string[];
+    existingSports?: SchoolSport[];
+    existingDefaultTeamsBySport?: Partial<Record<SchoolSport, string[]>>;
     provinceId: string;
     town: string | null;
     website: string | null;
@@ -35,15 +39,32 @@ export function AdminSchoolForm({
   prefillNew?: { displayName?: string; officialName?: string };
 }) {
   const router = useRouter();
+  const defaultCodesForType = DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[initial?.schoolType ?? "PRIMARY"];
+  const initialSelectedSports: SchoolSport[] = initial ? [] : [...SCHOOL_SPORTS];
+  const initialSelectedCodes: string[] = initial ? [] : [...defaultCodesForType];
   const [pending, setPending] = useState(false);
   const [formFeedback, setFormFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [blockedTeamsHint, setBlockedTeamsHint] = useState<{
+    schoolId: string;
+    items: Array<{ sport: string; ageGroup: string; teamLabel: string; fixtureCount: number }>;
+  } | null>(null);
   const [schoolType, setSchoolType] = useState<SchoolType>(initial?.schoolType ?? "PRIMARY");
   const [selectedDefaultTeamCodes, setSelectedDefaultTeamCodes] = useState<Set<string>>(
-    new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[initial?.schoolType ?? "PRIMARY"])
+    new Set(initialSelectedCodes)
   );
+  const [selectedDefaultTeamSports, setSelectedDefaultTeamSports] = useState<Set<SchoolSport>>(
+    new Set(initialSelectedSports)
+  );
+  const existingTeamCodes = initial?.existingDefaultTeamCodes ?? [];
 
   function setSchoolTypeAndResetDefaults(nextType: SchoolType) {
     setSchoolType(nextType);
+    if (initial) {
+      setSelectedDefaultTeamSports(new Set());
+      setSelectedDefaultTeamCodes(new Set());
+      return;
+    }
+    setSelectedDefaultTeamSports(new Set(SCHOOL_SPORTS));
     setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[nextType]));
   }
 
@@ -56,6 +77,15 @@ export function AdminSchoolForm({
     });
   }
 
+  function toggleDefaultTeamSport(sport: SchoolSport, checked: boolean) {
+    setSelectedDefaultTeamSports((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(sport);
+      else next.delete(sport);
+      return next;
+    });
+  }
+
   return (
     <form
       className="grid gap-3 sm:grid-cols-2"
@@ -64,6 +94,7 @@ export function AdminSchoolForm({
         const fd = new FormData(e.currentTarget);
         setPending(true);
         setFormFeedback(null);
+        setBlockedTeamsHint(null);
         void upsertSchoolAction({
           id: initial?.id,
           officialName: fd.get("officialName"),
@@ -71,7 +102,8 @@ export function AdminSchoolForm({
           nickname: fd.get("nickname") || null,
           slug: fd.get("slug") || undefined,
           schoolType: fd.get("schoolType"),
-          defaultTeamCodes: !initial ? Array.from(selectedDefaultTeamCodes) : undefined,
+          defaultTeamCodes: Array.from(selectedDefaultTeamCodes),
+          defaultTeamSports: Array.from(selectedDefaultTeamSports),
           provinceId: fd.get("provinceId"),
           town: fd.get("town") || null,
           website: fd.get("website") || null,
@@ -79,8 +111,20 @@ export function AdminSchoolForm({
         }).then((res) => {
           setPending(false);
           if (!res.ok) {
-            setFormFeedback({ kind: "error", text: "Update failed. Please check your inputs and try again." });
-            toast.error("Save failed");
+            const msg = "error" in res && res.error ? res.error : "Update failed. Please check your inputs and try again.";
+            setFormFeedback({ kind: "error", text: msg });
+            toast.error(msg);
+            if (
+              "blockedTeams" in res &&
+              Array.isArray(res.blockedTeams) &&
+              res.blockedTeams.length > 0
+            ) {
+              setBlockedTeamsHint({
+                schoolId:
+                  "schoolId" in res && typeof res.schoolId === "string" ? res.schoolId : (initial?.id ?? ""),
+                items: res.blockedTeams,
+              });
+            }
             return;
           }
           const msg = initial ? "Update successful" : "School created successfully";
@@ -91,7 +135,12 @@ export function AdminSchoolForm({
             setSchoolType("PRIMARY");
             setSelectedDefaultTeamCodes(new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.PRIMARY));
           } else {
-            router.refresh();
+            if (schoolAdminMode) {
+              router.refresh();
+            } else {
+              router.push("/admin/schools");
+              router.refresh();
+            }
           }
         });
       }}
@@ -169,12 +218,54 @@ export function AdminSchoolForm({
           </div>
         </div>
       ) : null}
-      {!schoolAdminMode && !initial ? (
+      {!schoolAdminMode ? (
         <div className="space-y-2 rounded-md border p-3 sm:col-span-2">
-          <Label>Default teams to create (all sports)</Label>
+          <Label>{initial ? "Default teams (quick add)" : "Default teams to create"}</Label>
           <p className="text-xs text-muted-foreground">
-            These defaults are selected for a {schoolType.toLowerCase()} school. Deselect any teams you do not want.
+            {initial
+              ? ""
+              : `These defaults are selected for a ${schoolType.toLowerCase()} school. Deselect any teams you do not want.`}
           </p>
+          {initial ? (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Already linked to this school</Label>
+              {initial.existingDefaultTeamsBySport && Object.keys(initial.existingDefaultTeamsBySport).length > 0 ? (
+                <div className="space-y-1 text-sm">
+                  {SCHOOL_SPORTS.map((sport) => {
+                    const codes = initial.existingDefaultTeamsBySport?.[sport] ?? [];
+                    if (codes.length === 0) return null;
+                    return (
+                      <p key={sport}>
+                        <span className="font-medium">{schoolSportLabel(sport)}:</span> {codes.join(", ")}
+                      </p>
+                    );
+                  })}
+                </div>
+              ) : existingTeamCodes.length > 0 ? (
+                <p className="text-sm">{existingTeamCodes.join(", ")}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">No teams linked yet.</p>
+              )}
+            </div>
+          ) : null}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Sports to create defaults for</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {SCHOOL_SPORTS.map((sport) => (
+                <label key={sport} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedDefaultTeamSports.has(sport)}
+                    onChange={(e) => toggleDefaultTeamSport(sport, e.currentTarget.checked)}
+                  />
+                  {schoolSportLabel(sport)}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Team age-groups/sides</Label>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType].map((code) => (
               <label key={code} className="flex items-center gap-2 text-sm">
@@ -228,13 +319,30 @@ export function AdminSchoolForm({
         {initial ? "Update school" : "Create school"}
       </Button>
       {formFeedback ? (
-        <p
-          className={`sm:col-span-2 text-center text-sm ${
-            formFeedback.kind === "ok" ? "text-emerald-700" : "text-destructive"
-          }`}
-        >
-          {formFeedback.text}
-        </p>
+        <div className="sm:col-span-2 space-y-2 text-center">
+          <p className={`text-sm ${formFeedback.kind === "ok" ? "text-emerald-700" : "text-destructive"}`}>
+            {formFeedback.text}
+          </p>
+          {blockedTeamsHint ? (
+            <div className="rounded-md border border-destructive/25 bg-destructive/5 p-3 text-left text-xs">
+              <p className="font-medium text-destructive">Blocked teams linked to fixtures:</p>
+              <ul className="mt-1 space-y-1 text-destructive">
+                {blockedTeamsHint.items.map((t) => (
+                  <li key={`${t.sport}-${t.ageGroup}-${t.teamLabel}`}>
+                    {t.sport} {t.ageGroup}
+                    {t.teamLabel} ({t.fixtureCount})
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={`/admin/teams?schoolId=${blockedTeamsHint.schoolId}`}
+                className="mt-2 inline-block text-sm text-primary underline"
+              >
+                Open this school in Teams directory
+              </a>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </form>
   );

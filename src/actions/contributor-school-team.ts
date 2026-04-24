@@ -48,9 +48,11 @@ function buildDefaultTeamsForSchool(
   schoolId: string,
   schoolType: keyof typeof DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE,
   selectedCodes?: string[],
+  selectedSports?: readonly (typeof SCHOOL_SPORTS)[number][],
 ) {
   const codes = selectedCodes?.length ? selectedCodes : DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType];
-  return SCHOOL_SPORTS.flatMap((sport) =>
+  const sports = selectedSports?.length ? selectedSports : SCHOOL_SPORTS;
+  return sports.flatMap((sport) =>
     codes.map((code) => {
       const { ageGroup, teamLabel } = teamPartsFromCode(code);
       return {
@@ -94,8 +96,10 @@ export async function contributorCreateSchoolAction(input: unknown) {
   const selectedCodes = (v.defaultTeamCodes ?? DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[v.schoolType]).filter((code) =>
     allowedCodes.has(code),
   );
-  if (selectedCodes.length > 0) {
-    await db.insert(teams).values(buildDefaultTeamsForSchool(inserted.id, v.schoolType, selectedCodes));
+  const allowedSports = new Set<string>(SCHOOL_SPORTS);
+  const selectedSports = (v.defaultTeamSports ?? SCHOOL_SPORTS).filter((sport) => allowedSports.has(sport));
+  if (selectedCodes.length > 0 && selectedSports.length > 0) {
+    await db.insert(teams).values(buildDefaultTeamsForSchool(inserted.id, v.schoolType, selectedCodes, selectedSports));
   }
 
   return { ok: true as const, schoolId: inserted.id, slug: inserted.slug, displayName: inserted.displayName };

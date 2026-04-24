@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     "match_date",
     "home_score",
     "away_score",
+    "is_dummy",
     "verified",
     "verification_level",
     "published_at",
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
     match_date: r.matchDate,
     home_score: r.homeScore,
     away_score: r.awayScore,
+    is_dummy: r.isDummy,
     verified: r.isVerified,
     verification_level: r.verificationLevel,
     published_at:

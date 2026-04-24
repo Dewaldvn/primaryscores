@@ -27,6 +27,8 @@ export const submitScoreSchema = z.object({
   sourceUrl: optionalHttpUrl,
   recordingUrl: optionalHttpUrl,
   notes: z.string().max(5000).optional().nullable(),
+  /** When true, submission and resulting score are treated as test/dummy data. */
+  isDummy: z.boolean().optional().default(false),
   turnstileToken: z.string().optional().nullable(),
 });
 

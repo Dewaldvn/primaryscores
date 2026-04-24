@@ -68,6 +68,7 @@ export async function adminUpdateResultAction(input: unknown) {
         awayScore: d.awayScore,
         isVerified: d.isVerified,
         verificationLevel,
+        isDummy: d.isDummy,
         publishedAt,
         updatedAt: now,
       })

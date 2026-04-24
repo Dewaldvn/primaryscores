@@ -1,19 +1,14 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LinkButton } from "@/components/link-button";
+import { cn } from "@/lib/utils";
 import { AdminTeamForm } from "@/components/admin-team-form";
+import { AdminTeamsRosterTable } from "@/components/admin-teams-roster-table";
 import { AdminTeamsSchoolSearch } from "@/components/admin-teams-school-search";
 import { adminListTeams, adminListSchools, adminListTeamsForSchoolIds } from "@/lib/data/admin";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
-import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
+import type { SchoolSport } from "@/lib/sports";
 
 type PageProps = { searchParams: Record<string, string | string[] | undefined> };
 
@@ -74,21 +69,30 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
       },
     ),
   );
-  const teamsBySport = new Map<SchoolSport, typeof selectedSchoolTeams>();
-  for (const sport of SCHOOL_SPORTS) teamsBySport.set(sport, []);
-  for (const row of selectedSchoolTeams) {
-    const sport = row.team.sport as SchoolSport;
-    const list = teamsBySport.get(sport);
-    if (list) list.push(row);
-  }
+  const rosterRows = selectedSchool ? selectedSchoolTeams : rows;
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="space-y-3">
         <h1 className="text-2xl font-bold">Teams</h1>
+        <Link href="/admin/school-admins" className="inline-block text-sm text-muted-foreground hover:underline">
+          ← Back to school admins
+        </Link>
         <p className="text-sm text-muted-foreground">
-          Link age-group sides to schools. Showing the latest 15 teams{schoolSearch ? " matching your search" : ""}.
+          Link age-group sides to schools.
+          {selectedSchool
+            ? ` Showing all teams for ${selectedSchool.displayName}, ordered by sport and age group.`
+            : ` Showing the latest 15 teams${schoolSearch ? " matching your search" : ""}.`}
         </p>
+        <a
+          href="#add-team"
+          className={cn(
+            buttonVariants({ variant: "default", size: "default" }),
+            "inline-flex w-fit",
+          )}
+        >
+          Add team
+        </a>
       </div>
 
       <Card>
@@ -97,83 +101,11 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
         </CardHeader>
         <CardContent className="space-y-4 overflow-x-auto">
           <AdminTeamsSchoolSearch initialValue={schoolSearch} selectedSchoolId={selectedSchool?.id} />
-          {selectedSchool ? (
-            <div className="space-y-4 rounded-md border p-4">
-              <p className="text-sm font-medium">
-                Teams for {selectedSchool.displayName}, arranged by sport and age group.
-              </p>
-              <div className="grid gap-4 md:grid-cols-2">
-                {SCHOOL_SPORTS.map((sport) => {
-                  const sportRows = teamsBySport.get(sport) ?? [];
-                  return (
-                    <div key={sport} className="rounded-md border p-3">
-                      <h3 className="mb-2 text-sm font-semibold">{schoolSportLabel(sport)}</h3>
-                      {sportRows.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No teams listed.</p>
-                      ) : (
-                        <ul className="space-y-1 text-sm">
-                          {sportRows.map((r) => (
-                            <li key={r.team.id} className="flex items-center justify-between gap-2">
-                              <span>
-                                {r.team.ageGroup}
-                                {r.team.gender ? ` · ${r.team.gender}` : ""} · {r.team.teamLabel}
-                              </span>
-                              <LinkButton href={`/admin/teams/${r.team.id}`} variant="ghost" size="sm">
-                                Edit
-                              </LinkButton>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>School</TableHead>
-                <TableHead>Sport</TableHead>
-                <TableHead>Gender</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Label</TableHead>
-                <TableHead>Nickname</TableHead>
-                <TableHead>Active</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.team.id}>
-                  <TableCell>{r.schoolName}</TableCell>
-                  <TableCell>{r.team.sport}</TableCell>
-                  <TableCell>{r.team.gender ?? "—"}</TableCell>
-                  <TableCell>{r.team.ageGroup}</TableCell>
-                  <TableCell>{r.team.teamLabel}</TableCell>
-                  <TableCell className="text-muted-foreground">{r.team.teamNickname ?? "—"}</TableCell>
-                  <TableCell>{r.team.active ? "Yes" : "No"}</TableCell>
-                  <TableCell className="text-right">
-                    <LinkButton href={`/admin/teams/${r.team.id}`} variant="outline" size="sm">
-                      Edit
-                    </LinkButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
-                    No teams found.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
+          <AdminTeamsRosterTable rows={rosterRows} />
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="add-team" className="scroll-mt-24">
         <CardHeader>
           <CardTitle>Add team</CardTitle>
         </CardHeader>

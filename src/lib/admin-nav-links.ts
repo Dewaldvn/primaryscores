@@ -3,7 +3,7 @@
 export type AdminNavLink = { readonly href: string; readonly label: string };
 
 export const ADMIN_NAV_LINKS: readonly AdminNavLink[] = [
-  { href: "/admin/scores", label: "Admin" },
+  { href: "/admin/scores", label: "Scores" },
   { href: "/moderator", label: "Moderation" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/school-admins", label: "School Admin" },

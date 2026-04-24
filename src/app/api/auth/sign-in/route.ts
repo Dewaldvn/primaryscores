@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 import { createServerClient } from "@supabase/ssr";
-import { ensureContributorProfile } from "@/lib/auth/ensure-profile";
+import { ensureProfileAndGetOnboardingStatus } from "@/lib/auth/ensure-profile";
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/env";
-import { db } from "@/lib/db";
-import { profiles } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +44,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Email and password are required." }, { status: 400 });
   }
 
-  const res = NextResponse.json({ ok: true as const, redirectTo });
+  // Collect Set-Cookie from the client, then attach in one `NextResponse` (includes PENDING case).
+  let supabaseSetCookies: { name: string; value: string; options: Parameters<NextResponse["cookies"]["set"]>[2] }[] =
+    [];
 
   const supabase = createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {
@@ -55,39 +54,27 @@ export async function POST(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          res.cookies.set(name, value, options);
-        });
+        supabaseSetCookies = cookiesToSet;
       },
     },
   });
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     return NextResponse.json({ ok: false, error: friendlyError(error.message) }, { status: 401 });
   }
 
-  let user = null;
-  try {
-    const {
-      data: { user: fetched },
-    } = await supabase.auth.getUser();
-    user = fetched;
-  } catch {
-    user = null;
-  }
+  let outRedirect = redirectTo;
+  const user = data.user;
   if (user) {
-    await ensureContributorProfile(user);
-    const [profile] = await db
-      .select({ onboardingStatus: profiles.onboardingStatus })
-      .from(profiles)
-      .where(eq(profiles.id, user.id))
-      .limit(1);
-    if (profile?.onboardingStatus === "PENDING") {
-      return NextResponse.json({ ok: true as const, redirectTo: "/account" });
-    }
+    const ob = await ensureProfileAndGetOnboardingStatus(user);
+    if (ob === "PENDING") outRedirect = "/account";
   }
 
+  const res = NextResponse.json({ ok: true as const, redirectTo: outRedirect });
+  for (const c of supabaseSetCookies) {
+    res.cookies.set(c.name, c.value, c.options);
+  }
   return res;
 }

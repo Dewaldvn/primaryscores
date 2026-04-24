@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { SchoolLogo } from "@/components/school-logo";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
+import { SCORE_DUMMY_RESULT_BG_CLASS } from "@/lib/score-result-frame";
 
 type SearchPayload = {
   schools: {
@@ -47,6 +48,7 @@ type SearchPayload = {
     fixtureId: string;
     homeScore: number;
     awayScore: number;
+    isDummy: boolean;
     matchDate: string;
     homeSchoolName: string;
     awaySchoolName: string;
@@ -339,7 +341,12 @@ function GlobalSearchFloating({
                             Open match {g.homeSchoolName} vs {g.awaySchoolName}
                           </span>
                         </Link>
-                        <div className="pointer-events-none relative z-[2] rounded-md px-2 py-2 text-sm hover:bg-muted/80">
+                        <div
+                          className={cn(
+                            "pointer-events-none relative z-[2] rounded-md px-2 py-2 text-sm hover:bg-muted/80",
+                            g.isDummy && SCORE_DUMMY_RESULT_BG_CLASS
+                          )}
+                        >
                           <span className="font-medium tabular-nums">
                             {g.homeScore} – {g.awayScore}
                           </span>

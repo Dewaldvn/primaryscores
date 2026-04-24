@@ -12,6 +12,10 @@ export const createLiveSessionSchema = z
     homeLogoPath: z.string().max(500).nullable().optional(),
     awayLogoPath: z.string().max(500).nullable().optional(),
     venue: z.string().max(300).optional().nullable(),
+    seasonId: z
+      .preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
+    competitionId: z
+      .preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
     turnstileToken: z.string().optional().nullable(),
   })
   .superRefine((data, ctx) => {
@@ -28,6 +32,13 @@ export const createLiveSessionSchema = z
         code: z.ZodIssueCode.custom,
         message: "Team gender applies to hockey only.",
         path: ["teamGender"],
+      });
+    }
+    if (data.seasonId && data.competitionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose a season or a competition, not both.",
+        path: ["competitionId"],
       });
     }
   });

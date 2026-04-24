@@ -8,7 +8,11 @@ import { SuperSportsRecordingLink } from "@/components/super-sports-recording-li
 import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 import { cn } from "@/lib/utils";
-import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
+import {
+  scoreResultCardClass,
+  scoreResultCardHoverClass,
+  SCORE_DUMMY_HEADER_BAND_CLASS,
+} from "@/lib/score-result-frame";
 
 export type RecentVerifiedRow = {
   resultId: string;
@@ -28,6 +32,8 @@ export type RecentVerifiedRow = {
   recordingUrl: string | null;
   sport: SchoolSport;
   teamGender: TeamGender | null;
+  /** When true, card uses dummy/test styling. */
+  isDummy?: boolean;
 };
 
 export function RecentVerifiedScoreCards({
@@ -52,8 +58,9 @@ export function RecentVerifiedScoreCards({
         <Card
           key={r.resultId}
           className={cn(
-            SCORE_RESULT_FRAME_CLASS,
-            "relative overflow-hidden transition-colors hover:bg-muted/20",
+            scoreResultCardClass(r.isDummy),
+            "relative overflow-hidden transition-colors",
+            scoreResultCardHoverClass(r.isDummy),
             compact && "shadow-sm"
           )}
         >
@@ -65,12 +72,13 @@ export function RecentVerifiedScoreCards({
           />
           <CardHeader
             className={cn(
-              "relative z-[2] border-b bg-muted/30 pointer-events-none",
+              "relative z-[2] border-b pointer-events-none",
+              r.isDummy ? SCORE_DUMMY_HEADER_BAND_CLASS : "bg-muted/30",
               compact ? "px-2.5 py-2.5" : "px-4 py-4"
             )}
           >
             <div className={cn("absolute z-[3]", compact ? "right-2 top-2" : "right-3 top-3")}>
-              <VerificationBadge level={r.verificationLevel} compact />
+              <VerificationBadge level={r.verificationLevel} compact isDummy={r.isDummy} />
             </div>
             <CardTitle
               className={cn(

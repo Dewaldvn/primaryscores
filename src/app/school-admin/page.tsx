@@ -22,37 +22,61 @@ export default async function SchoolAdminHomePage() {
     redirect("/login");
   }
 
-  const memberships = await listMembershipsForProfile(profile.id);
-  const active = memberships.filter((m) => m.status === "ACTIVE");
-  const pending = memberships.filter((m) => m.status === "PENDING");
+  let active: Awaited<ReturnType<typeof listMembershipsForProfile>>;
+  let pending: Awaited<ReturnType<typeof listMembershipsForProfile>>;
+  const teamsBySchool = new Map<string, Awaited<ReturnType<typeof listActiveTeamsForSchoolIds>>>();
 
-  const activeSchoolIds = active.map((m) => m.schoolId);
-  const allActiveTeams =
-    activeSchoolIds.length > 0 ? await listActiveTeamsForSchoolIds(activeSchoolIds) : [];
-  const teamsBySchool = new Map<string, typeof allActiveTeams>();
-  for (const t of allActiveTeams) {
-    const arr = teamsBySchool.get(t.schoolId) ?? [];
-    arr.push(t);
-    teamsBySchool.set(t.schoolId, arr);
-  }
-  teamsBySchool.forEach((arr) => {
-    arr.sort((a, b) =>
-      compareTeamsBySportAndChronologicalAge(
-        {
-          sport: a.sport as SchoolSport,
-          ageGroup: a.ageGroup,
-          gender: a.gender,
-          teamLabel: a.teamLabel,
-        },
-        {
-          sport: b.sport as SchoolSport,
-          ageGroup: b.ageGroup,
-          gender: b.gender,
-          teamLabel: b.teamLabel,
-        },
-      ),
+  try {
+    const memberships = await listMembershipsForProfile(profile.id);
+    const activeList = memberships.filter((m) => m.status === "ACTIVE");
+    const pendingList = memberships.filter((m) => m.status === "PENDING");
+    active = activeList;
+    pending = pendingList;
+
+    const activeSchoolIds = activeList.map((m) => m.schoolId);
+    const teams =
+      activeSchoolIds.length > 0 ? await listActiveTeamsForSchoolIds(activeSchoolIds) : [];
+    for (const t of teams) {
+      const arr = teamsBySchool.get(t.schoolId) ?? [];
+      arr.push(t);
+      teamsBySchool.set(t.schoolId, arr);
+    }
+    teamsBySchool.forEach((arr) => {
+      arr.sort((a, b) =>
+        compareTeamsBySportAndChronologicalAge(
+          {
+            sport: a.sport as SchoolSport,
+            ageGroup: a.ageGroup,
+            gender: a.gender,
+            teamLabel: a.teamLabel,
+          },
+          {
+            sport: b.sport as SchoolSport,
+            ageGroup: b.ageGroup,
+            gender: b.gender,
+            teamLabel: b.teamLabel,
+          },
+        ),
+      );
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return (
+      <div className="space-y-3 rounded-md border border-destructive/50 bg-destructive/5 p-4 text-sm">
+        <h1 className="text-lg font-semibold text-destructive">Could not load school admin</h1>
+        <p className="text-muted-foreground">
+          The database request failed. Check that <code className="text-xs">DATABASE_URL</code> is correct, the
+          Supabase project is running, and migrations are applied. Details:{" "}
+          <span className="whitespace-pre-wrap break-words font-mono text-xs text-foreground">{msg}</span>
+        </p>
+        <p className="text-muted-foreground">
+          If you use the <strong>transaction pooler</strong> (port 6543), the database user must be{" "}
+          <code className="text-xs">postgres.&lt;project-ref&gt;</code>, not <code className="text-xs">postgres</code>{" "}
+          alone.
+        </p>
+      </div>
     );
-  });
+  }
 
   return (
     <div className="space-y-8">

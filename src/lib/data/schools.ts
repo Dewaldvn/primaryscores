@@ -215,6 +215,7 @@ export async function getVerifiedResultsForSchool(schoolId: string, limit = 50) 
       homeScore: results.homeScore,
       awayScore: results.awayScore,
       verificationLevel: results.verificationLevel,
+      isDummy: results.isDummy,
       matchDate: fixtures.matchDate,
       homeSchoolName: homeSchool.displayName,
       awaySchoolName: awaySchool.displayName,

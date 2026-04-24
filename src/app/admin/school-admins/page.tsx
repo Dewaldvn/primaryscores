@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -9,7 +8,9 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LinkButton } from "@/components/link-button";
+import { AdminNavTableRow, AdminRowNavLink } from "@/components/admin-nav-table-row";
 import { adminListSchoolAdminOverview } from "@/lib/data/admin";
+import { adminDirectoryZebraTableRowClass } from "@/lib/admin-directory-style";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 
 export default async function AdminSchoolAdminsPage() {
@@ -68,19 +69,23 @@ export default async function AdminSchoolAdminsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {memberships.map((m) => (
-                            <TableRow key={m.membershipId}>
+                          {memberships.map((m, si) => (
+                            <AdminNavTableRow
+                              key={m.membershipId}
+                              href={`/admin/schools/${m.schoolId}`}
+                              className={adminDirectoryZebraTableRowClass(si)}
+                            >
                               <TableCell>{m.schoolName}</TableCell>
                               <TableCell>{m.status}</TableCell>
                               <TableCell>
-                                <Link
+                                <AdminRowNavLink
                                   href={`/admin/schools/${m.schoolId}`}
                                   className="text-primary text-sm underline-offset-4 hover:underline"
                                 >
                                   Open
-                                </Link>
+                                </AdminRowNavLink>
                               </TableCell>
-                            </TableRow>
+                            </AdminNavTableRow>
                           ))}
                         </TableBody>
                       </Table>
@@ -105,8 +110,12 @@ export default async function AdminSchoolAdminsPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {teamLinks.map((t) => (
-                            <TableRow key={t.teamId}>
+                          {teamLinks.map((t, ti) => (
+                            <AdminNavTableRow
+                              key={t.teamId}
+                              href={`/admin/teams/${t.teamId}`}
+                              className={adminDirectoryZebraTableRowClass(ti)}
+                            >
                               <TableCell>{t.schoolName}</TableCell>
                               <TableCell>{t.sport}</TableCell>
                               <TableCell>{t.ageGroup}</TableCell>
@@ -115,14 +124,14 @@ export default async function AdminSchoolAdminsPage() {
                                 {t.gender ? ` · ${t.gender}` : ""}
                               </TableCell>
                               <TableCell>
-                                <Link
+                                <AdminRowNavLink
                                   href={`/admin/teams/${t.teamId}`}
                                   className="text-primary text-sm underline-offset-4 hover:underline"
                                 >
                                   Open
-                                </Link>
+                                </AdminRowNavLink>
                               </TableCell>
-                            </TableRow>
+                            </AdminNavTableRow>
                           ))}
                         </TableBody>
                       </Table>

@@ -17,7 +17,11 @@ import { PUBLIC_DB_QUERY_MS } from "@/lib/public-db-timeout";
 import { parseSportQueryParam } from "@/lib/sports";
 import { parseTeamGenderQueryParam } from "@/lib/team-gender";
 import { cn } from "@/lib/utils";
-import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
+import {
+  SCORE_RESULT_FRAME_CLASS,
+  scoreResultCardClass,
+  scoreResultCardHoverClass,
+} from "@/lib/score-result-frame";
 
 type Props = { searchParams: Record<string, string | string[] | undefined> };
 
@@ -147,8 +151,9 @@ export default async function ResultsPage({ searchParams }: Props) {
             <li key={r.resultId}>
               <Card
                 className={cn(
-                  SCORE_RESULT_FRAME_CLASS,
-                  "relative transition-colors hover:bg-muted/30"
+                  scoreResultCardClass(r.isDummy),
+                  "relative transition-colors",
+                  scoreResultCardHoverClass(r.isDummy)
                 )}
               >
                 <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
@@ -161,51 +166,47 @@ export default async function ResultsPage({ searchParams }: Props) {
                     View match details: {r.homeSchoolName} versus {r.awaySchoolName}
                   </span>
                 </Link>
-                <CardContent className="relative z-[2] pointer-events-none flex flex-col gap-2 pb-8 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
-                      <span className="inline-flex items-center gap-2">
-                        <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
-                        <Link
-                          href={`/schools/${r.homeSchoolSlug}`}
-                          className="pointer-events-auto hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {r.homeSchoolName}
-                        </Link>
-                      </span>
-                      <span className="text-muted-foreground">vs</span>
-                      <span className="inline-flex items-center gap-2">
-                        <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
-                        <Link
-                          href={`/schools/${r.awaySchoolSlug}`}
-                          className="pointer-events-auto hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {r.awaySchoolName}
-                        </Link>
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {[r.competitionName, r.seasonName].filter(Boolean).join(" · ") || "—"}
-                      {r.provinceName ? ` · ${r.provinceName}` : ""}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {r.matchDate
-                        ? format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")
-                        : ""}
-                    </div>
-                    {r.recordingUrl ? (
-                      <SuperSportsRecordingLink
-                        href={r.recordingUrl}
-                        className="pointer-events-auto pt-0.5 text-xs"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="font-mono text-xl font-semibold tabular-nums">
-                      {r.homeScore} – {r.awayScore}
+                <CardContent className="relative z-[2] flex flex-col items-center gap-2 pb-8 pt-4 text-center pointer-events-none">
+                  <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-medium">
+                    <span className="inline-flex max-w-full items-center justify-center gap-2">
+                      <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size="md" />
+                      <Link
+                        href={`/schools/${r.homeSchoolSlug}`}
+                        className="pointer-events-auto min-w-0 break-words hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {r.homeSchoolName}
+                      </Link>
                     </span>
-                    <VerificationBadge level={r.verificationLevel} />
+                    <span className="text-muted-foreground">vs</span>
+                    <span className="inline-flex max-w-full items-center justify-center gap-2">
+                      <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size="md" />
+                      <Link
+                        href={`/schools/${r.awaySchoolSlug}`}
+                        className="pointer-events-auto min-w-0 break-words hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {r.awaySchoolName}
+                      </Link>
+                    </span>
                   </div>
+                  <p className="font-mono text-2xl font-semibold tabular-nums sm:text-3xl">
+                    {r.homeScore} – {r.awayScore}
+                  </p>
+                  {r.matchDate ? (
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(r.matchDate + "T12:00:00"), "d MMM yyyy")}
+                    </p>
+                  ) : null}
+                  <p className="text-xs text-muted-foreground">
+                    {[r.competitionName, r.seasonName].filter(Boolean).join(" · ") || "—"}
+                    {r.provinceName ? ` · ${r.provinceName}` : ""}
+                  </p>
+                  <VerificationBadge level={r.verificationLevel} isDummy={r.isDummy} />
+                  {r.recordingUrl ? (
+                    <SuperSportsRecordingLink
+                      href={r.recordingUrl}
+                      className="pointer-events-auto text-xs"
+                    />
+                  ) : null}
                 </CardContent>
               </Card>
             </li>

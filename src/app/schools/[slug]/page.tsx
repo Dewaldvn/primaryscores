@@ -22,7 +22,11 @@ import { formatTeamListingSubtitle } from "@/lib/format-team";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
 import { cn } from "@/lib/utils";
-import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
+import {
+  SCORE_RESULT_FRAME_CLASS,
+  scoreResultCardClass,
+  scoreResultCardHoverClass,
+} from "@/lib/score-result-frame";
 
 type Props = { params: { slug: string } };
 
@@ -183,7 +187,13 @@ export default async function SchoolPage({ params }: Props) {
           <ul className="space-y-3">
             {results.map((r) => (
               <li key={r.resultId}>
-                <Card className={cn(SCORE_RESULT_FRAME_CLASS, "relative")}>
+                <Card
+                  className={cn(
+                    scoreResultCardClass(r.isDummy),
+                    "relative transition-colors",
+                    scoreResultCardHoverClass(r.isDummy)
+                  )}
+                >
                   <ScoreCardSportIcons sport={r.sport} teamGender={r.teamGender} />
                   <CardContent className="flex flex-col gap-2 pb-8 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -231,7 +241,7 @@ export default async function SchoolPage({ params }: Props) {
                           {r.awayScore}
                         </span>
                       </div>
-                      <VerificationBadge level={r.verificationLevel} />
+                      <VerificationBadge level={r.verificationLevel} isDummy={r.isDummy} />
                       <Link
                         href={`/matches/${r.fixtureId}`}
                         className="text-sm text-primary hover:underline"

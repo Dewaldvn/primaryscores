@@ -69,7 +69,7 @@ export const schoolSportEnum = pgEnum("school_sport", [
 export const schoolTypeEnum = pgEnum("school_type", ["PRIMARY", "SECONDARY", "COMBINED"]);
 
 export const teamGenderEnum = pgEnum("team_gender", ["MALE", "FEMALE"]);
-export const feedbackIssueEnum = pgEnum("feedback_issue", ["BUG", "LOGIC", "SUGGESTION"]);
+export const feedbackIssueEnum = pgEnum("feedback_issue", ["BUG", "LOGIC", "SUGGESTION", "DONT_LIKE"]);
 export const feedbackDeliveryStatusEnum = pgEnum("feedback_delivery_status", [
   "QUEUED",
   "SENT",
@@ -324,6 +324,8 @@ export const results = pgTable(
       .notNull()
       .default("SUBMITTED"),
     publishedAt: timestamp("published_at", { withTimezone: true }),
+    /** When true, shown with dummy styling (e.g. test or placeholder data). */
+    isDummy: boolean("is_dummy").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -367,6 +369,7 @@ export const submissions = pgTable(
     recordingUrl: text("recording_url"),
     notes: text("notes"),
     liveSessionId: uuid("live_session_id"),
+    isDummy: boolean("is_dummy").notNull().default(false),
     moderationStatus: moderationStatusEnum("moderation_status")
       .notNull()
       .default("PENDING"),

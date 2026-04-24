@@ -54,6 +54,7 @@ export default async function AdminScoresPage({ searchParams }: Props) {
       | "MODERATOR_VERIFIED"
       | "SOURCE_VERIFIED",
     isVerified: r.isVerified,
+    isDummy: r.isDummy,
     publishedAt: r.publishedAt instanceof Date ? r.publishedAt.toISOString() : null,
     matchDate: r.matchDate,
     venue: r.venue,

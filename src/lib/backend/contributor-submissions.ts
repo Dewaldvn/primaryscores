@@ -49,6 +49,7 @@ export async function createContributorSubmission(
       sourceUrl: parsed.sourceUrl ?? null,
       recordingUrl: parsed.recordingUrl ?? null,
       notes: parsed.notes ?? null,
+      isDummy: parsed.isDummy,
       moderationStatus: "PENDING",
     })
     .returning({ id: submissions.id });

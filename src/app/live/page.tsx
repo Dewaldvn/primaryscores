@@ -2,9 +2,10 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { GamesUnderway } from "@/components/games-underway";
 import { UpcomingScheduledSection } from "@/components/upcoming-scheduled-section";
+import { adminListCompetitions, adminListSeasons } from "@/lib/data/admin";
 import { listScheduledLiveSessions } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
-import { parseSportQueryParam, schoolSportLabel } from "@/lib/sports";
+import { parseSportQueryParam, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 
 export const metadata = {
   title: "Live scoring",
@@ -23,6 +24,25 @@ export default async function LiveHubPage({ searchParams }: Props) {
   const sportFilter = parseSportQueryParam(qp(searchParams, "sport"));
   const scheduledSessions = isDatabaseConfigured()
     ? await listScheduledLiveSessions({ limit: 40, sport: sportFilter })
+    : [];
+  const liveMeta = isDatabaseConfigured()
+    ? await Promise.all([adminListSeasons(), adminListCompetitions()])
+    : null;
+  const liveSeasonOptions = liveMeta
+    ? liveMeta[0].map((r) => ({
+        id: r.season.id,
+        sport: r.season.sport as SchoolSport,
+        label: `${r.season.name} (${r.season.year})${r.provinceName ? ` · ${r.provinceName}` : ""}`,
+      }))
+    : [];
+  const liveCompetitionOptions = liveMeta
+    ? liveMeta[1].map((r) => ({
+        id: r.competition.id,
+        sport: r.competition.sport as SchoolSport,
+        label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}${
+          r.provinceName ? ` · ${r.provinceName}` : ""
+        }`,
+      }))
     : [];
 
   return (
@@ -47,7 +67,13 @@ export default async function LiveHubPage({ searchParams }: Props) {
       {isDatabaseConfigured() ? (
         <>
           <UpcomingScheduledSection sessions={scheduledSessions} variant="live" />
-          <GamesUnderway signedIn={signedIn} startImageAbove sportFilter={sportFilter} />
+          <GamesUnderway
+            signedIn={signedIn}
+            startImageAbove
+            sportFilter={sportFilter}
+            seasonOptions={liveSeasonOptions}
+            competitionOptions={liveCompetitionOptions}
+          />
         </>
       ) : null}
     </div>

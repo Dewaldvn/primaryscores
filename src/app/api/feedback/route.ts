@@ -6,15 +6,22 @@ import { feedbackSubmissions } from "@/db/schema";
 const TO_EMAIL = "dewaldvn@gmail.com";
 const SUBJECT = "SSS Beta1 Errors";
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
-const ISSUE_VALUES = new Set(["Bug", "Logic", "Suggestion"]);
+/** Submitted <select> value must match one of these. */
+const ISSUE_VALUES = new Set([
+  "Bug",
+  "There is an issue with the logical flow",
+  "Suggestion",
+  "I don't like",
+]);
 
 function cleanText(value: FormDataEntryValue | null, maxLen: number): string {
   return typeof value === "string" ? value.trim().slice(0, maxLen) : "";
 }
 
-function toIssueEnum(value: string): "BUG" | "LOGIC" | "SUGGESTION" {
+function toIssueEnum(value: string): "BUG" | "LOGIC" | "SUGGESTION" | "DONT_LIKE" {
   if (value === "Bug") return "BUG";
-  if (value === "Logic") return "LOGIC";
+  if (value === "There is an issue with the logical flow") return "LOGIC";
+  if (value === "I don't like") return "DONT_LIKE";
   return "SUGGESTION";
 }
 
@@ -50,7 +57,7 @@ export async function POST(request: Request) {
   const name = cleanText(form.get("name"), 120);
   const cellNo = cleanText(form.get("cellNo"), 40);
   const email = cleanText(form.get("email"), 200);
-  const issue = cleanText(form.get("issue"), 20);
+  const issue = cleanText(form.get("issue"), 64);
   const detail = cleanText(form.get("detail"), 5000);
   const screenshotRaw = form.get("screenshot");
   const screenshot = screenshotRaw instanceof File && screenshotRaw.size > 0 ? screenshotRaw : null;

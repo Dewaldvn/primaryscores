@@ -28,6 +28,14 @@ export const schoolUpsertSchema = z.object({
     },
     z.array(defaultSchoolTeamCodeEnum).optional()
   ),
+  defaultTeamSports: z.preprocess(
+    (v) => {
+      if (v == null) return undefined;
+      if (Array.isArray(v)) return v;
+      return [v];
+    },
+    z.array(schoolSportEnum).optional()
+  ),
   provinceId: z.string().uuid(),
   town: z.string().optional().nullable(),
   website: z.preprocess(
@@ -135,4 +143,5 @@ export const adminResultUpdateSchema = z.object({
   ),
   isVerified: z.coerce.boolean(),
   verificationLevel: z.enum(["SUBMITTED", "MODERATOR_VERIFIED", "SOURCE_VERIFIED"]),
+  isDummy: z.coerce.boolean().optional().default(false),
 });

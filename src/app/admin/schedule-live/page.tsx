@@ -6,6 +6,7 @@ import { getProfile } from "@/lib/auth";
 import { adminListCompetitions, adminListSeasons } from "@/lib/data/admin";
 import { listLiveSessionsByCreator } from "@/lib/data/live-sessions";
 import { isDatabaseConfigured } from "@/lib/db-safe";
+import type { SchoolSport } from "@/lib/sports";
 import { format } from "date-fns";
 
 export default async function AdminScheduleLivePage() {
@@ -25,11 +26,15 @@ export default async function AdminScheduleLivePage() {
   ]);
   const seasonOptions = seasons.map((r) => ({
     id: r.season.id,
-    label: `${r.season.name} (${r.season.year})`,
+    sport: r.season.sport as SchoolSport,
+    label: `${r.season.name} (${r.season.year})${r.provinceName ? ` · ${r.provinceName}` : ""}`,
   }));
   const competitionOptions = competitions.map((r) => ({
     id: r.competition.id,
-    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}`,
+    sport: r.competition.sport as SchoolSport,
+    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}${
+      r.provinceName ? ` · ${r.provinceName}` : ""
+    }`,
   }));
 
   return (
@@ -37,8 +42,9 @@ export default async function AdminScheduleLivePage() {
       <div>
         <h1 className="text-2xl font-bold">Schedule live game</h1>
         <p className="text-sm text-muted-foreground">
-          Choose the sport first, then search schools and pick teams. Only teams for that sport are listed; hockey away
-          teams match the home side (boys or girls). You can optionally set season and competition.
+          Choose the sport first, then optionally a season or a competition—one only, not both (filtered to that sport).
+          Search schools
+          and pick teams; hockey away teams match the home side (boys or girls).
         </p>
         <p className="pt-2 text-sm text-muted-foreground">
           <Link href="/admin/scores" className="text-primary underline">

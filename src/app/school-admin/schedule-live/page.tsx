@@ -47,11 +47,15 @@ export default async function SchoolAdminScheduleLivePage() {
   ]);
   const seasonOptions = seasons.map((r) => ({
     id: r.season.id,
-    label: `${r.season.name} (${r.season.year})`,
+    sport: r.season.sport as SchoolSport,
+    label: `${r.season.name} (${r.season.year})${r.provinceName ? ` · ${r.provinceName}` : ""}`,
   }));
   const competitionOptions = competitions.map((r) => ({
     id: r.competition.id,
-    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}`,
+    sport: r.competition.sport as SchoolSport,
+    label: `${r.competition.name}${r.competition.year ? ` (${r.competition.year})` : ""}${
+      r.provinceName ? ` · ${r.provinceName}` : ""
+    }`,
   }));
 
   return (
@@ -59,9 +63,9 @@ export default async function SchoolAdminScheduleLivePage() {
       <div>
         <h1 className="text-2xl font-bold">Schedule live game</h1>
         <p className="text-sm text-muted-foreground">
-          Pick your home team, search for the opponent, and set when the crowd scoreboard should open. Same sport
-          and age group required; hockey away side must match boys or girls. You can optionally set season and
-          competition.
+          Pick your home team, then optionally a season or a competition—one only, not both (same sport as the home team).
+          Search for the
+          opponent and set when the board opens. Same age group required; hockey away side must match boys or girls.
         </p>
       </div>
 

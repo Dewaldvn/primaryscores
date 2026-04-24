@@ -106,6 +106,9 @@ export function ContributorNewSchoolForm({
   const [selectedDefaultTeamCodes, setSelectedDefaultTeamCodes] = useState<Set<string>>(
     new Set(DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE.PRIMARY),
   );
+  const [selectedDefaultTeamSports, setSelectedDefaultTeamSports] = useState<Set<SchoolSport>>(
+    new Set(SCHOOL_SPORTS),
+  );
   const baseId = useId();
 
   useEffect(() => {
@@ -136,6 +139,7 @@ export function ContributorNewSchoolForm({
                   displayName: fd.get("displayName"),
                   schoolType,
                   defaultTeamCodes: Array.from(selectedDefaultTeamCodes),
+                  defaultTeamSports: Array.from(selectedDefaultTeamSports),
                   provinceId: fd.get("provinceId"),
                   town: fd.get("town") || null,
                   website: fd.get("website") || null,
@@ -252,10 +256,36 @@ export function ContributorNewSchoolForm({
             </div>
           </div>
           <div className="space-y-2 rounded-lg border bg-muted/25 p-3 sm:col-span-2">
-            <Label>Default teams to add (all sports)</Label>
+            <Label>Default teams to add</Label>
             <p className="text-xs text-muted-foreground">
-              Deselect any defaults you do not want to create for this new school.
+              Choose sports first, then the default team codes to create for those sports.
             </p>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Sports to create defaults for</Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {SCHOOL_SPORTS.map((sportCode) => (
+                  <label key={sportCode} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedDefaultTeamSports.has(sportCode)}
+                      onChange={(e) => {
+                        const checked = e.currentTarget.checked;
+                        setSelectedDefaultTeamSports((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(sportCode);
+                          else next.delete(sportCode);
+                          return next;
+                        });
+                      }}
+                    />
+                    {schoolSportLabel(sportCode)}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Team age-groups/sides</Label>
+            </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {DEFAULT_TEAM_CODES_BY_SCHOOL_TYPE[schoolType].map((code) => (
                 <label key={code} className="flex items-center gap-2 text-sm">

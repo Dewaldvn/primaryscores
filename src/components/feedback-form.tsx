@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-type IssueType = "Bug" | "Logic" | "Suggestion";
+const FEEDBACK_ISSUE_OPTIONS = [
+  { value: "Bug", label: "Bug" },
+  {
+    value: "There is an issue with the logical flow",
+    label: "There is an issue with the logical flow",
+  },
+  { value: "Suggestion", label: "Suggestion" },
+  { value: "I don't like", label: "I don't like" },
+] as const;
 
 export function FeedbackForm() {
   const [pending, start] = useTransition();
@@ -71,9 +79,9 @@ export function FeedbackForm() {
           <option value="" disabled>
             Select issue type
           </option>
-          {(["Bug", "Logic", "Suggestion"] as const satisfies readonly IssueType[]).map((issue) => (
-            <option key={issue} value={issue}>
-              {issue}
+          {FEEDBACK_ISSUE_OPTIONS.map((issue) => (
+            <option key={issue.value} value={issue.value}>
+              {issue.label}
             </option>
           ))}
         </select>

@@ -1,5 +1,6 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { ensureContributorProfile } from "@/lib/auth/ensure-profile";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import {
@@ -18,8 +19,41 @@ import {
   insertLiveVoteRow,
 } from "@/lib/data/live-sessions";
 import { createLiveSubmissionFromSession } from "@/lib/backend/live-session-wrapup";
+import { db } from "@/lib/db";
+import { competitions, seasons } from "@/db/schema";
+import type { SchoolSport } from "@/lib/sports";
 
 const AUTH_MSG = "Sign in to start or update live scores.";
+
+async function assertSeasonCompetitionMatchSport(
+  sport: SchoolSport,
+  seasonId: string | null | undefined,
+  competitionId: string | null | undefined
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (seasonId) {
+    const [r] = await db
+      .select({ sport: seasons.sport })
+      .from(seasons)
+      .where(eq(seasons.id, seasonId))
+      .limit(1);
+    if (!r) return { ok: false, error: "Season not found." };
+    if (r.sport !== sport) {
+      return { ok: false, error: "That season does not match the selected sport." };
+    }
+  }
+  if (competitionId) {
+    const [r] = await db
+      .select({ sport: competitions.sport })
+      .from(competitions)
+      .where(eq(competitions.id, competitionId))
+      .limit(1);
+    if (!r) return { ok: false, error: "Competition not found." };
+    if (r.sport !== sport) {
+      return { ok: false, error: "That competition does not match the selected sport." };
+    }
+  }
+  return { ok: true };
+}
 
 export async function createLiveSessionAction(input: unknown) {
   const user = await getSessionUser();
@@ -37,6 +71,16 @@ export async function createLiveSessionAction(input: unknown) {
   }
 
   await ensureContributorProfile(user);
+
+  const sport = parsed.data.sport;
+  const scope = await assertSeasonCompetitionMatchSport(
+    sport,
+    parsed.data.seasonId,
+    parsed.data.competitionId
+  );
+  if (!scope.ok) {
+    return { ok: false as const, error: scope.error };
+  }
 
   const teamGenderForSession =
     parsed.data.sport === "HOCKEY" ? (parsed.data.teamGender ?? null) : null;
@@ -63,8 +107,8 @@ export async function createLiveSessionAction(input: unknown) {
     homeLogoPath: parsed.data.homeLogoPath?.trim() || null,
     awayLogoPath: parsed.data.awayLogoPath?.trim() || null,
     venue: parsed.data.venue ?? null,
-    seasonId: null,
-    competitionId: null,
+    seasonId: parsed.data.seasonId ?? null,
+    competitionId: parsed.data.competitionId ?? null,
     createdByUserId: user.id,
   });
   return { ok: true as const, sessionId: row.id };

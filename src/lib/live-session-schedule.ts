@@ -7,14 +7,24 @@ import type { SchoolSport } from "@/lib/sports";
 import type { TeamGender } from "@/lib/team-gender";
 import { sameAgeGroupBand } from "@/lib/age-group-match";
 
-export const liveScheduleInputSchema = z.object({
-  homeTeamId: z.string().uuid(),
-  awayTeamId: z.string().uuid(),
-  seasonId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
-  competitionId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
-  venue: z.string().max(300).optional().nullable(),
-  goesLiveAtIso: z.string().min(8),
-});
+export const liveScheduleInputSchema = z
+  .object({
+    homeTeamId: z.string().uuid(),
+    awayTeamId: z.string().uuid(),
+    seasonId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
+    competitionId: z.preprocess((v) => (v === "" || v == null ? null : v), z.string().uuid().nullable().optional()),
+    venue: z.string().max(300).optional().nullable(),
+    goesLiveAtIso: z.string().min(8),
+  })
+  .superRefine((data, ctx) => {
+    if (data.seasonId && data.competitionId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose a season or a competition, not both.",
+        path: ["competitionId"],
+      });
+    }
+  });
 
 export function teamLiveLabel(
   schoolDisplay: string,

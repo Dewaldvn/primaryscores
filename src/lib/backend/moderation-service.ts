@@ -147,6 +147,7 @@ export async function approveSubmissionInDb(
             awayScore: d.awayScore,
             isVerified: true,
             verificationLevel: d.verificationLevel,
+            isDummy: existingSub.isDummy,
             publishedAt: now,
             updatedAt: now,
           })
@@ -158,6 +159,7 @@ export async function approveSubmissionInDb(
           awayScore: d.awayScore,
           isVerified: true,
           verificationLevel: d.verificationLevel,
+          isDummy: existingSub.isDummy,
           publishedAt: now,
         });
       }

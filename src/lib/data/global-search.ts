@@ -26,6 +26,7 @@ export type GlobalSearchProvinceGame = {
   fixtureId: string;
   homeScore: number;
   awayScore: number;
+  isDummy: boolean;
   matchDate: string;
   homeSchoolName: string;
   awaySchoolName: string;
@@ -104,6 +105,7 @@ export async function runGlobalSearch(q: string): Promise<GlobalSearchResult> {
             fixtureId: fixtures.id,
             homeScore: results.homeScore,
             awayScore: results.awayScore,
+            isDummy: results.isDummy,
             matchDate: fixtures.matchDate,
             homeSchoolName: homeSchool.displayName,
             awaySchoolName: awaySchool.displayName,

@@ -329,6 +329,7 @@ export async function POST(req: Request) {
           awayScore: r.away_score,
           isVerified: r.is_verified,
           verificationLevel,
+          isDummy: false,
           publishedAt: r.is_verified ? now : null,
           updatedAt: now,
         })

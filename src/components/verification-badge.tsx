@@ -20,10 +20,34 @@ const levelCopy: Record<string, { label: string; className: string }> = {
 export function VerificationBadge({
   level,
   compact,
+  isDummy,
 }: {
   level: string;
   compact?: boolean;
+  /** When true, show test-data label in red (not the usual verification state). */
+  isDummy?: boolean;
 }) {
+  if (isDummy) {
+    if (compact) {
+      return (
+        <span
+          className="inline-block max-w-[5.5rem] rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-center text-[9px] font-semibold leading-tight text-destructive"
+          title="Dummy / test data"
+        >
+          Dummy Data
+        </span>
+      );
+    }
+    return (
+      <Badge
+        variant="secondary"
+        className="border border-destructive/50 bg-destructive/10 font-normal text-destructive"
+      >
+        Dummy Data
+      </Badge>
+    );
+  }
+
   const cfg = levelCopy[level] ?? levelCopy.SUBMITTED;
   if (compact) {
     return (

@@ -41,6 +41,7 @@ export type AdminScoreRowSerialized = {
   awayScore: number;
   verificationLevel: "SUBMITTED" | "MODERATOR_VERIFIED" | "SOURCE_VERIFIED";
   isVerified: boolean;
+  isDummy: boolean;
   publishedAt: string | null;
   matchDate: string;
   venue: string | null;
@@ -111,6 +112,7 @@ export function AdminScoresTable({
         recordingUrl: editing.recordingUrl,
         isVerified: editing.isVerified,
         verificationLevel: editing.verificationLevel,
+        isDummy: editing.isDummy,
       });
       if (!res.ok) {
         if ("fieldErrors" in res && res.fieldErrors) {
@@ -221,6 +223,7 @@ export function AdminScoresTable({
                   <br />
                   <span className="text-muted-foreground">
                     {r.isVerified ? r.verificationLevel : "Non-verified"}
+                    {r.isDummy ? " · dummy" : ""}
                   </span>
                 </TableCell>
                 <TableCell className="flex flex-col gap-1">
@@ -351,6 +354,16 @@ export function AdminScoresTable({
                   }}
                 />
                 <Label htmlFor="isVerified">Verified / visible on public site</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="isDummy"
+                  type="checkbox"
+                  className="size-4 rounded border"
+                  checked={editing.isDummy}
+                  onChange={(e) => setEditing({ ...editing, isDummy: e.target.checked })}
+                />
+                <Label htmlFor="isDummy">Mark as dummy / test data (purple styling on site)</Label>
               </div>
               <div className="space-y-1">
                 <Label>Verification level</Label>

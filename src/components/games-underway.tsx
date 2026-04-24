@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,16 +48,23 @@ type TeamOption = {
   gender: TeamGender | null;
 };
 
+type LiveScheduleOption = { id: string; sport: SchoolSport; label: string };
+
 export function GamesUnderway({
   signedIn,
   startImageAbove = false,
   sportFilter,
+  seasonOptions = [],
+  competitionOptions = [],
 }: {
   signedIn: boolean;
   /** When true (live hub), show start_live_game.png above the list; signed-out image links to login. */
   startImageAbove?: boolean;
   /** When set, list and new sessions are scoped to this sport (`?sport=` on the live page). */
   sportFilter?: SchoolSport;
+  /** For “Start a live game” — optional season/competition, filtered by selected sport. */
+  seasonOptions?: LiveScheduleOption[];
+  competitionOptions?: LiveScheduleOption[];
 }) {
   const livePath = sportFilter ? `/live?sport=${sportFilter}` : "/live";
   const loginHref = `/login?redirect=${encodeURIComponent(livePath)}`;
@@ -134,6 +141,8 @@ export function GamesUnderway({
       </DialogHeader>
       <NewLiveGameForm
         hubSport={sportFilter}
+        seasonOptions={seasonOptions}
+        competitionOptions={competitionOptions}
         turnToken={turnCreate}
         onToken={setTurnCreate}
         onDone={() => {
@@ -516,12 +525,16 @@ function LiveSchoolTeamField({
 
 function NewLiveGameForm({
   hubSport,
+  seasonOptions,
+  competitionOptions,
   turnToken,
   onToken,
   onDone,
 }: {
   /** When set, new sessions use this sport (matches URL filter). */
   hubSport?: SchoolSport;
+  seasonOptions: LiveScheduleOption[];
+  competitionOptions: LiveScheduleOption[];
   turnToken: string | null;
   onToken: (t: string | null) => void;
   onDone: () => void;
@@ -530,6 +543,8 @@ function NewLiveGameForm({
   const [pending, start] = useTransition();
   const [pickSport, setPickSport] = useState<SchoolSport>("RUGBY");
   const [hockeyGender, setHockeyGender] = useState<TeamGender | "">("");
+  const [seasonId, setSeasonId] = useState("");
+  const [competitionId, setCompetitionId] = useState("");
   const effectiveSport = hubSport ?? pickSport;
   const hockeySearchGender = effectiveSport === "HOCKEY" ? hockeyGender || undefined : undefined;
   const school1Field = useLiveSchoolTeamField(effectiveSport, hockeySearchGender);
@@ -539,9 +554,29 @@ function NewLiveGameForm({
     school1Field.selectedTeam?.ageGroup,
   );
 
+  const seasonsForSport = useMemo(
+    () => seasonOptions.filter((o) => o.sport === effectiveSport),
+    [seasonOptions, effectiveSport]
+  );
+  const competitionsForSport = useMemo(
+    () => competitionOptions.filter((o) => o.sport === effectiveSport),
+    [competitionOptions, effectiveSport]
+  );
+
   useEffect(() => {
     if (effectiveSport !== "HOCKEY") setHockeyGender("");
   }, [effectiveSport]);
+
+  useEffect(() => {
+    setSeasonId((prev) => {
+      const sOpts = seasonOptions.filter((o) => o.sport === effectiveSport);
+      return prev && sOpts.some((s) => s.id === prev) ? prev : "";
+    });
+    setCompetitionId((prev) => {
+      const cOpts = competitionOptions.filter((o) => o.sport === effectiveSport);
+      return prev && cOpts.some((c) => c.id === prev) ? prev : "";
+    });
+  }, [effectiveSport, seasonOptions, competitionOptions]);
 
   return (
     <form
@@ -575,6 +610,8 @@ function NewLiveGameForm({
               venue: fd.get("venue") ? String(fd.get("venue")) : null,
               sport: effectiveSport,
               teamGender: effectiveSport === "HOCKEY" ? (hockeyGender as TeamGender) : null,
+              seasonId: seasonId || null,
+              competitionId: competitionId || null,
               turnstileToken: turnToken,
             });
             if (!res.ok) {
@@ -660,6 +697,67 @@ function NewLiveGameForm({
         teamLabelText="Team 2 *"
         field={school2Field}
       />
+      <div className="space-y-3 rounded-lg border border-border/80 bg-muted/20 px-3 py-3 text-left">
+        <p className="text-sm font-medium text-foreground">Season OR competition (optional)</p>
+        <p className="text-xs text-muted-foreground">
+          Shown for <span className="text-foreground">{schoolSportLabel(effectiveSport)}</span> only. Pick a season
+          <span className="text-foreground"> or </span> a competition (not both)—or leave both blank.
+        </p>
+        <div className="space-y-1">
+          <Label
+            htmlFor="nl-season"
+            className={cn(competitionId !== "" && "text-muted-foreground")}
+            title={competitionId ? "Clear competition to choose a season" : undefined}
+          >
+            Season
+          </Label>
+          <select
+            id="nl-season"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-45"
+            value={seasonId}
+            disabled={competitionId !== ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSeasonId(v);
+              if (v) setCompetitionId("");
+            }}
+          >
+            <option value="">— None —</option>
+            {seasonsForSport.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label
+            htmlFor="nl-competition"
+            className={cn(seasonId !== "" && "text-muted-foreground")}
+            title={seasonId ? "Clear season to choose a competition" : undefined}
+          >
+            Competition
+          </Label>
+          <select
+            id="nl-competition"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-45"
+            value={competitionId}
+            disabled={seasonId !== ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setCompetitionId(v);
+              if (v) setSeasonId("");
+            }}
+          >
+            <option value="">— None —</option>
+            {competitionsForSport.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div className="space-y-1 text-left">
         <Label htmlFor="nl-venue">Venue (optional)</Label>
         <Input id="nl-venue" name="venue" />

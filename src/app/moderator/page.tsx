@@ -2,7 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeratorDashboard } from "@/components/moderator-dashboard";
 import { listOpenSubmissions, moderatorSummary } from "@/lib/data/moderation";
 import { listAllTeamsForModeration } from "@/lib/data/admin";
-import { ensureU13TeamsForSchoolsMissingThem } from "@/lib/data/team-bootstrap";
 import { listSeasons, listCompetitions } from "@/lib/data/reference";
 import { isDatabaseConfigured } from "@/lib/db-safe";
 import type { SchoolSport } from "@/lib/sports";
@@ -14,8 +13,6 @@ export default async function ModeratorPage() {
   if (!isDatabaseConfigured()) {
     return <p className="text-sm text-muted-foreground">Database not configured.</p>;
   }
-
-  await ensureU13TeamsForSchoolsMissingThem();
 
   const [subs, teams, seasons, comps, summary, profile, schoolAdminClaims] = await Promise.all([
     listOpenSubmissions(),

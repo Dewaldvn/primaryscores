@@ -10,7 +10,7 @@ import { getSessionUser } from "@/lib/auth";
 import { DisputeScoreDialog } from "@/components/dispute-score-dialog";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import { cn } from "@/lib/utils";
-import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
+import { scoreResultCardClass, SCORE_DUMMY_HEADER_BAND_CLASS } from "@/lib/score-result-frame";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 
 type Props = { params: { id: string } };
@@ -35,7 +35,7 @@ export default async function MatchPage({ params }: Props) {
               .filter((x) => x != null && String(x).length > 0)
               .join(" · ") || "Season / competition not set"}
           </p>
-          <VerificationBadge level={row.verificationLevel ?? "SUBMITTED"} />
+          <VerificationBadge level={row.verificationLevel ?? "SUBMITTED"} isDummy={!!row.isDummy} />
         </div>
         <h1 className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-2xl font-bold">
           <span className="inline-flex items-center gap-3">
@@ -60,9 +60,14 @@ export default async function MatchPage({ params }: Props) {
         </p>
       </div>
 
-      <Card className={cn(SCORE_RESULT_FRAME_CLASS, "relative")}>
+      <Card className={cn(scoreResultCardClass(row.isDummy), "relative")}>
         <ScoreCardSportIcons sport={row.sport} teamGender={row.teamGender} />
-        <CardHeader className="justify-items-center text-center">
+        <CardHeader
+          className={cn(
+            "justify-items-center text-center",
+            row.isDummy && SCORE_DUMMY_HEADER_BAND_CLASS
+          )}
+        >
           <CardTitle className="text-lg">Final score</CardTitle>
         </CardHeader>
         <CardContent className="pb-10 text-center">

@@ -111,7 +111,37 @@ export async function adminGetSchoolById(id: string) {
     .innerJoin(provinces, eq(schools.provinceId, provinces.id))
     .where(eq(schools.id, id))
     .limit(1);
-  return row ?? null;
+  if (!row) return null;
+  const schoolTeams = await db
+    .select({
+      sport: teams.sport,
+      ageGroup: teams.ageGroup,
+      teamLabel: teams.teamLabel,
+    })
+    .from(teams)
+    .where(eq(teams.schoolId, id));
+  const existingDefaultTeamCodes = Array.from(
+    new Set(schoolTeams.map((t) => `${String(t.ageGroup).toUpperCase()}${String(t.teamLabel).toUpperCase()}`)),
+  );
+  const existingSports = Array.from(new Set(schoolTeams.map((t) => t.sport)));
+  const existingDefaultTeamsBySport = Object.fromEntries(
+    existingSports.map((sport) => [
+      sport,
+      Array.from(
+        new Set(
+          schoolTeams
+            .filter((t) => t.sport === sport)
+            .map((t) => `${String(t.ageGroup).toUpperCase()}${String(t.teamLabel).toUpperCase()}`),
+        ),
+      ).sort(),
+    ]),
+  );
+  return {
+    ...row,
+    existingDefaultTeamCodes,
+    existingSports,
+    existingDefaultTeamsBySport,
+  };
 }
 
 export async function adminSearchSchoolsForMerge(q: string, limit = 20) {
@@ -273,6 +303,7 @@ export type AdminResultRow = {
   awayScore: number;
   verificationLevel: string;
   isVerified: boolean;
+  isDummy: boolean;
   publishedAt: Date | null;
   matchDate: string;
   venue: string | null;
@@ -385,6 +416,7 @@ export async function adminListAllResults(options: {
       awayScore: results.awayScore,
       verificationLevel: results.verificationLevel,
       isVerified: results.isVerified,
+      isDummy: results.isDummy,
       publishedAt: results.publishedAt,
       matchDate: fixtures.matchDate,
       venue: fixtures.venue,
@@ -433,6 +465,7 @@ export async function adminListResultsForExport(
       awayScore: results.awayScore,
       verificationLevel: results.verificationLevel,
       isVerified: results.isVerified,
+      isDummy: results.isDummy,
       publishedAt: results.publishedAt,
       matchDate: fixtures.matchDate,
       venue: fixtures.venue,
