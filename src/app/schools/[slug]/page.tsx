@@ -23,7 +23,6 @@ import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports"
 import { compareTeamsBySportAndChronologicalAge } from "@/lib/team-sort";
 import { cn } from "@/lib/utils";
 import {
-  SCORE_RESULT_FRAME_CLASS,
   scoreResultCardClass,
   scoreResultCardHoverClass,
 } from "@/lib/score-result-frame";
