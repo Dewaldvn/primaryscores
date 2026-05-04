@@ -45,13 +45,27 @@ export function FirstSignInDialog({ openInitially }: { openInitially: boolean })
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="grid gap-2 sm:grid-cols-1">
-          <Button disabled={pending} onClick={() => choose("/account")}>
+          <Button
+            disabled={pending}
+            className="h-auto w-full justify-start whitespace-normal py-2 text-left leading-snug"
+            onClick={() => choose("/account")}
+          >
             1) Complete my profile now
           </Button>
-          <Button disabled={pending} variant="outline" onClick={() => choose("/live")}>
+          <Button
+            disabled={pending}
+            variant="outline"
+            className="h-auto w-full justify-start whitespace-normal py-2 text-left leading-snug"
+            onClick={() => choose("/live")}
+          >
             2) No, take me to live scoring
           </Button>
-          <Button disabled={pending} variant="secondary" onClick={() => choose("/apply-school-admin")}>
+          <Button
+            disabled={pending}
+            variant="secondary"
+            className="h-auto w-full justify-start whitespace-normal py-2 text-left leading-snug"
+            onClick={() => choose("/apply-school-admin")}
+          >
             3) I represent a school and want to claim admin rights
           </Button>
         </DialogFooter>

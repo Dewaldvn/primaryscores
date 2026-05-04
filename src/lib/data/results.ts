@@ -421,6 +421,8 @@ export async function getMatchDetails(fixtureId: string) {
       awaySchoolSlug: awaySchool.slug,
       homeSchoolLogoPath: homeSchool.logoPath,
       awaySchoolLogoPath: awaySchool.logoPath,
+      homeTeamAgeGroup: homeTeam.ageGroup,
+      awayTeamAgeGroup: awayTeam.ageGroup,
       homeTeamLabel: homeTeam.teamLabel,
       awayTeamLabel: awayTeam.teamLabel,
       competitionName: competitions.name,

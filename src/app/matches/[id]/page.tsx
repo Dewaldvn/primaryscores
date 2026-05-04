@@ -26,6 +26,9 @@ export default async function MatchPage({ params }: Props) {
     notFound();
   }
 
+  const homeTeamLine = [row.homeTeamAgeGroup, row.homeTeamLabel].filter(Boolean).join(" ").trim();
+  const awayTeamLine = [row.awayTeamAgeGroup, row.awayTeamLabel].filter(Boolean).join(" ").trim();
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -74,8 +77,8 @@ export default async function MatchPage({ params }: Props) {
           <p className="font-mono text-4xl font-bold tabular-nums">
             {row.homeScore} – {row.awayScore}
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {row.homeTeamLabel} vs {row.awayTeamLabel}
+          <p className="mt-2 text-sm font-bold tracking-tight text-foreground sm:text-base">
+            {homeTeamLine || "Home team"} vs {awayTeamLine || "Away team"}
           </p>
           {row.recordingUrl ? (
             <div className="mt-3 flex justify-center">

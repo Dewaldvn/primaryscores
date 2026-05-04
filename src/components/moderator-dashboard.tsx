@@ -315,59 +315,121 @@ export function ModeratorDashboard({
           </DialogContent>
         </Dialog>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((hg) => (
-              <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
-                    {flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Queue is empty.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                (() => {
-                  const sport = sportBySubmissionId.get(row.original.id) ?? "RUGBY";
-                  const hasDispute = (row.original.notes ?? "").startsWith("DISPUTE:");
-                  const sportRowClass =
-                    sport === "NETBALL"
-                      ? "bg-pink-500/10 hover:bg-pink-500/15"
-                      : sport === "HOCKEY"
-                        ? "bg-blue-500/10 hover:bg-blue-500/15"
-                        : sport === "SOCCER"
-                          ? "bg-green-500/10 hover:bg-green-500/15"
-                          : "";
-                  return (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    !hasDispute && sportRowClass,
-                    hasDispute && "bg-orange-500/10 hover:bg-orange-500/15"
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
+      <CardContent className="space-y-3">
+        {rows.length === 0 ? (
+          <p className="py-2 text-center text-sm text-muted-foreground">Queue is empty.</p>
+        ) : null}
+
+        <div className="space-y-2 md:hidden">
+          {rows.map((r) => {
+            const sport = sportBySubmissionId.get(r.id) ?? "RUGBY";
+            const hasDispute = (r.notes ?? "").startsWith("DISPUTE:");
+            const rowClass = hasDispute
+              ? "bg-orange-500/10"
+              : sport === "NETBALL"
+                ? "bg-pink-500/10"
+                : sport === "HOCKEY"
+                  ? "bg-blue-500/10"
+                  : sport === "SOCCER"
+                    ? "bg-green-500/10"
+                    : "";
+            return (
+              <div key={r.id} className={cn("rounded-md border p-3", rowClass)}>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={selectedIds.has(r.id)}
+                    onCheckedChange={() => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(r.id)) next.delete(r.id);
+                        else next.add(r.id);
+                        return next;
+                      });
+                    }}
+                    aria-label={`Select row ${r.id}`}
+                  />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <p className="text-xs text-muted-foreground">{format(new Date(r.submittedAt), "dd MMM yyyy HH:mm")}</p>
+                    <p className="break-words text-sm font-medium leading-snug">
+                      {r.proposedHomeTeamName} vs {r.proposedAwayTeamName}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <ModerationStatusBadge status={r.moderationStatus} />
+                      <span className="text-muted-foreground">{schoolSportLabel(sport)}</span>
+                      <span className="text-muted-foreground">
+                        {r.proposedHomeScore}–{r.proposedAwayScore} · {r.proposedMatchDate}
+                      </span>
+                    </div>
+                    <ReviewDialog
+                      row={r}
+                      teamOptions={teamOptions}
+                      seasonOptions={seasonOptions}
+                      competitionOptions={competitionOptions}
+                      busyId={pendingId}
+                      setBusy={setPendingId}
+                      isAdmin={isAdmin}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((hg) => (
+                <TableRow key={hg.id}>
+                  {hg.headers.map((h) => (
+                    <TableHead key={h.id}>
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
-                  );
-                })()
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    Queue is empty.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  (() => {
+                    const sport = sportBySubmissionId.get(row.original.id) ?? "RUGBY";
+                    const hasDispute = (row.original.notes ?? "").startsWith("DISPUTE:");
+                    const sportRowClass =
+                      sport === "NETBALL"
+                        ? "bg-pink-500/10 hover:bg-pink-500/15"
+                        : sport === "HOCKEY"
+                          ? "bg-blue-500/10 hover:bg-blue-500/15"
+                          : sport === "SOCCER"
+                            ? "bg-green-500/10 hover:bg-green-500/15"
+                            : "";
+                    return (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      !hasDispute && sportRowClass,
+                      hasDispute && "bg-orange-500/10 hover:bg-orange-500/15"
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                    );
+                  })()
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
