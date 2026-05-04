@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deleteUserAction, updateUserRoleAction } from "@/actions/admin-users";
+import { deleteUserAction, setUserBannedAction, updateUserRoleAction } from "@/actions/admin-users";
 import type { ProfileRole } from "@/lib/auth";
 
 const ROLES: readonly ProfileRole[] = ["CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"];
@@ -29,6 +29,7 @@ export function AdminUsersTable({
     email: string;
     displayName: string;
     role: ProfileRole;
+    bannedAt: Date | null;
   }[];
   initialQuery?: string;
   initialRole?: UserRoleFilter;
@@ -95,7 +96,7 @@ export function AdminUsersTable({
               <TableHead>Email</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead />
+              <TableHead>Status / actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -104,56 +105,83 @@ export function AdminUsersTable({
                 <TableCell className="font-mono text-xs">{r.email}</TableCell>
                 <TableCell>{r.displayName}</TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      className="rounded-md border px-2 py-1 text-sm"
-                      defaultValue={r.role}
-                      key={`${r.id}-${r.role}`}
-                      disabled={busy === r.id}
-                      onChange={(e) => {
-                        const newRole = e.target.value as ProfileRole;
-                        setBusy(r.id);
-                        void updateUserRoleAction({ userId: r.id, role: newRole }).then((res) => {
-                          setBusy(null);
-                          if (!res.ok) toast.error("Update failed");
-                          else {
-                            toast.success("Role updated");
-                            router.refresh();
-                          }
-                        });
-                      }}
-                    >
-                      {(
-                        ["CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"] as const satisfies readonly ProfileRole[]
-                      ).map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="rounded-md border border-destructive px-2 py-1 text-xs text-destructive disabled:opacity-50"
-                      disabled={busy === r.id}
-                      onClick={() => {
-                        if (!window.confirm(`Delete user ${r.email}? This cannot be undone.`)) return;
-                        setBusy(r.id);
-                        void deleteUserAction({ userId: r.id }).then((res) => {
-                          setBusy(null);
-                          if (!res.ok) {
-                            toast.error("Delete failed");
-                            return;
-                          }
-                          toast.success("User deleted");
-                          window.location.reload();
-                        });
-                      }}
-                    >
-                      Delete user
-                    </button>
+                  <select
+                    className="rounded-md border px-2 py-1 text-sm"
+                    defaultValue={r.role}
+                    key={`${r.id}-${r.role}`}
+                    disabled={busy === r.id}
+                    onChange={(e) => {
+                      const newRole = e.target.value as ProfileRole;
+                      setBusy(r.id);
+                      void updateUserRoleAction({ userId: r.id, role: newRole }).then((res) => {
+                        setBusy(null);
+                        if (!res.ok) toast.error("Update failed");
+                        else {
+                          toast.success("Role updated");
+                          router.refresh();
+                        }
+                      });
+                    }}
+                  >
+                    {(
+                      ["CONTRIBUTOR", "MODERATOR", "ADMIN", "SCHOOL_ADMIN"] as const satisfies readonly ProfileRole[]
+                    ).map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs text-muted-foreground">{r.bannedAt ? "Banned" : "Active"}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="rounded-md border px-2 py-1 text-xs disabled:opacity-50"
+                        disabled={busy === r.id}
+                        onClick={() => {
+                          const nextBanned = !r.bannedAt;
+                          const msg = nextBanned
+                            ? `Ban ${r.email}? They will be blocked from contributor actions until unbanned.`
+                            : `Remove ban for ${r.email}?`;
+                          if (!window.confirm(msg)) return;
+                          setBusy(r.id);
+                          void setUserBannedAction({ userId: r.id, banned: nextBanned }).then((res) => {
+                            setBusy(null);
+                            if (!res.ok) toast.error("Update failed");
+                            else {
+                              toast.success(nextBanned ? "User banned" : "Ban removed");
+                              router.refresh();
+                            }
+                          });
+                        }}
+                      >
+                        {r.bannedAt ? "Unban" : "Ban"}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-md border border-destructive px-2 py-1 text-xs text-destructive disabled:opacity-50"
+                        disabled={busy === r.id}
+                        onClick={() => {
+                          if (!window.confirm(`Delete user ${r.email}? This cannot be undone.`)) return;
+                          setBusy(r.id);
+                          void deleteUserAction({ userId: r.id }).then((res) => {
+                            setBusy(null);
+                            if (!res.ok) {
+                              toast.error("Delete failed");
+                              return;
+                            }
+                            toast.success("User deleted");
+                            window.location.reload();
+                          });
+                        }}
+                      >
+                        Delete user
+                      </button>
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell />
               </TableRow>
             ))}
           </TableBody>

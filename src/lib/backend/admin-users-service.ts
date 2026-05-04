@@ -13,3 +13,13 @@ export async function updateUserRoleInDb(userId: string, role: ProfileRole): Pro
 export async function deleteUserProfileInDb(userId: string): Promise<void> {
   await db.delete(profiles).where(eq(profiles.id, userId));
 }
+
+export async function setUserBannedInDb(userId: string, banned: boolean): Promise<void> {
+  await db
+    .update(profiles)
+    .set({
+      bannedAt: banned ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.id, userId));
+}

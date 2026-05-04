@@ -32,6 +32,9 @@ export type RecentVerifiedRow = {
   recordingUrl: string | null;
   sport: SchoolSport;
   teamGender: TeamGender | null;
+  /** Short team line (e.g. U16 A) under the school name. */
+  homeSideLine?: string | null;
+  awaySideLine?: string | null;
   /** When true, card uses dummy/test styling. */
   isDummy?: boolean;
 };
@@ -89,22 +92,36 @@ export function RecentVerifiedScoreCards({
               <span className="inline-flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
                   <SchoolLogo logoPath={r.homeSchoolLogoPath} alt="" size={compact ? "sm" : "md"} />
-                  <Link
-                    href={`/schools/${r.homeSchoolSlug}`}
-                    className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
-                  >
-                    {r.homeSchoolName}
-                  </Link>
+                  <span className="flex min-w-0 flex-col items-center gap-0.5">
+                    <Link
+                      href={`/schools/${r.homeSchoolSlug}`}
+                      className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
+                    >
+                      {r.homeSchoolName}
+                    </Link>
+                    {r.homeSideLine ? (
+                      <span className="max-w-full truncate text-[10px] font-normal normal-case text-muted-foreground">
+                        {r.homeSideLine}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
                 <span className="shrink-0 text-muted-foreground">vs</span>
                 <span className="inline-flex items-center gap-1.5">
                   <SchoolLogo logoPath={r.awaySchoolLogoPath} alt="" size={compact ? "sm" : "md"} />
-                  <Link
-                    href={`/schools/${r.awaySchoolSlug}`}
-                    className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
-                  >
-                    {r.awaySchoolName}
-                  </Link>
+                  <span className="flex min-w-0 flex-col items-center gap-0.5">
+                    <Link
+                      href={`/schools/${r.awaySchoolSlug}`}
+                      className="relative z-[2] cursor-pointer hover:underline pointer-events-auto"
+                    >
+                      {r.awaySchoolName}
+                    </Link>
+                    {r.awaySideLine ? (
+                      <span className="max-w-full truncate text-[10px] font-normal normal-case text-muted-foreground">
+                        {r.awaySideLine}
+                      </span>
+                    ) : null}
+                  </span>
                 </span>
               </span>
             </CardTitle>

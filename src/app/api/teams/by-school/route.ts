@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         label: `${r.sport} ${r.ageGroup} ${r.teamLabel}${r.gender ? ` ${r.gender}` : ""}`,
         sport: r.sport,
         ageGroup: r.ageGroup,
+        teamLabel: r.teamLabel,
         gender: r.gender,
       }))
     );

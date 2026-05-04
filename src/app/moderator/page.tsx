@@ -53,6 +53,8 @@ export default async function ModeratorPage() {
     sport: t.sport as SchoolSport,
     schoolName: t.schoolName,
     teamLabel: t.teamLabel,
+    ageGroup: t.ageGroup,
+    gender: t.gender,
   }));
 
   const seasonOptions = seasons.map((x) => ({

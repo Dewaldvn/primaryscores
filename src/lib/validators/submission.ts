@@ -49,3 +49,13 @@ export const moderationRejectSchema = z.object({
   submissionId: z.string().uuid(),
   reason: z.string().min(3, "Please provide a short reason"),
 });
+
+export const moderationBulkRejectSchema = z.object({
+  submissionIds: z.array(z.string().uuid()).min(1).max(50),
+  reason: z.string().min(3, "Please provide a short reason"),
+});
+
+export const moderationBulkApproveSchema = z.object({
+  submissionIds: z.array(z.string().uuid()).min(1).max(50),
+  verificationLevel: z.enum(["MODERATOR_VERIFIED", "SOURCE_VERIFIED"]),
+});

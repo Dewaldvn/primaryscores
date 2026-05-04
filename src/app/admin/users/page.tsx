@@ -59,6 +59,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
               email: p.email,
               displayName: p.displayName,
               role: p.role,
+              bannedAt: p.bannedAt ?? null,
             }))}
             initialQuery={initialQuery}
             initialRole={initialRole}

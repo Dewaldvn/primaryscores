@@ -44,11 +44,28 @@ export async function getProfile() {
   }
 }
 
-export async function requireUser(redirectPath = "/login") {
+export async function requireUser(redirectPath = "/login", opts?: { skipBanCheck?: boolean }) {
   const user = await getSessionUser();
   if (!user) {
     const sep = redirectPath.includes("?") ? "&" : "?";
     redirect(`${redirectPath}${sep}reason=auth`);
+  }
+  if (!opts?.skipBanCheck && isDatabaseConfigured()) {
+    try {
+      const rows = await withTimeout(
+        db
+          .select({ bannedAt: profiles.bannedAt })
+          .from(profiles)
+          .where(eq(profiles.id, user.id))
+          .limit(1),
+        PROFILE_DB_MS
+      );
+      if (rows[0]?.bannedAt) {
+        redirect("/account-suspended");
+      }
+    } catch {
+      // Do not block sign-in if the ban check fails (e.g. DB timeout).
+    }
   }
   return user;
 }

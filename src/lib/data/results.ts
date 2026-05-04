@@ -73,6 +73,12 @@ export const getRecentVerifiedResults = cache(async function getRecentVerifiedRe
       recordingUrl: fixtures.recordingUrl,
       sport: homeTeam.sport,
       teamGender: homeTeam.gender,
+      homeSideLine: sql<string>`trim(both ' ' from (${homeTeam.ageGroup} || ' ' || coalesce(${homeTeam.teamLabel}, '')))`.as(
+        "homeSideLine"
+      ),
+      awaySideLine: sql<string>`trim(both ' ' from (${awayTeam.ageGroup} || ' ' || coalesce(${awayTeam.teamLabel}, '')))`.as(
+        "awaySideLine"
+      ),
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -122,6 +128,12 @@ export async function listRecentVerifiedResultsPaged(
       recordingUrl: fixtures.recordingUrl,
       sport: homeTeam.sport,
       teamGender: homeTeam.gender,
+      homeSideLine: sql<string>`trim(both ' ' from (${homeTeam.ageGroup} || ' ' || coalesce(${homeTeam.teamLabel}, '')))`.as(
+        "homeSideLine"
+      ),
+      awaySideLine: sql<string>`trim(both ' ' from (${awayTeam.ageGroup} || ' ' || coalesce(${awayTeam.teamLabel}, '')))`.as(
+        "awaySideLine"
+      ),
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -171,6 +183,12 @@ export const getRecentVerifiedResultsBySport = cache(async function getRecentVer
       recordingUrl: fixtures.recordingUrl,
       sport: homeTeam.sport,
       teamGender: homeTeam.gender,
+      homeSideLine: sql<string>`trim(both ' ' from (${homeTeam.ageGroup} || ' ' || coalesce(${homeTeam.teamLabel}, '')))`.as(
+        "homeSideLine"
+      ),
+      awaySideLine: sql<string>`trim(both ' ' from (${awayTeam.ageGroup} || ' ' || coalesce(${awayTeam.teamLabel}, '')))`.as(
+        "awaySideLine"
+      ),
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -217,6 +235,12 @@ export const getRecentVerifiedResultsForSchoolIds = cache(async function getRece
       recordingUrl: fixtures.recordingUrl,
       sport: homeTeam.sport,
       teamGender: homeTeam.gender,
+      homeSideLine: sql<string>`trim(both ' ' from (${homeTeam.ageGroup} || ' ' || coalesce(${homeTeam.teamLabel}, '')))`.as(
+        "homeSideLine"
+      ),
+      awaySideLine: sql<string>`trim(both ' ' from (${awayTeam.ageGroup} || ' ' || coalesce(${awayTeam.teamLabel}, '')))`.as(
+        "awaySideLine"
+      ),
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))
@@ -289,6 +313,12 @@ export async function listVerifiedResults(filters: ResultListFilters) {
       recordingUrl: fixtures.recordingUrl,
       sport: homeTeam.sport,
       teamGender: homeTeam.gender,
+      homeSideLine: sql<string>`trim(both ' ' from (${homeTeam.ageGroup} || ' ' || coalesce(${homeTeam.teamLabel}, '')))`.as(
+        "homeSideLine"
+      ),
+      awaySideLine: sql<string>`trim(both ' ' from (${awayTeam.ageGroup} || ' ' || coalesce(${awayTeam.teamLabel}, '')))`.as(
+        "awaySideLine"
+      ),
     })
     .from(results)
     .innerJoin(fixtures, eq(results.fixtureId, fixtures.id))

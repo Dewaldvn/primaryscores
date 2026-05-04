@@ -100,6 +100,8 @@ export const profiles = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    /** When set, server actions reject interaction (see `requireUser`). */
+    bannedAt: timestamp("banned_at", { withTimezone: true }),
   },
   (t) => [index("profiles_email_idx").on(t.email)]
 );

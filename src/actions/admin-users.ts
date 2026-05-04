@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import { deleteUserProfileInDb, updateUserRoleInDb } from "@/lib/backend/admin-users-service";
+import { deleteUserProfileInDb, setUserBannedInDb, updateUserRoleInDb } from "@/lib/backend/admin-users-service";
 import { requireRole } from "@/lib/auth";
 import type { ProfileRole } from "@/lib/auth";
 import { signupDisplayNameSchema } from "@/lib/validators/auth";
@@ -15,6 +15,11 @@ const updateRoleSchema = z.object({
 
 const deleteUserSchema = z.object({
   userId: z.string().uuid(),
+});
+
+const setBannedSchema = z.object({
+  userId: z.string().uuid(),
+  banned: z.boolean(),
 });
 
 const createUserSchema = z.object({
@@ -91,5 +96,16 @@ export async function deleteUserAction(input: unknown) {
     return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
   }
   await deleteUserProfileInDb(parsed.data.userId);
+  return { ok: true as const };
+}
+
+export async function setUserBannedAction(input: unknown) {
+  await requireRole(["ADMIN"]);
+  const parsed = setBannedSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false as const, fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  await setUserBannedInDb(parsed.data.userId, parsed.data.banned);
+  revalidatePath("/admin/users");
   return { ok: true as const };
 }

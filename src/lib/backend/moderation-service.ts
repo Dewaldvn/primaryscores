@@ -229,6 +229,81 @@ export async function rejectSubmissionInDb(
   });
 }
 
+export async function bulkRejectSubmissionsInDb(
+  actor: ModerationActor,
+  submissionIds: string[],
+  reason: string
+): Promise<{ processed: number }> {
+  let processed = 0;
+  for (const submissionId of submissionIds) {
+    const [sub] = await db.select().from(submissions).where(eq(submissions.id, submissionId)).limit(1);
+    if (
+      !sub ||
+      (sub.moderationStatus !== "PENDING" && sub.moderationStatus !== "NEEDS_REVIEW")
+    ) {
+      continue;
+    }
+    await rejectSubmissionInDb(actor, { submissionId, reason });
+    processed++;
+  }
+  return { processed };
+}
+
+export async function bulkApproveSubmissionsWithStoredTeamIds(
+  actor: ModerationActor,
+  submissionIds: string[],
+  verificationLevel: "MODERATOR_VERIFIED" | "SOURCE_VERIFIED"
+): Promise<{ approved: number; skipped: number; errors: string[] }> {
+  const rows = await db.select().from(submissions).where(inArray(submissions.id, submissionIds));
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  let approved = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  for (const id of submissionIds) {
+    const sub = byId.get(id);
+    if (!sub) {
+      skipped++;
+      errors.push(`Unknown submission ${id}.`);
+      continue;
+    }
+    if (
+      sub.moderationStatus !== "PENDING" &&
+      sub.moderationStatus !== "NEEDS_REVIEW"
+    ) {
+      skipped++;
+      continue;
+    }
+    if (!sub.proposedHomeTeamId || !sub.proposedAwayTeamId) {
+      skipped++;
+      errors.push(
+        `${sub.proposedHomeTeamName} vs ${sub.proposedAwayTeamName}: add both team UUIDs in Review, or approve individually.`
+      );
+      continue;
+    }
+    const res = await approveSubmissionInDb(actor, {
+      submissionId: sub.id,
+      homeTeamId: sub.proposedHomeTeamId,
+      awayTeamId: sub.proposedAwayTeamId,
+      seasonId: sub.proposedSeasonId ?? undefined,
+      competitionId: sub.proposedCompetitionId ?? undefined,
+      matchDate: sub.proposedMatchDate,
+      homeScore: sub.proposedHomeScore,
+      awayScore: sub.proposedAwayScore,
+      venue: sub.proposedVenue ?? null,
+      verificationLevel,
+    });
+    if (!res.ok) {
+      skipped++;
+      errors.push(`${sub.proposedHomeTeamName} vs ${sub.proposedAwayTeamName}: ${res.error}`);
+      continue;
+    }
+    approved++;
+  }
+
+  return { approved, skipped, errors };
+}
+
 export async function flagSubmissionNeedsReviewInDb(
   actor: ModerationActor,
   submissionId: string

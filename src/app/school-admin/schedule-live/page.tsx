@@ -36,6 +36,7 @@ export default async function SchoolAdminScheduleLivePage() {
     schoolName: r.schoolName,
     sport: r.team.sport as SchoolSport,
     ageGroup: r.team.ageGroup,
+    teamLabel: r.team.teamLabel,
     gender: r.team.gender,
     label: `${r.schoolName} · ${r.team.sport} ${r.team.ageGroup} ${r.team.teamLabel}${r.team.gender ? ` ${r.team.gender}` : ""}`,
   }));

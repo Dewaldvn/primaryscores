@@ -32,6 +32,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ModerationStatusBadge } from "@/components/verification-badge";
 import {
   approveSubmissionAction,
+  bulkApproveSubmissionsAction,
+  bulkRejectSubmissionsAction,
   rejectSubmissionAction,
   flagNeedsReviewAction,
 } from "@/actions/moderation";
@@ -45,6 +47,7 @@ import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports"
 import { cn } from "@/lib/utils";
 import { SuperSportsRecordingLink } from "@/components/super-sports-recording-link";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type ModRow = {
   id: string;
@@ -93,6 +96,10 @@ export function ModeratorDashboard({
   isAdmin?: boolean;
 }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const columnHelper = createColumnHelper<ModRow>();
   const sportBySubmissionId = useMemo(() => {
     const m = new Map<string, SchoolSport>();
@@ -114,6 +121,36 @@ export function ModeratorDashboard({
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: "select",
+        header: () => (
+          <Checkbox
+            checked={rows.length > 0 && selectedIds.size === rows.length}
+            onCheckedChange={() => {
+              if (selectedIds.size === rows.length) {
+                setSelectedIds(new Set());
+              } else {
+                setSelectedIds(new Set(rows.map((r) => r.id)));
+              }
+            }}
+            aria-label="Select all in queue"
+          />
+        ),
+        cell: (ctx) => (
+          <Checkbox
+            checked={selectedIds.has(ctx.row.original.id)}
+            onCheckedChange={() => {
+              setSelectedIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(ctx.row.original.id)) next.delete(ctx.row.original.id);
+                else next.add(ctx.row.original.id);
+                return next;
+              });
+            }}
+            aria-label={`Select row ${ctx.row.original.id}`}
+          />
+        ),
+      }),
       columnHelper.accessor("submittedAt", {
         header: "Submitted",
         cell: (i) => format(new Date(i.getValue()), "dd MMM yyyy HH:mm"),
@@ -163,7 +200,17 @@ export function ModeratorDashboard({
         ),
       }),
     ],
-    [columnHelper, sportBySubmissionId, teamOptions, seasonOptions, competitionOptions, pendingId, isAdmin]
+    [
+      columnHelper,
+      sportBySubmissionId,
+      teamOptions,
+      seasonOptions,
+      competitionOptions,
+      pendingId,
+      isAdmin,
+      rows,
+      selectedIds,
+    ]
   );
 
   const table = useReactTable({
@@ -174,10 +221,99 @@ export function ModeratorDashboard({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="space-y-3">
         <p className="text-sm text-muted-foreground">
           Recent activity: use filters in your workflow; table is sorted by submission time.
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={bulkBusy || selectedIds.size === 0}
+            onClick={() => setBulkRejectOpen(true)}
+          >
+            Reject selected ({selectedIds.size})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="default"
+            disabled={bulkBusy || selectedIds.size === 0}
+            onClick={() => {
+              setBulkBusy(true);
+              void (async () => {
+                const res = await bulkApproveSubmissionsAction({
+                  submissionIds: Array.from(selectedIds),
+                  verificationLevel: "MODERATOR_VERIFIED",
+                });
+                setBulkBusy(false);
+                if (!res.ok) {
+                  toast.error("Bulk approve failed");
+                  return;
+                }
+                if ("errors" in res && Array.isArray(res.errors) && res.errors.length > 0) {
+                  toast.message(`Approved ${res.approved}; skipped ${res.skipped}.`, {
+                    description: res.errors.slice(0, 5).join("\n"),
+                  });
+                } else {
+                  toast.success(`Approved ${res.approved}${res.skipped ? `; skipped ${res.skipped}` : ""}`);
+                }
+                setSelectedIds(new Set());
+                window.location.reload();
+              })();
+            }}
+          >
+            Approve selected (stored team IDs)
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Bulk approve uses each row&apos;s submitted home/away team UUIDs and scores. Use Review to fix teams first.
+          </p>
+        </div>
+        <Dialog open={bulkRejectOpen} onOpenChange={setBulkRejectOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Reject {selectedIds.size} submission(s)</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="bulk-reject-reason">Reason</Label>
+              <Textarea
+                id="bulk-reject-reason"
+                value={bulkRejectReason}
+                onChange={(e) => setBulkRejectReason(e.target.value)}
+                rows={3}
+                placeholder="Shown in moderation logs."
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={bulkBusy || bulkRejectReason.trim().length < 3}
+                onClick={() => {
+                  setBulkBusy(true);
+                  void (async () => {
+                    const res = await bulkRejectSubmissionsAction({
+                      submissionIds: Array.from(selectedIds),
+                      reason: bulkRejectReason.trim() || "No reason provided",
+                    });
+                    setBulkBusy(false);
+                    if (!res.ok) {
+                      toast.error("Bulk reject failed");
+                      return;
+                    }
+                    toast.success("Rejected selected");
+                    setBulkRejectOpen(false);
+                    setBulkRejectReason("");
+                    setSelectedIds(new Set());
+                    window.location.reload();
+                  })();
+                }}
+              >
+                Confirm reject
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
@@ -195,7 +331,7 @@ export function ModeratorDashboard({
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Queue is empty.
                 </TableCell>
               </TableRow>
@@ -578,6 +714,23 @@ function ReviewDialog({
                 ))}
               </select>
             </div>
+            {homeTeamSel || awayTeamSel ? (
+              <div className="space-y-1 sm:col-span-2 rounded-md border border-border/60 bg-muted/30 p-2 text-[0.75rem] text-muted-foreground">
+                <p className="font-medium text-foreground">Will publish as (directory)</p>
+                <p>
+                  Home:{" "}
+                  <span className="text-foreground">
+                    {teamsForSport.find((t) => t.teamId === homeTeamSel)?.label ?? "—"}
+                  </span>
+                </p>
+                <p>
+                  Away:{" "}
+                  <span className="text-foreground">
+                    {teamsForSport.find((t) => t.teamId === awayTeamSel)?.label ?? "—"}
+                  </span>
+                </p>
+              </div>
+            ) : null}
             <div className="space-y-1">
               <Label>Season (optional)</Label>
               <select

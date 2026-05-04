@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { schoolAdminScheduleLiveSessionAction } from "@/actions/school-admin-live";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 import { schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { cn } from "@/lib/utils";
 
@@ -17,11 +18,19 @@ type TeamOpt = {
   schoolName: string;
   sport: SchoolSport;
   ageGroup: string;
+  teamLabel: string;
   gender: string | null;
 };
 
 type SchoolHit = { id: string; displayName: string };
-type TeamHit = { id: string; label: string; sport: SchoolSport; ageGroup: string; gender: string | null };
+type TeamHit = {
+  id: string;
+  label: string;
+  sport: SchoolSport;
+  ageGroup: string;
+  teamLabel: string;
+  gender: string | null;
+};
 
 export function SchoolAdminScheduleLiveForm({
   homeTeamOptions,
@@ -143,6 +152,19 @@ export function SchoolAdminScheduleLiveForm({
     setAwayTeamId(hit.id);
     setAwayLabel(awaySchool ? `${awaySchool.displayName} · ${hit.label}` : hit.label);
   }, [awayTeamPick, awayTeamHits, awaySchool]);
+
+  useEffect(() => {
+    if (!awaySchool || awayTeamHits.length === 0 || awayTeamPick) return;
+    const home = homeTeamOptions.find((o) => o.id === homeTeamId);
+    if (!home) return;
+    const match =
+      awayTeamHits.find(
+        (h) =>
+          sameAgeGroupBand(h.ageGroup, home.ageGroup) &&
+          h.teamLabel.trim().toLowerCase() === home.teamLabel.trim().toLowerCase()
+      ) ?? awayTeamHits.find((h) => sameAgeGroupBand(h.ageGroup, home.ageGroup));
+    if (match) setAwayTeamPick(match.id);
+  }, [awaySchool, awayTeamHits, awayTeamPick, homeTeamId, homeTeamOptions]);
 
   useEffect(() => {
     if (goesLocal) return;

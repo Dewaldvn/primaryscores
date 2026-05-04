@@ -25,7 +25,7 @@ import { LiveSessionShareBar } from "@/components/live-session-share-bar";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
 import type { LiveSessionClientRow, LiveSessionViewer } from "@/lib/live-session-types";
 
-export const RUGBY_SCORE_STEPS = [3, 5, 7] as const;
+export const RUGBY_SCORE_STEPS = [2, 3, 5, 7] as const;
 export const NETBALL_HOCKEY_SOCCER_SCORE_STEPS = [1] as const;
 
 /** After score buttons stop changing, submit automatically (middle of 3–5s). */

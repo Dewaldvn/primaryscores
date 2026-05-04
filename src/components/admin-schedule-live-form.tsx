@@ -7,11 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminScheduleLiveSessionAction } from "@/actions/admin-schedule-live";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 import { SCHOOL_SPORTS, schoolSportLabel, type SchoolSport } from "@/lib/sports";
 import { cn } from "@/lib/utils";
 
 type SchoolHit = { id: string; displayName: string };
-type TeamHit = { id: string; label: string; sport: SchoolSport; ageGroup: string; gender: string | null };
+type TeamHit = {
+  id: string;
+  label: string;
+  sport: SchoolSport;
+  ageGroup: string;
+  teamLabel: string;
+  gender: string | null;
+};
 
 export function AdminScheduleLiveForm({
   seasonOptions,
@@ -52,8 +60,6 @@ export function AdminScheduleLiveForm({
     () => competitionOptions.filter((o) => o.sport === sport),
     [competitionOptions, sport]
   );
-
-  const homeTeamMeta = homeTeamHits.find((h) => h.id === homeTeamPick) ?? null;
 
   useEffect(() => {
     if (homeSchoolQ.trim().length < 2) {
@@ -99,40 +105,62 @@ export function AdminScheduleLiveForm({
     };
   }, [awaySchoolQ]);
 
-  const fetchTeamsForSchool = useCallback(
-    async (schoolId: string, role: "home" | "away") => {
+  const loadHomeTeams = useCallback(async (schoolId: string) => {
+    const params = new URLSearchParams({ schoolId, sport });
+    const res = await fetch(`/api/teams/by-school?${params.toString()}`, { cache: "no-store" });
+    const rows = (await res.json()) as TeamHit[];
+    const list = Array.isArray(rows) ? rows : [];
+    setHomeTeamHits(list);
+    setHomeTeamPick("");
+    setHomeTeamId("");
+  }, [sport]);
+
+  const loadAwayTeams = useCallback(
+    async (schoolId: string, homeMeta: Pick<TeamHit, "ageGroup" | "gender"> | null) => {
       const params = new URLSearchParams({ schoolId, sport });
-      if (role === "away" && sport === "HOCKEY" && homeTeamMeta?.gender) {
-        params.set("gender", homeTeamMeta.gender);
+      if (sport === "HOCKEY" && homeMeta?.gender) {
+        params.set("gender", homeMeta.gender);
       }
-      if (role === "away" && homeTeamMeta?.ageGroup) {
-        params.set("ageGroup", homeTeamMeta.ageGroup);
+      if (homeMeta?.ageGroup) {
+        params.set("ageGroup", homeMeta.ageGroup);
       }
       const res = await fetch(`/api/teams/by-school?${params.toString()}`, { cache: "no-store" });
       const rows = (await res.json()) as TeamHit[];
       const list = Array.isArray(rows) ? rows : [];
-      if (role === "home") {
-        setHomeTeamHits(list);
-        setHomeTeamPick("");
-        setHomeTeamId("");
-      } else {
-        setAwayTeamHits(list);
-        setAwayTeamPick("");
-        setAwayTeamId("");
-      }
+      setAwayTeamHits(list);
+      setAwayTeamPick("");
+      setAwayTeamId("");
     },
-    [homeTeamMeta?.ageGroup, homeTeamMeta?.gender, sport]
+    [sport]
   );
 
   useEffect(() => {
     if (!homeSchool) return;
-    void fetchTeamsForSchool(homeSchool.id, "home");
-  }, [fetchTeamsForSchool, homeSchool]);
+    void loadHomeTeams(homeSchool.id);
+  }, [loadHomeTeams, homeSchool]);
 
   useEffect(() => {
     if (!awaySchool || !homeTeamPick) return;
-    void fetchTeamsForSchool(awaySchool.id, "away");
-  }, [awaySchool, fetchTeamsForSchool, homeTeamPick]);
+    const homeMeta = homeTeamHits.find((h) => h.id === homeTeamPick) ?? null;
+    if (!homeMeta) return;
+    void loadAwayTeams(awaySchool.id, homeMeta);
+  }, [awaySchool, homeTeamPick, homeTeamHits, loadAwayTeams]);
+
+  /** After away teams load for the opponent school, default to the matching age/side (e.g. U16A vs U16A). */
+  useEffect(() => {
+    if (!awaySchool || !homeTeamPick || awayTeamPick) return;
+    const homeHit = homeTeamHits.find((h) => h.id === homeTeamPick);
+    if (!homeHit || awayTeamHits.length === 0) return;
+    const byLabel = awayTeamHits.find(
+      (h) =>
+        h.teamLabel.trim().toLowerCase() === homeHit.teamLabel.trim().toLowerCase() &&
+        sameAgeGroupBand(h.ageGroup, homeHit.ageGroup)
+    );
+    const bandMatch =
+      byLabel ?? awayTeamHits.find((h) => sameAgeGroupBand(h.ageGroup, homeHit.ageGroup)) ?? null;
+    const pick = bandMatch ?? awayTeamHits[0];
+    if (pick) setAwayTeamPick(pick.id);
+  }, [awaySchool, awayTeamPick, awayTeamHits, homeTeamHits, homeTeamPick]);
 
   useEffect(() => {
     setHomeSchool(null);

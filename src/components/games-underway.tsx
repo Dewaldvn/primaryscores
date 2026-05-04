@@ -23,6 +23,7 @@ import { createLiveSessionAction } from "@/actions/live-scores";
 import { cn } from "@/lib/utils";
 import { SCORE_RESULT_FRAME_CLASS } from "@/lib/score-result-frame";
 import { ScoreCardSportIcons } from "@/components/score-card-sport-icons";
+import { sameAgeGroupBand } from "@/lib/age-group-match";
 import { LIVE_AUTO_SUBMIT_AFTER_MIN, LIVE_WRAPUP_AFTER_MIN } from "@/lib/live-constants";
 import type { LiveSessionClientRow, LiveSessionMajority } from "@/lib/live-session-types";
 import type { SchoolSport } from "@/lib/sports";
@@ -45,6 +46,7 @@ type TeamOption = {
   label: string;
   sport: SchoolSport;
   ageGroup: string;
+  teamLabel: string;
   gender: TeamGender | null;
 };
 
@@ -577,6 +579,29 @@ function NewLiveGameForm({
       return prev && cOpts.some((c) => c.id === prev) ? prev : "";
     });
   }, [effectiveSport, seasonOptions, competitionOptions]);
+
+  useEffect(() => {
+    const t1 = school1Field.selectedTeam;
+    if (!t1 || !school2Field.selectedSchool || school2Field.teamId) return;
+    const opts = school2Field.teamOptions;
+    if (opts.length === 0) return;
+    const sameSide =
+      opts.find(
+        (t) =>
+          sameAgeGroupBand(t.ageGroup, t1.ageGroup) &&
+          t.teamLabel.trim().toLowerCase() === t1.teamLabel.trim().toLowerCase()
+      ) ?? opts.find((t) => sameAgeGroupBand(t.ageGroup, t1.ageGroup));
+    const pick = sameSide ?? opts[0];
+    if (pick) school2Field.chooseTeam(pick.id);
+    // Intentionally depend on team option state only (not the whole field object).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot when school-2 team list loads
+  }, [
+    school1Field.selectedTeam,
+    school1Field.teamId,
+    school2Field.selectedSchool,
+    school2Field.teamOptions,
+    school2Field.teamId,
+  ]);
 
   return (
     <form
